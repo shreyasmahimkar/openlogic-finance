@@ -37,3 +37,6 @@ Our architecture path is designed to move from isolated problem-solving to self-
 ### Phase 4: Self-Evolving Systems
 *   **The Goal:** Creating a fully autonomous infrastructure capable of identifying new market regimes and rewriting internal parameters in real-time.
 *   **Agent Capabilities (Level 4):** Empowering the system to dynamically identify gaps in its own capabilities. If an agent needs to track social media buzz but lacks the tool, it will use meta-reasoning to autonomously build, test, and deploy a new "Sentiment Analysis Agent" on the fly.
+
+*   <img width="918" height="1600" alt="screen" src="https://github.com/user-attachments/assets/f9375cc6-ed0c-4b01-9e64-8e946eef50f6" />
+
