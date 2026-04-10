@@ -1,0 +1,17 @@
+{
+  "name": "spy_fetch_eval",
+  "dataset": {
+    "test_cases": [
+      {
+        "input": "Can you fetch SPY data for the last 10 years and create a chart for me?",
+        "expected_tools": [
+          "fetch_stock_data",
+          "plot_stock_data"
+        ],
+        "expected_output_contains": [
+          "assets/SPY_10y_chart.png"
+        ]
+      }
+    ]
+  }
+}
