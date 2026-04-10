@@ -16,9 +16,9 @@ The Data Ingestion Agent runs autonomously using Google Gemini 2.5. It features 
 
 This package strictly conforms to standard AgentOps deployment paradigms. Please refer to the specific documentation files included within this module:
 
-* [**USAGE.md**](./USAGE.md): Complete instructions on launching the ADK interface (`adk web`), executing the `adk eval` automated tracing test harness to verify metric efficiency, and containerizing this pipeline via `uv`/Docker for a seamless stateless deployment on Google Cloud Run.
-* [**ARCHITECTURE.md**](./ARCHITECTURE.md): Our engineering design choices. Details regarding its adherence as an ADK Level 1 simple agent, the roadmap to migrate tooling to the Model Context Protocol (MCP) paradigm, and our Cloud Storage (GCS) artifact integration plans to circumvent ephemeral container constraints.
-* [**implementation-plan.md**](./implementation-plan.md): The project iteration history showing its development footprint across the ADK's core pillars of effectiveness and observability.
+* [**USAGE.md**](./docs/USAGE.md): Complete instructions on launching the ADK interface (`adk web`), executing the `adk eval` automated tracing test harness to verify metric efficiency, and containerizing this pipeline via `uv`/Docker for a seamless stateless deployment on Google Cloud Run.
+* [**ARCHITECTURE.md**](./docs/ARCHITECTURE.md): Our engineering design choices. Details regarding its adherence as an ADK Level 1 simple agent, the roadmap to migrate tooling to the Model Context Protocol (MCP) paradigm, and our Cloud Storage (GCS) artifact integration plans to circumvent ephemeral container constraints.
+* [**implementation-plan.md**](./docs/implementation-plan.md): The project iteration history showing its development footprint across the ADK's core pillars of effectiveness and observability.
 
 ## Getting Started Quickly
 
