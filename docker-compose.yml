@@ -1,0 +1,36 @@
+services:
+  data-ingestion:
+    build:
+      context: ./data_ingestion
+      dockerfile: Dockerfile
+    container_name: openlogic-data-ingestion
+    ports:
+      - "8000:8000"
+    volumes:
+      # Map the container's internal asset directory to a shared root folder on the host
+      # Downstream agents will also mount this same shared-assets directory to access the CSV/PNG artifacts.
+      - ./shared-assets:/app/assets
+    env_file:
+      - .env
+    environment:
+      # Explicitly declare environment variables if .env doesn't map them
+      - APP_HOME=/app
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  moef-coordinator:
+    build:
+      context: ./moe_coordinator
+      dockerfile: Dockerfile
+    container_name: openlogic-moef-coordinator
+    ports:
+      - "8001:8000"
+    volumes:
+       # Mounts the identical artifact volume from the ingestion node so the Coordinator can read the CSVs intuitively
+      - ./shared-assets:/app/assets
+    env_file:
+      - .env
+    environment:
+      - APP_HOME=/app
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
