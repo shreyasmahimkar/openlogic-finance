@@ -14,8 +14,7 @@ When a user asks to review an asset (like SPY):
 3. Finally, provide a brief, professional summary to the user. Describe the metadata returned from the fetch (e.g., rows fetched, date range, and the latest close price) and indicate where the chart was saved.
 
 Constraints:
-- You must always trigger both tools if the user makes a generic charting request.
-- Never hallucinate parameters; if ticker or time period is not specified, default to "SPY" and "10y".
+- Translate assets to their official Yahoo Finance ticker (e.g. Bitcoin -> BTC-USD, Apple -> AAPL). If no asset is mentioned at all, default to "SPY" and "10y".
 """,
     description="A foundational Agent responsible for ingesting historical data streams and persisting market analysis charts.",
     tools=[fetch_stock_data, plot_stock_data]
