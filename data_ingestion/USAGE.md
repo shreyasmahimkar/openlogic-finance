@@ -6,9 +6,9 @@ This guide outlines how to interact with the Data Ingestion Agent locally using 
 
 Ensure you have initialized the virtual environment with Python 3.11 as defined in the deployment plan:
 ```bash
-uv venv --python "python3.11" ".venv"
-source .venv/bin/activate
-uv pip install -r data-ingestion/requirements.txt
+uv venv --python "python3.11" "data-ingestion-env"
+source data-ingestion-env/bin/activate
+uv pip install -r data_ingestion/requirements.txt
 ```
 
 ## Running the Agent Locally
@@ -18,7 +18,7 @@ The ADK framework offers multiple ways to interact with agents natively. You mus
 ### 1. Interactive Web UI (Recommended for Trace Inspection)
 You can test the agent and view its cognitive trace using the ADK Web UI:
 ```bash
-adk web data-ingestion
+adk web .
 ```
 *   This will start a local server. Open the displayed URL in your browser.
 *   Ask: *"Please fetch and plot SPY for the last 10 years."*
@@ -34,7 +34,7 @@ adk run data-ingestion
 
 To verify the quality metrics of the agent against our established benchmark dataset, use the `eval` command:
 ```bash
-adk eval data-ingestion data-ingestion/eval/spy_fetch.test.json
+adk eval data_ingestion data_ingestion/eval/spy_fetch.test.json
 ```
 This ensures the agent is satisfying the Day 4 "Effectiveness" criteria by picking the intended tools without hallucinations.
 
@@ -43,9 +43,9 @@ This ensures the agent is satisfying the Day 4 "Effectiveness" criteria by picki
 The included Dockerfile is ready for Cloud Run. The container runs the `adk api_server` on startup, which exposes the agent as a REST API.
 
 ```bash
-cd data-ingestion
-docker build -t data-ingestion-agent .
+cd data_ingestion
+docker build -t data_ingestion_agent .
 
 # Assuming you have gcloud installed:
-# gcloud run deploy data-ingestion-agent --image data-ingestion-agent --region us-central1 --allow-unauthenticated
+# gcloud run deploy data_ingestion_agent --image data_ingestion_agent --region us-central1 --allow-unauthenticated
 ```

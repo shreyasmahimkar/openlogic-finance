@@ -1,0 +1,19 @@
+# Environment variables
+*.env
+
+# Virtual environments
+*env/
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ADK and generated output
+**/.adk/
+assets/
+
+# OS files
+.DS_Store

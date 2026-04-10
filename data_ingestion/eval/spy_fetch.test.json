@@ -1,0 +1,46 @@
+{
+  "eval_set_id": "spy-fetch-eval-v1",
+  "name": "SPY Data Fetch Evaluation",
+  "description": "Evaluates if the agent can correctly route the query to fetch and plot SPY stock data.",
+  "eval_cases": [
+    {
+      "eval_id": "test_case_1",
+      "conversation": [
+        {
+          "invocation_id": "invocation_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Please fetch and plot SPY for the last 10 years."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": null,
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "id": null,
+                "args": {
+                  "ticker": "SPY",
+                  "period": "10y"
+                },
+                "name": "fetch_stock_data"
+              },
+              {
+                "id": null,
+                "args": {
+                  "ticker": "SPY",
+                  "period": "10y"
+                },
+                "name": "plot_stock_data"
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": null
+    }
+  ]
+}
