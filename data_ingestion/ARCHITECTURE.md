@@ -22,7 +22,7 @@ This agent follows the simplest ADK blueprint. It is given a single, explicit go
 
 ## 2. Future Considerations & Technical Debt
 
-As you scale the OpenLogic "CandleSage" framework, you must address the following limitations of this v1 prototype:
+As you scale the OpenLogic framework, you must address the following limitations of this v1 prototype:
 
 ### Ephemeral Storage (Critical Cloud Run Issue)
 Currently, `tools.py` saves CSV files and PNG charts to the local file system (`/app/assets`). **Google Cloud Run container instances are ephemeral.** Upon termination, all local assets will be wiped out.
