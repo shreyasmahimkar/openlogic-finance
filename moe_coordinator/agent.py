@@ -41,7 +41,7 @@ def invoke_moe_filter(market_context_url: str, most_recent_close_change: float) 
 root_agent = Agent(
     name="moef_coordinator",
     model="gemini-2.5-flash",
-    instruction="""You are the CandleSage Root Agent implementing the MoE-F (Stochastic Filtering) paper.
+    instruction="""You are the Root Agent implementing the MoE-F (Stochastic Filtering) paper.
 Your goal is to coordinate predictions using an ensemble of 3 distinct LLM personas.
 
 Whenever the user asks for a market forecast:

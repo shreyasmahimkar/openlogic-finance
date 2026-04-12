@@ -1,6 +1,6 @@
 # MoE-F Coordinator Agent
 
-The mathematical brain of the CandleSage OpenLogic ecosystem! 
+The mathematical brain of the OpenLogic ecosystem! 
 It leverages a continuous-time Hidden Markov Model (Wonham-Shiryaev Filter) to evaluate its ensemble of foundation LLMs against true market moves retrieved by the `data_ingestion` agent. At each time step, it recalculates trust weights ($\pi_n$) via soft-min Gibbs aggregation, outputting an incredibly resilient stock prediction.
 
 ## 🏗️ Architecture Overview
