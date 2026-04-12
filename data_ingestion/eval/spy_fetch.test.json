@@ -16,7 +16,14 @@
             ],
             "role": "user"
           },
-          "final_response": null,
+          "final_response": {
+            "parts": [
+              {
+                "text": "I have successfully fetched 2515 rows of historical stock data for SPY, covering the period from 2016-04-11 to 2026-04-10. The latest closing price for SPY is 679.46.\n\nA chart visualizing this data has been successfully generated and saved at `assets/SPY_10y_chart.png`."
+              }
+            ],
+            "role": "model"
+          },
           "intermediate_data": {
             "tool_uses": [
               {
