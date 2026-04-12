@@ -5,7 +5,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 from typing import List
+from google.genai import types
 from google.adk.agents import Agent
+from google.adk.tools.agent_tool import AgentTool
+from google.adk.runners import Runner
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from google.adk.utils.context_utils import Aclosing
 from .filters import MoEF_Filter
 from .experts import EXPERTS
 
@@ -28,11 +34,28 @@ def save_state(state: dict):
 async def _poll_expert(idx, expert, prompt):
     """Internal helper to poll an ADK agent async and extract its text output."""
     try:
-        response_gen = expert.run_async(prompt)
+        runner = Runner(
+            app_name=expert.name,
+            agent=expert,
+            session_service=InMemorySessionService(),
+            memory_service=InMemoryMemoryService()
+        )
+        session = await runner.session_service.create_session(
+            app_name=expert.name,
+            user_id="system",
+            state={}
+        )
+        content = types.Content(role='user', parts=[types.Part.from_text(text=prompt)])
         text_out = ""
-        async for event in response_gen:
-            if hasattr(event, "text") and event.text is not None:
-                text_out += event.text
+        
+        async with Aclosing(
+            runner.run_async(user_id="system", session_id=session.id, new_message=content)
+        ) as agen:
+            async for event in agen:
+                if event.content and event.content.parts:
+                    text_out += "\n".join(p.text for p in event.content.parts if p.text and not getattr(p, "thought", False))
+        
+        await runner.close()
         
         # Parse output rigidly to a float
         val = float(text_out.strip())
@@ -160,6 +183,9 @@ async def invoke_moe_filter(market_context_url: str) -> str:
            f"{plot_msg}")
     return res
 
+from data_ingestion.agent import root_agent as data_ingestion_agent
+data_ingestion_tool = AgentTool(agent=data_ingestion_agent)
+
 root_agent = Agent(
     name="moef_coordinator",
     model="gemini-2.5-flash",
@@ -167,9 +193,9 @@ root_agent = Agent(
 Your goal is to coordinate predictions using an ensemble of 3 distinct LLM personas.
 
 Whenever the user asks for a market forecast, you must sequentially:
-1. Observe the `market_context_url` (like an `assets/SPY_10y.csv` path from the ingestion phase). If you don't have one, ask for it.
-2. Trigger the `invoke_moe_filter` tool.
+1. Call the `data_ingestion_agent` to fetch the historical data. The ingestion agent will return a message specifying where it saved the CSV file (e.g. `assets/SPY_10y.csv` or similar). Extract this path.
+2. Trigger the `invoke_moe_filter` tool and pass it the exact CSV path retrieved from the ingestion phase.
 3. Return the mathematically grouped Ensemble Prediction to the user, exploring which expert was rewarded most heavily this time step.""",
     description="Orchestrator Agent routing data through the Wonham-Shiryaev gating filter.",
-    tools=[invoke_moe_filter]
+    tools=[invoke_moe_filter, data_ingestion_tool]
 )
