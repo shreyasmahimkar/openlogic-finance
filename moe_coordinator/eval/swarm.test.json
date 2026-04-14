@@ -1,0 +1,10 @@
+{
+  "name": "MoE-F Parallel Swarm Probabilities check",
+  "dataset": [
+    {
+      "input": "Assume context: {OHLCV data mock}. Provide exactly one float representation.",
+      "expected_output_type": "float",
+      "metrics": ["instruction_following"]
+    }
+  ]
+}

@@ -1,97 +1,123 @@
 import numpy as np
-import scipy.linalg
-from typing import List, Dict
+import scipy.linalg as la
+from google.adk.tools import AgentTool
+from typing import Dict, Any
 
-class MoEF_Filter:
+def compute_input_sensitivity_gradient(prediction: float, ground_truth: float, delta_f: float) -> float:
+    # A_t implementation (Simplified for brevity based on BCE/MSE helper functions)
+    return (ground_truth - prediction) * delta_f
+
+def compute_target_sensitivity_gradient(prediction: float) -> float:
+    # B_t implementation
+    return 1.0  # Placeholder simplifying to constant diffusion scalar
+
+def calculate_loss(prediction: float, ground_truth: float) -> float:
+    return (prediction - ground_truth) ** 2
+
+def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: float, state: Any) -> float:
     """
-    Implements the Stochastic Filtering-Based Online Gating logic (MoE-F)
-    from "Filtered not Mixed" (Saqur et al.).
+    Executes the Euler-Maruyama discrete update for the Wonham-Shiryaev filter.
+    Calculates At, Bt, Delta W, and updates the local belief pi.
+    """
+    # Initialize state variables safely
+    num_experts = 3
+    pi = state.get(f"pi_{agent_id}", np.ones(num_experts) / num_experts)
+    # Default uniform transition matrix if not present
+    Q_default = (1.0 / (num_experts - 1)) * (np.ones((num_experts, num_experts)) - np.eye(num_experts))
+    # Correct diagonal to make rows sum to 0
+    np.fill_diagonal(Q_default, -1.0)
     
-    This optimal parallel filtering algorithm uses the Wonham-Shiryaev
-    equations to update expert reliability based on continuous innovations,
-    stochastic drift, and Q-Matrix dynamics.
+    Q = state.get("global_Q_matrix", Q_default)
+    
+    prev_pred = state.get(f"prev_pred_{agent_id}", 0.5)
+    prev_loss = state.get(f"prev_loss_{agent_id}", 0.25)
+    
+    # delta_f approximates the time-derivative of the expert's prediction
+    delta_f = prediction - prev_pred
+    
+    # Calculate SDE components based on Helper Functions 
+    A_t = compute_input_sensitivity_gradient(prediction, ground_truth, delta_f) 
+    B_t = compute_target_sensitivity_gradient(prediction)
+    
+    # Since pi is a vector representing the belief over true underlying experts, A_bar_t is the expected value
+    A_bar_t = np.dot(A_t * np.ones(num_experts), pi)
+    
+    # Innovations process formulation
+    current_loss = calculate_loss(prediction, ground_truth)
+    delta_loss = current_loss - prev_loss
+    delta_W = (delta_loss - A_bar_t) / B_t
+    
+    # Update Belief State via Drift and Diffusion
+    drift = np.dot(Q.T, pi)
+    
+    # Diffusion
+    A_t_vec = A_t * np.ones(num_experts)
+    diffusion = pi * (A_t_vec - A_bar_t) / B_t
+    
+    # Update equation
+    new_pi = pi + drift + (diffusion * delta_W)
+    
+    # Enforce probability simplex constraints
+    new_pi = np.clip(new_pi, 1e-6, 1.0)
+    new_pi = new_pi / np.sum(new_pi)
+    
+    # Persist state back to ADK SessionState
+    state.set(f"pi_{agent_id}", new_pi)
+    state.set(f"score_{agent_id}", current_loss)
+    state.set(f"prev_pred_{agent_id}", prediction)
+    state.set(f"prev_loss_{agent_id}", current_loss)
+    
+    # Get all expert predictions so far this turn (can only calculate if others ran)
+    all_expert_preds = state.get("all_expert_predictions", [0.5, 0.5, 0.5])
+    return float(np.dot(new_pi, all_expert_preds))
+
+
+stochastic_filter_update_tool = AgentTool(
+    name="StochasticFilterUpdate",
+    func=stochastic_filter_update,
+    description="Updates the Bayesian belief state for the expert using local SDE calculations."
+)
+
+def robust_gibbs_aggregation(state: Any) -> float:
     """
-    def __init__(self, num_experts: int, lambda_reg: float = 1.0):
-        self.N = num_experts
-        # Lambda controls the "Entropic Regularization"
-        self.lam = lambda_reg
-        
-        # Initialize running scores (loss) s_n
-        self.expert_scores = np.zeros(self.N)
-        # Initialize uniform mixture weights
-        self.weights = np.ones(self.N) / self.N
-        # Intensity matrix Q governing regime shifts
-        self.Q = np.zeros((self.N, self.N))
-        
-    def _loss_fn(self, y_true: float, y_pred: float) -> float:
-        """
-        Calculates the Binary Cross Entropy (BCE) or MSE loss.
-        """
-        return (y_true - y_pred) ** 2
-        
-    def update_filter(self, y_true: float, expert_preds: List[float]) -> np.ndarray:
-        """
-        Executes Step 1 (Optimal Parallel Filtering) from the MoE-F framework.
-        Updates the filter by calculating innovations, drift, and diffusion.
-        """
-        assert len(expert_preds) == self.N, "Mismatch between predictions and experts."
-        
-        losses = np.array([self._loss_fn(y_true, p) for p in expert_preds])
-        self.expert_scores += losses
-        
-        # 1. Expected average loss (A_bar)
-        expected_loss = np.dot(self.weights, losses)
-        
-        # 2. Innovations Process (Delta W)
-        innovations = losses - expected_loss
-        
-        # 3. Calculate Q-Matrix Dynamics (Matrix Log of row-stochastic P)
-        unnormalized_scores = np.exp(-self.lam * self.expert_scores)
-        P_bar = unnormalized_scores / np.sum(unnormalized_scores)
-        
-        # Pseudo-transition matrix P
-        P = np.tile(P_bar, (self.N, 1))
-        # Add tiny strictly positive noise for matrix log stability
-        P = (P + 1e-4) / np.sum(P + 1e-4, axis=1, keepdims=True)
-        self.Q = scipy.linalg.logm(P).real
-        
-        # 4. Stochastic Drift (Q^T * pi)
-        drift = np.dot(self.Q.T, self.weights)
-        
-        # 5. Diffusion Process (pi(A - A_bar)/B)
-        diffusion = self.weights * innovations
-        
-        # Update weights (Euler-Maruyama step) using drift and diffusion
-        # We subtract diffusion because higher error should decrease weight
-        self.weights = self.weights + drift - diffusion * self.lam
-        
-        # Enforce probability simplex constraints
-        self.weights = np.clip(self.weights, 1e-5, 1.0)
-        self.weights /= np.sum(self.weights)
-        
-        return self.weights
+    Executes Theorem 2: Softmin aggregation and outer-loop Q-Matrix update.
+    """
+    scores = [
+        state.get("score_Llama_Expert", 0.5), 
+        state.get("score_GPT4o_Expert", 0.5), 
+        state.get("score_Mixtral_Expert", 0.5)
+    ]
+    lambda_param = state.get("lambda_hyperparam", 1.0)
+    
+    # PAC-Bayes Softmin aggregation
+    exp_scores = np.exp(-lambda_param * np.array(scores))
+    pi_bar = exp_scores / np.sum(exp_scores)
+    
+    # Final robust ensemble prediction
+    predictions = [
+        state.get("pred_llama", 0.5), 
+        state.get("pred_gpt", 0.5), 
+        state.get("pred_mixtral", 0.5)
+    ]
+    final_y = np.dot(pi_bar, predictions)
+    
+    # Bi-level robust Q-Matrix Update with Regularization Perturbation
+    alpha = 0.05
+    P = np.tile(pi_bar, (len(scores), 1))
+    P_reg = (1 - alpha) * P + alpha * np.eye(len(scores))
+    
+    # Principal Matrix Logarithm to yield valid transition matrix intensity
+    Q_new = np.maximum(0, la.logm(P_reg).real)
+    np.fill_diagonal(Q_new, 0)
+    # Ensure row sums = 0
+    Q_new = Q_new - np.diag(np.sum(Q_new, axis=1))
+    
+    state.set("global_Q_matrix", Q_new)
+    state.set("final_prediction", final_y)
+    return float(final_y)
 
-    def predict_ensemble(self, new_expert_preds: List[float]) -> float:
-        """
-        Calculates the robust ensemble prediction.
-        """
-        assert len(new_expert_preds) == self.N, "Mismatch between predictions and experts."
-        return float(np.dot(self.weights, new_expert_preds))
-
-    def get_expert_rankings(self) -> Dict[int, float]:
-        """Returns the current gating allocation for observability."""
-        return {i: float(self.weights[i]) for i in range(self.N)}
-
-    def get_state(self) -> Dict:
-        """Exports ADK memory state."""
-        return {
-            "expert_scores": self.expert_scores.tolist(),
-            "weights": self.weights.tolist(),
-            "Q": self.Q.tolist()
-        }
-
-    def set_state(self, state: Dict):
-        """Loads ADK memory state."""
-        self.expert_scores = np.array(state.get("expert_scores", np.zeros(self.N)))
-        self.weights = np.array(state.get("weights", np.ones(self.N) / self.N))
-        self.Q = np.array(state.get("Q", np.zeros((self.N, self.N))))
+robust_gibbs_aggregation_tool = AgentTool(
+    name="GibbsAggregator",
+    func=robust_gibbs_aggregation,
+    description="Aggregates the Swarm's filtered scores into a robust MoE-F prediction."
+)
