@@ -1,0 +1,320 @@
+Stochastic Filtering in Level 3 Multi-Agent Architectures: A Comprehensive Analysis of MoE-F and Implementation via Google Agent Development Kit
+Introduction to Dynamic Gating in Foundation Models
+The proliferation of Mixture of Experts (MoE) architectures has fundamentally transformed the scalability of generative artificial intelligence and large language models (LLMs). By decoupling the total parameter count from the active computational cost, MoE mechanisms facilitate the training of massive foundation models. Traditional MoE systems rely on a sparse activation strategy wherein multiple specialized offline expert models are banked, and a learned gating network routes each specific input to a small subset of these experts. However, these classical MoE pipelines are designed predominantly for static tasks that lack temporal structure. Consequently, the routing mechanisms remain constant in time, relying entirely on learned weights established during pre-training or instruction tuning.
+This static paradigm fails to capitalize on the dynamic temporal structures inherent in complex prediction problems across fields such as quantitative finance, physical simulations, and decision science. As incoming time-series data streams arrive, the optimal combination of expert models naturally shifts based on environmental regime changes, rendering statically learned routing layers sub-optimal.
+The Mixture-of-Experts Filter (MoE-F) framework introduces a formalized mathematical mechanism to resolve this limitation. Rather than relying on a static routing layer, MoE-F functions as a time-adaptive, stochastic filtering harness deployed over any heterogeneous ensemble of pre-trained LLMs. By framing the expert selection problem as a finite state-space, continuous-time Hidden Markov Model (HMM), the framework leverages stochastic optimal filtering theory to dynamically forecast the optimal weighting of LLM predictions at every time step.
+Simultaneously, the software engineering paradigm for artificial intelligence is shifting from isolated, monolithic models to Multi-Agent Systems (MAS). Google's Agent Development Kit (ADK) represents the cutting edge of this transition, offering an open-source, code-first toolkit designed to orchestrate sophisticated agent behaviors across distributed topologies. Under the industry-standard multi-agent taxonomy, a "Level 3" architecture defines a collaborative system where independent agents with specialized cognitive processing capabilities interact, evaluate ambiguity, and dynamically plan multi-step execution flows without relying on a rigid, single-prompt structure.
+This comprehensive report presents an exhaustive evaluation of the theoretical mechanics underlying MoE-F, mathematically decodes its derivations and empirical charts, incorporates detailed methodologies from the appendices including data ingestion and context engineering, and uniquely translates this stochastic filtering framework into a robust Level 3 Multi-Agent Architecture utilizing the Google ADK. By mapping continuous-time mathematical filters into discrete, parallel agentic nodes, the analysis bridges advanced stochastic control theory with state-of-the-art enterprise artificial intelligence deployment.
+Mathematical Preliminaries and the Continuous-Time Hidden Markov Model
+The theoretical backbone of the MoE-F framework relies on stochastic calculus and the theory of continuous-time Markov chains to formulate an online Bayesian update mechanism. Instead of training a neural router, the system models the true, optimal combination of experts as an unobservable signal process that must be estimated from noisy historical performance measurements.
+The environment is defined by a continuously differentiable input path . The right-continuous filtration  takes values in  and tracks the accumulation of information over time, supporting a one-dimensional Brownian motion . The primary objective is to predict a one-dimensional target stochastic process, . Rather than assuming a static relationship, the framework postulates that  evolves according to a continuous-time Stochastic Differential Equation (SDE) defined as:
+
+In this fundamental formulation, the term  represents the true best sparse approximation of the target process by the ensemble of  experts. The experts are concatenated into the vector . The variable  is the critical component; it is a hidden Markov process taking values in the standard basis  of . At any given moment,  mathematically dictates which expert best approximates the target process. Because the true optimal expert is unobservable,  functions as a hidden signal masked by the idiosyncratic residual noise modeled by the additive Gaussian term .
+The evolution of the hidden process  is governed by its intensity matrix, or Q-matrix, denoted $Q^{(n)}: Formally, for states  and time increments , the  entry  of the Q-matrix is defined by the relationship:
+
+where  is the indicator function, ensuring identity when states match, and  represents higher-order terms that vanish as the time increment  approaches zero. The framework operates under specific regularity conditions, notably Assumption 2.1, which requires that the input path  is once continuously differentiable and that there exists a constant  bounding the entries of the Q-matrix such that .
+The Shiryaev-Wonham Filter Context
+The challenge of estimating the unobservable process  from the running loss of the expert models constitutes a classical continuous-time, finite state-space stochastic filtering problem originally studied by Wonham and Shiryaev. General stochastic filtering theory typically results in infinite-dimensional, computationally intractable equations. However, because the state-space of the signal process  is discrete and the observation process is univariate, the MoE-F framework can exploit the Shiryaev-Wonham filter to yield exact, finite-dimensional closed-form recursions.
+As detailed in Appendix D, the foundational mathematics of this filter assume a right-continuous Markov process  taking values in a countable set, governed by transition probabilities . The observation process  is defined by the stochastic differential . Provided specific growth and Lipschitz continuity conditions are met regarding the functionals  and , the a posteriori probability  satisfies the system of equations:
+
+where  is the adjoint operator representing the drift of the Markov chain,  is the weighted average of the drift, and  is the innovations process capturing the divergence between expected and realized observations. The MoE-F algorithm directly adapts this continuous-time theorem into a discrete-time parallel computing mechanism suitable for modern LLM ensembles.
+The MoE-F Algorithm and Analytical Helper Functions
+To operationalize the Shiryaev-Wonham filter for deep learning models, the framework defines a series of helper functions that compute the gradients of the experts' loss processes. The algorithm accommodates both classification tasks using Binary Cross-Entropy (BCE) loss and regression tasks utilizing Mean-Squared Error (MSE) loss.
+Helper Functions for Binary Cross-Entropy (BCE)
+For binary or transformed ternary classification tasks, the target variable  and the prediction  are bounded within $$. The helper functions calculate the sensitivity of the  expert to changes in the input path and the target. The function  computes the gradient of the loss accounting for the sensitivity of the expert to changes in the input path:
+
+The term  approximates the time-derivative of the expert's prediction, formalized as the limit , which essentially measures the localized momentum or shift in the LLM's output. The function  averages this sensitivity uniformly over the latent expert states, computing the expectation under the current belief distribution:
+
+Function  quantifies the gradient of the loss function with respect to the observed target, explicitly ignoring shifts in the underlying input path:
+
+Helper Functions for Mean-Squared Error (MSE)
+When applied to unbounded targets in regression tasks, the framework utilizes squared-norm loss. The derivation of the helper functions shifts accordingly to account for the altered geometry of the loss landscape. In this domain, the helper function  is defined as:
+
+The averaging function  remains structurally identical, aggregating the dot product of  and the belief vector . The gradient with respect to the target, , simplifies significantly under the quadratic loss derivative:
+
+These functional definitions parameterize the SDE for the conditional probability , which represents the best a posteriori estimate of the optimal expert given the filtration of historical losses.
+Conceptual Pipeline and Algorithmic Flow
+The conceptual architecture of the MoE-F mechanism is illustrated in Figure 2 of the primary research document. An input signal  evolving in  is fed into  distinct experts. The mechanism operates in two distinct phases: Step 1 (Optimal Parallel Filtering) and Step 2 (Robust Aggregation).
+In Step 1, the system instantiates  independent, parallel computing branches corresponding to the  expert models. Each expert generates a prediction  alongside an internal ranking vector  reflecting its localized belief regarding the reliability of all experts in the system based on its specific loss history. In Step 2, a centralized mixture mechanism ingests these  prediction vectors and optimally aggregates them into a singular robust output  using a Gibbs-measure mechanism. Finally, the performance feedback is used to update the global Q-Matrix, dynamically adjusting the expected transition probabilities for the subsequent time step.
+As detailed in Appendix A, Algorithm 2 operationalizes this as an online roll-forward execution. Initialization establishes the uniform prior  and the initial Q-matrix. As time iterates from  to , the parallel loops calculate the drift () and diffusion components. The innovations process  is derived as . The local posterior is updated via  and subsequently normalized. Following the aggregation of the scores , the central module calculates the Softmin weights and performs the bi-level robust update to the Q-matrix via the Rectified Linear Unit (ReLU) of the matrix logarithm of the regularized probability matrix.
+Theoretical Guarantees: Filtering and Robust Aggregation
+The structural validity of the MoE-F algorithm is anchored by rigorous theoretical guarantees bounding both the parallel Bayesian estimation and the global aggregation phases. The proofs, expanded upon in Appendix B, hinge heavily on Itô's Lemma.
+Theorem 1: Optimal Parallel Filtering
+Theorem 1 establishes the optimal optimistic prior for the  expert under both the BCE and MSE loss paradigms. It guarantees that, under Assumption 4.1, the best a posteriori estimate  satisfies a specific stochastic differential equation.
+For the BCE loss scenario (detailed as Theorem 3 in the generalizations), the belief state evolves according to:
+
+where  denotes the  row of the transition matrix, and the innovations process  is a formal -Brownian motion defined by the integral of the discrepancy between the realized differential loss  and the expected loss gradient , normalized by .
+The proof leverages Itô's Lemma applied to the map . Because the objective function is  smooth and the input path is continuously differentiable, Itô's formula permits the exact derivation of the stochastic differential . The regression variant utilizing squared loss (Theorem 4) follows an identical proof structure, substituting the polynomial partial derivatives of  to derive the alternate stochastic differential .
+Theorem 2: Bi-level Robust Aggregation and Matrix Logarithms
+While Theorem 1 produces optimal Bayesian estimates locally, relying entirely on the internal state of individual filters exposes the system to local biases. Phase 2 introduces a centralized, bi-level optimization module to robustly aggregate these estimates, validated by Theorem 2.
+The aggregation utilizes a Gibbs-measure approach derived from PAC-Bayes theory to convert expert reliability scores into a uniform probability distribution. The inner optimization problem minimizes the expected loss penalized by the Kullback-Leibler (KL) divergence from a uniform prior. The unique minimizer is proven to be the Softmin function:
+
+The global prediction is output as the dot product of these Softmin weights and the individual expert predictions. The algorithm then faces the outer optimization problem: updating the global intensity matrix . As noted in Appendix D, the principal matrix logarithm of an arbitrary row-stochastic transition matrix is not universally guaranteed to be a valid intensity matrix (meaning its rows might not sum to 0). Therefore, the weight matrix  is perturbed by a regularization factor  to form .
+Proposition 2 guarantees the regularity of this perturbation, ensuring the matrix is invertible and its principal logarithm is well-defined provided . The proof of Theorem 2 concludes that the robust intensity matrix approximation  optimally minimizes the infinity-norm distance to the true matrix logarithm. Furthermore, Proposition 1 and Lemma 3 guarantee the stability of these perturbations, proving via the reverse Pinsker inequality that the maximal KL divergence between the unperturbed and perturbed distributions is strictly bounded by .
+Empirical Evaluation: Financial Market Movement
+The theoretical frameworks were subjected to empirical testing across classification and regression domains. For classification, the Financial Market Movement (FMM) prediction task was utilized, mapping market directions into ternary labels: 'Fall', 'Neutral', and 'Rise'.
+Context Engineering and Data Ingestion (Appendix C)
+The primary evaluation leveraged the News-Informed Financial Trend Yield (NIFTY) dataset, predicting the movement of the US Equities market (SPY ticker). Building the NIFTY-LM dataset required a highly structured data ingestion pipeline spanning January 2010 to September 2020.
+The construction of the prompt itself relies on rigorous Context Engineering. As illustrated in Appendix C, the expert policy prompt  is not a simple string, but rather a structured concatenation. It is composed of a task instruction as a prefix (), concatenated with the market context (), and the news value (), mathematically formatted as 1:
+
+To prepare this contextual window for the LLMs, the data ingestion pipeline executed several specific tasks:
+Prompt Generation (): The self-instruct framework paired with OpenAI's GPT-4 was utilized to synthesize 20 variations of instruction prompts, directing the model to forecast whether the SPY index will rise, fall, or remain neutral (defined by a threshold of 0.5% movement).
+Financial Context Building (): The context component was constructed to include newline-delimited market metrics over the trailing 10 days. This ingestion incorporated Open-High-Low-Close-Volume (OHLCV) pricing alongside standard technical indicators such as Moving Average Convergence Divergence (MACD), Bollinger Bands, 30-Day RSI, and Simple Moving Averages (SMA).
+Semantic Filtering (): To ensure relevance, a semantic similarity search was performed on the aggregated news headlines using the SBERT model "all-MiniLM-L6-v2". Headlines were compared against a benchmark of artificially generated financial headlines; any headline scoring below a 0.2 similarity threshold was discarded as non-financial noise.
+Context Truncation: To adhere to LLM context limits, prompts exceeding 3,000 words were truncated by eliminating words with a term frequency-inverse document frequency (tf-idf) score below 0.2.
+NIFTY consists of 2,111 processed conversational queries splitting into 1,477 training samples and 317 test samples. The labels exhibit class imbalance, with a support breakdown of 558 'Rise', 433 'Fall', and 1,122 'Neutral' instances.
+Comparative Performance Analysis
+The evaluation arrayed MoE-F against a highly diverse ensemble of state-of-the-art foundation models: Llama-2 (7B, 70B), Llama-3 (8B, 70B), Mixtral (8x7B), DBRX-Instruct (132B), and OpenAI GPT-4o. Table 2 comprehensively catalogues the superiority of the dynamic filtering approach across all primary metrics.
+None of the individual experts achieved an F1-score exceeding 0.35. In stark contrast, MoE-F attained an F1-score of 0.52—representing a massive 17% absolute and 48.5% relative improvement over the best-performing individual model. The accuracy and precision metrics similarly demonstrate absolute dominance, proving the mathematical filtering limits isolated generative errors.
+Figure 1 provides a critical visualization of MoE-F operating as a time-adaptive harness across three distinct regimes: a mixed market with high fluctuations, a neutral market, and a bearish market trigger. The black ground-truth trajectory is closely tracked by the dotted green MoE-F trajectory, while individual expert predictions scatter widely, frequently failing to identify the correct market direction. Figure 4 complements this by displaying the heatmap of expert weights over these same time windows. The heatmap visually proves the shifting distribution of responsibility. In the presence of a vastly superior expert for a specific regime, MoE-F levies a higher mathematical weight on its decisions.
+Visualizing 7-Day Windowed Predictions (Figure 1)
+To replicate the visual analysis of the predictions shown in Figure 1 of the study, the data is smoothed using a 7-day rolling window to better capture the moving trends across mixed, neutral, and bearish market regimes.
+When building this in Python, you can calculate the rolling statistics using pandas to observe how the MoE-F tracks the ground truth without the distraction of daily, idiosyncratic noise. This rolling technique is executed by utilizing the .rolling(window=7).mean() method.
+
+Python
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Assuming 'df' is a Pandas DataFrame containing 'Date', 'True_Trajectory', and 'MoE_F_Prediction'
+# Calculate the 7-day rolling mean for smoothing the MoE-F predictions
+df = df['MoE_F_Prediction'].rolling(window=7).mean()
+df = df.rolling(window=7).mean()
+
+# Plotting the 7-Day Windowed visualization
+plt.figure(figsize=(12, 6))
+plt.plot(df, df, label='True Market Trajectory', color='black', linewidth=2)
+plt.plot(df, df, label='MoE-F Filtered Trajectory (7-Day)', color='green', linestyle='--', linewidth=2)
+
+# Overlay individual LLM expert scatter points here if desired
+# plt.scatter(df, df['Llama_3_Prediction'], label='Llama-3 8B', alpha=0.5)
+
+plt.xlabel('Trading Days')
+plt.ylabel('Market Movement Direction')
+plt.title('MoE-F Mechanism 7-Day Rolling Trajectory vs Ground Truth')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+This specific visualization technique mirrors the visual proofs of the study, where the green dotted line (the rolling MoE-F average) tightly hugs the black true trajectory.
+Empirical Evaluation: Long-Term Time-Series Forecasting
+Testing extended to multivariate Long-term Time-series Forecasting (LTSF) using the well-adopted ETTh1 and ETTh2 electricity transformer datasets. As detailed in Figure 5, these datasets contain 17,420 hourly timesteps across 7 distinct channels. Because this domain measures discrepancy via Mean Squared Error (MSE), it serves as the test-bed for the regression variant established in Theorem 4.
+Forecasting Granularity and CI Strategy (Appendix E)
+As outlined in Appendix E, the forecasting granularity in LTSF must address the methodology of temporal projection. MoE-F was evaluated against modern architectures using two distinct conceptual frameworks:
+Iterated Multi-step (IMS): This is an auto-regressive approach where each step  is predicted and then fed back into the model to predict the subsequent step. This often leads to severe error accumulation over long horizons.
+Direct Multi-step (DMS): The entire forecasting horizon  is predicted simultaneously, which avoids quadratic attention costs and error looping, a technique favored by modern transformer-based architectures.
+Furthermore, the MoE-F empirical setup embraced the modern Channel Independent (CI) strategy. Rather than analyzing the full multivariate correlation at once, the CI strategy isolates each of the 7 features as a univariate time series. The mechanism seeks a shared function for each univariate series, significantly reducing the complexity of tracking inter-channel dependencies over long prediction horizons.
+Table 5 catalogues the application of MoE-F over three base expert models (PatchTST, DLinear, and SparseTSF) compared against a massive array of contemporary architectures including Informer, Autoformer, Pyraformer, FEDformer, FILM, TimesNet, and FITS.
+The data confirms that even simple heuristic filtering of arbitrary expert models significantly reduces the accumulation of error inherent in long forecasting horizons. Operating without any specific hyperparameter tuning for  or , MoE-F successfully synthesized the underlying strengths of PatchTST, DLinear, and SparseTSF to achieve competitive state-of-the-art MSE metrics.
+Level 3 Multi-Agent Architectures and Google ADK
+Translating the dense stochastic mathematics of MoE-F—alongside the heavy data ingestion pipelines defined in Appendix C—into scalable, production-grade software requires an infrastructure capable of asynchronous state management and cross-model orchestration. The evolution of AI application architecture has moved distinctly from monolithic deployments (Level 0) toward highly collaborative structures.
+In the standardized AI agent taxonomy, capability is delineated into ascending tiers of autonomy. Level 1 consists of conversational AI executing single predefined tool calls. Level 2 introduces strategic orchestration, where a single model utilizes context engineering and retrieval to plan multi-step workflows. Level 3 represents the Collaborative Multi-Agent System paradigm. At Level 3, the architecture departs from deterministic rules, introducing multiple independent agents that coordinate, communicate across frameworks, reason iteratively, handle ambiguity, and evaluate each other's outputs to synthesize a final decision.
+Google's Agent Development Kit (ADK) serves as the primary software infrastructure for constructing these advanced topologies. Designed as an open-source, code-first toolkit, ADK natively supports distinct architectural patterns vital for Level 3 execution. To accurately model the complete MoE-F ecosystem (including the data ingestion defined in Appendix C), the system utilizes two core ADK design patterns:
+The Sequential Pipeline Pattern: Functioning like an assembly line, this pattern is highly deterministic and is ideal for data processing, using the SequentialAgent primitive to pass data sequentially across extraction and filtering agents.
+The Parallel Fan-Out/Gather Pattern: Utilizing the ParallelAgent primitive, this pattern executes multiple tasks simultaneously, sharing session state to drastically reduce latency during the Swarm execution phase.
+Architectural Integration: Implementing MoE-F via Google ADK with YFinance MCP
+To acquire the 10 years of SPY data required for the context window, the architecture integrates the Yahoo Finance Model Context Protocol (MCP) server. By using ADK's MCPToolset, agents can natively invoke tools like get_historical_stock_prices to fetch the OHLCV data directly without writing custom API wrappers.
+The MoE-F algorithm maps cleanly into the software orchestration layer of ADK. The  theoretical experts are instantiated as  independent LlmAgent objects in ADK, executing simultaneously via a ParallelAgent. The stochastic filter equations are realized as a deterministic Python AgentTool bound to each agent. Furthermore, a SequentialAgent is introduced at the very beginning to manage the Yahoo Finance MCP data extraction and SBERT semantic filtering before passing the sanitized data to the Swarm.
+
+Python
+
+
+import os
+from google.adk import Agent, LlmAgent, ParallelAgent, SequentialAgent, AgentTool
+from google.adk.state import SessionState
+from google.adk.tools.mcp_tool import MCPToolset, StdioServerParameters
+import numpy as np
+import scipy.linalg as la
+
+# ---------------------------------------------------------
+# Phase 1: Data Ingestion Pipeline (YFinance MCP + SBERT)
+# ---------------------------------------------------------
+# Configure Yahoo Finance MCP toolset to fetch 10-years SPY data
+yfinance_mcp_tools = MCPToolset(
+    connection_params=StdioServerParameters(
+        command="uvx", 
+        args=["yahoo-finance-mcp"]
+    ),
+    tool_filter=["get_historical_stock_prices", "get_yahoo_finance_news"]
+)
+
+market_extractor = LlmAgent(
+    name="MarketDataExtractor",
+    instruction="Use your tools to extract 10 years of OHLCV historical data and news for the SPY ticker.",
+    tools=[yfinance_mcp_tools],
+    output_key="structured_market_data"
+)
+
+sbert_news_filter = LlmAgent(
+    name="SBERT_SemanticFilter",
+    instruction="Apply similarity search to headlines in {structured_market_data}. Discard noise below 0.2 tf-idf threshold.",
+    output_key="filtered_news_context"
+)
+
+data_ingestion_pipeline = SequentialAgent(
+    name="NIFTY_Ingestion_Pipeline",
+    sub_agents=[market_extractor, sbert_news_filter]
+)
+
+# ---------------------------------------------------------
+# Phase 2: Mathematical Filtering Tool (Shiryaev-Wonham)
+# ---------------------------------------------------------
+def stochastic_filter_update(agent_id, prediction, ground_truth, state):
+    """
+    Executes the Euler-Maruyama discrete update for the Wonham-Shiryaev filter.
+    Calculates At, Bt, Delta W, and updates the local belief pi.
+    """
+    pi = state.get(f"pi_{agent_id}")
+    Q = state.get("global_Q_matrix")
+    
+    # delta_f approximates the time-derivative of the expert's prediction
+    delta_f = prediction - state.get(f"prev_pred_{agent_id}")
+    
+    # Calculate SDE components based on Helper Functions 
+    A_t = compute_input_sensitivity_gradient(prediction, ground_truth, delta_f) 
+    B_t = compute_target_sensitivity_gradient(prediction)
+    A_bar_t = np.dot(A_t, pi)
+    
+    # Innovations process formulation
+    delta_loss = calculate_loss(prediction, ground_truth) - state.get(f"prev_loss_{agent_id}")
+    delta_W = (delta_loss - A_bar_t) / B_t
+    
+    # Update Belief State via Drift and Diffusion
+    drift = np.dot(Q.T, pi)
+    diffusion = pi * (A_t - A_bar_t) / B_t
+    
+    new_pi = pi + drift + (diffusion * delta_W)
+    new_pi = new_pi / np.sum(new_pi) # Enforce simplex constraint
+    
+    # Persist state back to ADK SessionState
+    state.set(f"pi_{agent_id}", new_pi)
+    state.set(f"score_{agent_id}", calculate_loss(prediction, ground_truth))
+    return np.dot(new_pi, state.get("all_expert_predictions"))
+
+filter_tool = AgentTool(
+    name="StochasticFilterUpdate",
+    func=stochastic_filter_update,
+    description="Updates the Bayesian belief state for the expert using local SDE calculations."
+)
+
+# ---------------------------------------------------------
+# Phase 3: The Swarm - Parallel Fan-Out Execution
+# ---------------------------------------------------------
+# Context Engineering: Prompt formatting utilizes x_p = x_prefix + x_context + x_news
+expert_llama = LlmAgent(
+    name="Llama_Expert",
+    model="llama-3-8b",
+    instruction="Predict market movement using {structured_market_data} and {filtered_news_context}.",
+    tools=[filter_tool],
+    output_key="pred_llama"
+)
+
+expert_gpt = LlmAgent(
+    name="GPT4o_Expert",
+    model="gpt-4o",
+    instruction="Predict market movement using {structured_market_data} and {filtered_news_context}.",
+    tools=[filter_tool],
+    output_key="pred_gpt"
+)
+
+expert_mixtral = LlmAgent(
+    name="Mixtral_Expert",
+    model="mixtral-8x7b",
+    instruction="Predict market movement using {structured_market_data} and {filtered_news_context}.",
+    tools=[filter_tool],
+    output_key="pred_mixtral"
+)
+
+moe_parallel_swarm = ParallelAgent(
+    name="ParallelFilterPhase",
+    sub_agents=[expert_llama, expert_gpt, expert_mixtral]
+)
+
+# ---------------------------------------------------------
+# Phase 4: Robust Aggregator (Coordinator Synthesizer)
+# ---------------------------------------------------------
+def robust_gibbs_aggregation(state):
+    """
+    Executes Theorem 2: Softmin aggregation and outer-loop Q-Matrix update.
+    """
+    scores = [state.get("score_llama"), state.get("score_gpt"), state.get("score_mixtral")]
+    lambda_param = state.get("lambda_hyperparam")
+    
+    # PAC-Bayes Softmin aggregation
+    exp_scores = np.exp(-lambda_param * np.array(scores))
+    pi_bar = exp_scores / np.sum(exp_scores)
+    
+    # Final robust ensemble prediction
+    predictions = [state.get("pred_llama"), state.get("pred_gpt"), state.get("pred_mixtral")]
+    final_y = np.dot(pi_bar, predictions)
+    
+    # Bi-level robust Q-Matrix Update with Regularization Perturbation
+    alpha = 0.05
+    P = np.tile(pi_bar, (len(scores), 1))
+    P_reg = (1 - alpha) * P + alpha * np.eye(len(scores))
+    
+    # Principal Matrix Logarithm to yield valid transition matrix intensity
+    Q_new = np.maximum(0, la.logm(P_reg).real)
+    np.fill_diagonal(Q_new, 0)
+    Q_new = Q_new - np.diag(np.sum(Q_new, axis=1))
+    
+    state.set("global_Q_matrix", Q_new)
+    return final_y
+
+aggregator_tool = AgentTool(name="GibbsAggregator", func=robust_gibbs_aggregation)
+
+aggregator_agent = LlmAgent(
+    name="SynthesizerAgent",
+    instruction="Execute the robust_gibbs_aggregation tool using outputs populated by the Swarm.",
+    tools=[aggregator_tool],
+    output_key="final_prediction"
+)
+
+# ---------------------------------------------------------
+# Phase 5: Master Orchestration via Sequential Pipeline
+# ---------------------------------------------------------
+moef_level_3_system = SequentialAgent(
+    name="MoEF_Pipeline",
+    sub_agents=[data_ingestion_pipeline, moe_parallel_swarm, aggregator_agent]
+)
+
+# Stream execution
+session = SessionState(initialize_priors=True)
+result = moef_level_3_system.run(input_data="Begin financial forecasting", state=session)
+
+Agent Quality Evaluation and GCP Production Deployment
+Transitioning a Level 3 Multi-Agent architecture into production requires rigorous automated evaluation and scalable infrastructure capabilities.
+Agent Quality and Vertex AI Gen AI Evaluation
+Because Generative AI is non-deterministic, evaluating agent logic is fundamentally different from standard software testing. Google ADK natively integrates with Vertex AI's Gen AI Evaluation service to measure both intermediate pathways and final agent outputs. The evaluation framework utilizes specific targeted quality metrics tailored for multi-agent workflows:
+Final Response Quality: Evaluates the ultimate output using adaptive rubrics (such as INSTRUCTION_FOLLOWING or TEXT_QUALITY) based on the agent's initial configuration.
+Tool Use Quality: Critically evaluates the correctness of function calls made by the agent. In the MoE-F context, this evaluates whether the MarketDataExtractor correctly utilized the yfinance MCP tool parameters.
+Hallucination: Verifies if the output text is strictly grounded in the extracted tool data.
+Trajectory Evaluation: For multi-agent systems, it is essential to trace the exact hand-offs. Metrics like trajectory_exact_match return a score of 1 only if the agent follows the perfect sequence of tool calls in the perfect order.
+Production Deployment to GCP Vertex AI Agent Engine
+Once the MoE-F swarm has been evaluated, ADK facilitates direct deployment to the Google Cloud Platform via the Vertex AI Agent Engine. The Agent Engine is a fully managed runtime that handles dependency installation, session management, telemetry, and backend HTTP server orchestration at an enterprise scale.
+Deployment can be executed using the ADK CLI (adk deploy) for a single-command push, or programmatically via the Vertex AI SDK using the client.agent_engines.create() method:
+
+Python
+
+
+import vertexai
+
+# Initialize the Vertex AI SDK
+client = vertexai.Client(project="YOUR_PROJECT_ID", location="us-central1")
+
+# Package the MoE-F App
+app = vertexai.agent_engines.AdkApp(agent=moef_level_3_system)
+
+# Deploy to Vertex AI Agent Engine
+remote_agent = client.agent_engines.create(
+    agent=app,
+    config={
+        "requirements": ["google-cloud-aiplatform[agent_engines,adk]"],
+        "staging_bucket": "gs://YOUR_STAGING_BUCKET",
+    }
+)
+
+By utilizing the Agent Engine, the continuous filtration math defined in MoE-F operates within a secure environment backed by GCP's native identity safeguards (IAM) and integrated OpenTelemetry observability, ensuring the dynamic routing mechanism scales globally without latency bottlenecks.
+Works cited
+hmm_1.pdf
