@@ -10,7 +10,8 @@ In the traditional financial world, "Alpha" (a market-beating edge) is guarded l
 
 By providing the infrastructure for accessible compute power and optimized financial models, we aim to level the playing field, allowing retail investors and boutique firms to run complex market simulations without expensive terminal subscriptions.
 
-\<img width="2816" height="1536" alt="Vision-Infographic" src="[https://github.com/user-attachments/assets/d42751c5-c446-4e7b-9b86-f186864d0139](https://github.com/user-attachments/assets/d42751c5-c446-4e7b-9b86-f186864d0139)" /\>
+<img width="2816" height="1536" alt="Vision-Infographic" src="https://github.com/user-attachments/assets/48042439-81b7-4de7-a60a-bd79df4a6280" />
+
 
 -----
 
@@ -72,18 +73,18 @@ OpenLogic Finance is built upon institutional-grade blueprints to ensure academi
 
 ### The Machine Learning Ecosystem
 
-[cite_start]Our architecture recognizes the symmetry between two fundamental frameworks: [cite: 69]
+Our architecture recognizes the symmetry between two fundamental frameworks:
 
-  * [cite_start]**Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections. [cite: 70, 72, 93]
-  * [cite_start]**Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence. [cite: 73, 74, 93]
+  **Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections.
+  **Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence.
 
 ### The Quantitative Finance Checklist
 
-[cite_start]We automate the sequential steps required to win the risk/return battle: [cite: 22, 23]
+We automate the sequential steps required to win the risk/return battle:
 
-1.  [cite_start]**Financial Engineering (Steps 1-4):** Agents focused on pricing instruments and estimating joint distributions of future payoffs. [cite: 25]
-2.  [cite_start]**Portfolio & Enterprise Risk Management (Steps 5-7):** Agents dedicated to aggregating payoffs and assessing portfolio-level risk. [cite: 26]
-3.  [cite_start]**Portfolio Construction & Trading (Steps 8-10):** Agents optimizing strategy construction, trade execution, and performance attribution. [cite: 27]
+1.  **Financial Engineering :** Agents focused on pricing instruments and estimating joint distributions of future payoffs. 
+2.  **Portfolio & Enterprise Risk Management :** Agents dedicated to aggregating payoffs and assessing portfolio-level risk.
+3.  **Portfolio Construction & Trading :** Agents optimizing strategy construction, trade execution, and performance attribution.
 
 -----
 
