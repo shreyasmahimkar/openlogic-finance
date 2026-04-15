@@ -1,7 +1,5 @@
 # OpenLogic Finance
 
-
-
 **Democratizing institutional-grade market foresight by replacing black box models with transparent, multi-agent AI systems.**
 
 Welcome to the open-source ecosystem where predictive modeling and financial data are accessible, collaborative, and ethically optimized for every investor.
@@ -12,7 +10,7 @@ In the traditional financial world, "Alpha" (a market-beating edge) is guarded l
 
 By providing the infrastructure for accessible compute power and optimized financial models, we aim to level the playing field, allowing retail investors and boutique firms to run complex market simulations without expensive terminal subscriptions.
 
-<img width="2816" height="1536" alt="Vision-Infographic" src="https://github.com/user-attachments/assets/d42751c5-c446-4e7b-9b86-f186864d0139" />
+\<img width="2816" height="1536" alt="Vision-Infographic" src="[https://github.com/user-attachments/assets/d42751c5-c446-4e7b-9b86-f186864d0139](https://github.com/user-attachments/assets/d42751c5-c446-4e7b-9b86-f186864d0139)" /\>
 
 -----
 
@@ -23,13 +21,11 @@ By providing the infrastructure for accessible compute power and optimized finan
 To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into production-ready agentic workflows. We focus on four key pillars of technical translation:
 
 1.  **Research Papers to Multi-Agent Architecture:** We deconstruct the latest AI research and map it directly to multi-agent implementations, moving from "paper to production."
-2.  **ML Theory to Agents:** We bridge the gap between core machine learning principles—such as gradient boosting and probabilistic modeling—and the reasoning loops of autonomous agents.
-3.  **Finance Theory to Agents:** We codify traditional quantitative theories (HMM, Alpha factors, and Risk parity) into specialized financial agents.
+2.  [cite_start]**ML Theory to Agents:** We bridge the gap between core machine learning principles—leveraging the symmetry between Mean-Covariance and Probabilistic frameworks—and the reasoning loops of autonomous agents. [cite: 70, 73] [cite_start]This involves transitioning from linear projections to non-linear distribution modeling. [cite: 93]
+3.  [cite_start]**Finance Theory to Agents:** We codify the 10-step "Quantitative Finance Checklist" into specialized financial agents. [cite: 23] [cite_start]This maps sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into an orchestrated multi-agent framework. [cite: 25, 26, 27]
 4.  **Utility Agents:** We build and share the "bricks" of the system—modular agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
 
-[Coming Soon] -- 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.google.com/search?q=%23)** 
-
------
+[Coming Soon] -- 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.google.com/search?q=%23)** -----
 
 ## 🏗️ Core Pillars
 
@@ -70,6 +66,26 @@ Our path moves from isolated problem-solving to self-evolving financial intellig
 
 -----
 
+## 📚 Theoretical Foundations
+
+OpenLogic Finance is built upon institutional-grade blueprints to ensure academic and professional rigor.
+
+### The Machine Learning Ecosystem
+
+[cite_start]Our architecture recognizes the symmetry between two fundamental frameworks: [cite: 69]
+
+  * [cite_start]**Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections. [cite: 70, 72, 93]
+  * [cite_start]**Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence. [cite: 73, 74, 93]
+
+### The Quantitative Finance Checklist
+
+[cite_start]We automate the sequential steps required to win the risk/return battle: [cite: 22, 23]
+
+1.  [cite_start]**Financial Engineering (Steps 1-4):** Agents focused on pricing instruments and estimating joint distributions of future payoffs. [cite: 25]
+2.  [cite_start]**Portfolio & Enterprise Risk Management (Steps 5-7):** Agents dedicated to aggregating payoffs and assessing portfolio-level risk. [cite: 26]
+3.  [cite_start]**Portfolio Construction & Trading (Steps 8-10):** Agents optimizing strategy construction, trade execution, and performance attribution. [cite: 27]
+
+-----
+
 **Join the movement to open the "Black Box."**
 *Explore our repositories, audit our models, and subscribe to the newsletter to build the future of agentic finance.*
-
