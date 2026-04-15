@@ -12,6 +12,8 @@ In the traditional financial world, "Alpha" (a market-beating edge) is guarded l
 
 By providing the infrastructure for accessible compute power and optimized financial models, we aim to level the playing field, allowing retail investors and boutique firms to run complex market simulations without expensive terminal subscriptions.
 
+<img width="2816" height="1536" alt="Vision-Infographic" src="https://github.com/user-attachments/assets/d42751c5-c446-4e7b-9b86-f186864d0139" />
+
 -----
 
 ## 🗞️ The Knowledge Bridge: LinkedIn Newsletter
