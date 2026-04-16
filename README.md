@@ -10,6 +10,8 @@ In the traditional financial world, "Alpha" (a market-beating edge) is guarded l
 
 By providing the infrastructure for accessible compute power and optimized financial models, we aim to level the playing field, allowing retail investors and boutique firms to run complex market simulations without expensive terminal subscriptions.
 
+We build for *every* investor. Warren Buffett bought his first stock when he was just 11 years old, and we believe financial empowerment shouldn't be locked behind institutional barriers. To support this, our ecosystem is designed with scalable transparency: we provide model explanations and educational resources that range from intuitive, fundamental breakdowns for an 11-year-old beginner, all the way up to rigorous, academic-grade documentation for Jim Simons-like quantitative investors.
+
 <img width="2816" height="1536" alt="Vision-Infographic" src="https://github.com/user-attachments/assets/48042439-81b7-4de7-a60a-bd79df4a6280" />
 
 
