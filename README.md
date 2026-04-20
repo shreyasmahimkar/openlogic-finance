@@ -24,8 +24,8 @@ We build for *every* investor. Warren Buffett bought his first stock when he was
 To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into production-ready agentic workflows. We focus on four key pillars of technical translation:
 
 1.  **Research Papers to Multi-Agent Architecture:** We deconstruct the latest AI research and map it directly to multi-agent implementations, moving from "paper to production."
-2.  [cite_start]**ML Theory to Agents:** We bridge the gap between core machine learning principles—leveraging the symmetry between Mean-Covariance and Probabilistic frameworks—and the reasoning loops of autonomous agents. [cite: 70, 73] [cite_start]This involves transitioning from linear projections to non-linear distribution modeling. [cite: 93]
-3.  [cite_start]**Finance Theory to Agents:** We codify the 10-step "Quantitative Finance Checklist" into specialized financial agents. [cite: 23] [cite_start]This maps sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into an orchestrated multi-agent framework. [cite: 25, 26, 27]
+2.  **ML Theory to Agents:** We bridge the gap between core machine learning principles—leveraging the symmetry between Mean-Covariance and Probabilistic frameworks—and the reasoning loops of autonomous agents. This involves transitioning from linear projections to non-linear distribution modeling. 
+3.  **Finance Theory to Agents:** We codify the 10-step "Quantitative Finance Checklist" into specialized financial agents. This maps sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into an orchestrated multi-agent framework.
 4.  **Utility Agents:** We build and share the "bricks" of the system—modular agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
 
 [Coming Soon] -- 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.google.com/search?q=%23)** -----

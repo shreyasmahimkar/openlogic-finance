@@ -32,19 +32,19 @@ Execute these commands to test the swarm before any deployments:
 ### Test Component Integrity (Phase 1 Ingestion)
 Ensures the YFinance MCP and SBERT semantic tools trigger without hallucination.
 ```bash
-adk eval moe_coordinator moe_coordinator/eval/ingestion.test.json
+adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/ingestion.test.json
 ```
 
 ### Test Parallel Constraints (Phase 2 Swarm)
 Tests the strict constraints placed horizontally across Llama/GPT/Mixtral LLMs guaranteeing discrete float output generation.
 ```bash
-adk eval moe_coordinator moe_coordinator/eval/swarm.test.json
+adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/swarm.test.json
 ```
 
 ### Test Full Orchestration Handoffs
 Uses the `trajectory_exact_match` metric to score 1 if the master ADK pipeline moves flawlessly from Extractor $\rightarrow$ Swarm $\rightarrow$ Gibbs Synthesis $\rightarrow$ Plotter.
 ```bash
-adk eval moe_coordinator moe_coordinator/eval/trajectory.test.json
+adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/trajectory.test.json
 ```
 
 ---
@@ -67,7 +67,7 @@ Ensure your IAM identities are correct and you invoke the application with suffi
 ### Execution
 Run the deployment packaging tool:
 ```bash
-python3 moe_coordinator/deploy_vertex.py
+python3 research_papers_to_agents/moe_coordinator/deploy_vertex.py
 ```
 
 This encapsulates your `SequentialAgent` logic into an `AdkApp` and spins it up natively within the **Vertex AI Agent Engine**. Once deployed, your Swarm gains out-of-the-box infrastructure scaling and deep OpenTelemetry support to monitor HMM mathematical state health in the Cloud!

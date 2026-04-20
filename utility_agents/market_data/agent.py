@@ -3,7 +3,7 @@ from .tools import fetch_stock_data
 
 # Define the Level 1 root agent.
 root_agent = Agent(
-    name="data_ingestion_agent",
+    name="market_data_agent",
     model="gemini-2.5-flash",
     instruction="""You are a Level 1 Data Ingestion Agent for OpenLogic Finance.
 Your primary objective is to fetch historical stock data when requested.

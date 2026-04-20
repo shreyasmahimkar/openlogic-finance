@@ -33,7 +33,7 @@ We recommend utilizing `uv` for blistering-fast python environment spin-ups.
 ```bash
 uv venv --python "python3.11" "moe-coordinator-env"
 source moe-coordinator-env/bin/activate
-uv pip install -r moe_coordinator/requirements.txt
+uv pip install -r research_papers_to_agents/moe_coordinator/requirements.txt
 ```
 
 ### 2. Tracing Cognitive Flows in the Browser
@@ -45,7 +45,7 @@ adk web moe_coordinator
 ### 3. Verify Deterministic Tool Accuracy
 Run the Gen AI Evaluation service against the pipeline to trace trajectory outputs precisely, verify that the Yahoo Finance MCP schema holds structurally, and ensure hallucination limits are respected.
 ```bash
-adk eval moe_coordinator moe_coordinator/eval/moef_eval.test.json
+adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/moef_eval.test.json
 ```
 
-*(Note: If you wish to execute the MoE-F ecosystem in Docker mirroring the `data_ingestion` network, see the root-level docker-compose strategy.)*
+*(Note: If you wish to execute the MoE-F ecosystem in Docker mirroring the `market_data` network, see the root-level docker-compose strategy.)*

@@ -8,7 +8,7 @@ Ensure you have initialized the virtual environment with Python 3.11 as defined 
 ```bash
 uv venv --python "python3.11" "data-ingestion-env"
 source data-ingestion-env/bin/activate
-uv pip install -r data_ingestion/requirements.txt
+uv pip install -r market_data/requirements.txt
 ```
 
 ## Running the Agent Locally
@@ -34,7 +34,7 @@ adk run data-ingestion
 
 To verify the quality metrics of the agent against our established benchmark dataset, use the `eval` command:
 ```bash
-adk eval data_ingestion data_ingestion/eval/spy_fetch.test.json
+adk eval market_data market_data/eval/spy_fetch.test.json
 ```
 This ensures the agent is satisfying the Day 4 "Effectiveness" criteria by picking the intended tools without hallucinations.
 
@@ -43,9 +43,9 @@ This ensures the agent is satisfying the Day 4 "Effectiveness" criteria by picki
 The included Dockerfile is ready for Cloud Run. The container runs the `adk api_server` on startup, which exposes the agent as a REST API.
 
 ```bash
-cd data_ingestion
-docker build -t data_ingestion_agent .
+cd market_data
+docker build -t market_data_agent .
 
 # Assuming you have gcloud installed:
-# gcloud run deploy data_ingestion_agent --image data_ingestion_agent --region us-central1 --allow-unauthenticated
+# gcloud run deploy market_data_agent --image market_data_agent --region us-central1 --allow-unauthenticated
 ```
