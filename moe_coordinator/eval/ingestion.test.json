@@ -1,0 +1,12 @@
+{
+  "name": "MoE-F Ingestion Evaluation",
+  "dataset": [
+    {
+      "input": "Fetch historical CSV for SPY.",
+      "expected_tool_calls": [
+        "DataIngestionTool"
+      ],
+      "metrics": ["tool_use_correctness"]
+    }
+  ]
+}
