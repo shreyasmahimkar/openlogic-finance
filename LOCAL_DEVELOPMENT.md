@@ -26,8 +26,8 @@ At the root of the repository, initialize a single, unified virtual environment.
 
 ### Create and Activate the Environment
 ```bash
-# Generate the virtual environment (.openlogic-env)
-uv venv .openlogic-env
+# Generate the virtual environment (.openlogic-env) using Python 3.11
+uv venv --python 3.11 .openlogic-env
 
 # Activate it (macOS/Linux)
 source .openlogic-env/bin/activate
@@ -54,9 +54,9 @@ You can fire up the local development UI or run evaluation cases against specifi
 
 **Testing Market Data Agent:**
 ```bash
-adk web utility_agents/market_data
-# or run evaluations:
-adk eval utility_agents/market_data utility_agents/market_data/eval/spy_fetch.test.json
+# or run a specific agent
+adk web utility_agents
+adk web research_papers_to_agents
 ```
 
 **Testing MoE-F Coordinator:**
