@@ -10,25 +10,25 @@ from google.adk.tools.agent_tool import AgentTool
 from google.adk.state.session_state import SessionState
 
 # Import other components
-from data_ingestion.agent import root_agent as data_ingestion_agent
+from utility_agents.market_data.agent import root_agent as market_data_agent
 from .filters import robust_gibbs_aggregation_tool
 from .experts import moe_parallel_swarm
 
 # ---------------------------------------------------------
 # Phase 1: Data Ingestion Pipeline
 # ---------------------------------------------------------
-data_ingestion_tool = AgentTool(
+market_data_tool = AgentTool(
     name="DataIngestionTool",
-    func=lambda: "dummy_url_placeholder.csv", # Usually this runs the data_ingestion_agent
-    agent=data_ingestion_agent,
-    description="Tool that extracts market data using the specialized data_ingestion package."
+    func=lambda: "dummy_url_placeholder.csv", # Usually this runs the market_data_agent
+    agent=market_data_agent,
+    description="Tool that extracts market data using the specialized market_data package."
 )
 
 market_extractor = LlmAgent(
     name="MarketDataExtractor",
     model="gemini-2.5-flash",
     instruction="Use the DataIngestionTool to extract 10 years of OHLCV historical data and news for the SPY ticker. Structure this data logically.",
-    tools=[data_ingestion_tool],
+    tools=[market_data_tool],
     output_key="structured_market_data"
 )
 
@@ -39,7 +39,7 @@ sbert_news_filter = LlmAgent(
     output_key="filtered_news_context"
 )
 
-data_ingestion_pipeline = SequentialAgent(
+market_data_pipeline = SequentialAgent(
     name="NIFTY_Ingestion_Pipeline",
     sub_agents=[market_extractor, sbert_news_filter]
 )
@@ -125,7 +125,7 @@ plotting_agent = LlmAgent(
 # ---------------------------------------------------------
 moef_level_3_system = SequentialAgent(
     name="MoEF_Pipeline",
-    sub_agents=[data_ingestion_pipeline, moe_parallel_swarm, aggregator_agent, plotting_agent]
+    sub_agents=[market_data_pipeline, moe_parallel_swarm, aggregator_agent, plotting_agent]
 )
 
 # Compatibility stub mimicking the previous root agent for standard evaluations

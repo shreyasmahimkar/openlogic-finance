@@ -152,7 +152,7 @@ sbert_news_filter = LlmAgent(
     output_key="filtered_news_context"
 )
 
-data_ingestion_pipeline = SequentialAgent(
+market_data_pipeline = SequentialAgent(
     name="NIFTY_Ingestion_Pipeline",
     sub_agents=[market_extractor, sbert_news_filter]
 )
@@ -276,7 +276,7 @@ aggregator_agent = LlmAgent(
 # ---------------------------------------------------------
 moef_level_3_system = SequentialAgent(
     name="MoEF_Pipeline",
-    sub_agents=[data_ingestion_pipeline, moe_parallel_swarm, aggregator_agent]
+    sub_agents=[market_data_pipeline, moe_parallel_swarm, aggregator_agent]
 )
 
 # Stream execution

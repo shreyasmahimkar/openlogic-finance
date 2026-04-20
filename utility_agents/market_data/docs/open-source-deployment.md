@@ -10,7 +10,7 @@ In standard microservice architectures (like Cloud Run), agents run in isolated 
 ## The Open-Source Solution: Docker Volumes
 Instead of uploading charts to GCS and passing URLs across HTTP, our `docker-compose.yml` mounts a shared physical directory from your laptop directly into the working context `/app/assets` of every agent container simultaneously.
 
-This means the `tools.py` can remain purely vanilla Python. When `data_ingestion_agent` saves a CSV file, Docker intercepts the write and drops the physical file into the `shared-assets` folder on your laptop. When the Coordinator agent needs to read that CSV, it just looks in `/app/assets` and Docker instantly feeds the exact same file back.
+This means the `tools.py` can remain purely vanilla Python. When `market_data_agent` saves a CSV file, Docker intercepts the write and drops the physical file into the `shared-assets` folder on your laptop. When the Coordinator agent needs to read that CSV, it just looks in `/app/assets` and Docker instantly feeds the exact same file back.
 
 ## Getting Started
 

@@ -23,9 +23,9 @@ def search_recent_events(start_date: str, end_date: str) -> str:
     # Mocking standard internet search hook for the Agent
     return f"Simulated Web Search Results for {start_date} to {end_date}:\n- Market adjusting to post-tariff environment.\n- Geopolitical tensions stabilize.\n- Fed rate trajectory maps a gentle pivot based on May CPI data."
 
-def plot_stock_data(ticker: str = "SPY", period: str = "10y") -> str:
+def plot_asset_data(ticker: str = "SPY", period: str = "10y") -> str:
     """
-    Plots the stock data previously fetched by the data ingestion system, visually overlaying historical regimes.
+    Plots the asset data (equities, crypto, ETFs) previously fetched by the market data system, visually overlaying historical regimes.
     """
     logger.info(f"Plotting Global Events Chart for {ticker} over {period}")
     
@@ -33,9 +33,11 @@ def plot_stock_data(ticker: str = "SPY", period: str = "10y") -> str:
     csv_path = os.path.join(asset_dir, f"{ticker}_{period}.csv")
 
     if not os.path.exists(csv_path):
-        logger.warning(f"Data file {csv_path} not found. Automatically invoking data_ingestion tools to fetch it...")
-        from data_ingestion.tools import fetch_stock_data
-        fetch_stock_data(ticker, period)
+        logger.warning(f"Data file {csv_path} not found. Automatically invoking market_data tools to fetch it...")
+        import sys
+        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+        from utility_agents.market_data.tools import fetch_asset_data
+        fetch_asset_data(ticker, period)
         
     df = pd.read_csv(csv_path, index_col=0, parse_dates=True)
     df.index = pd.to_datetime(df.index, utc=True)

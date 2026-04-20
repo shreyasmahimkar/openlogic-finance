@@ -1,9 +1,9 @@
 services:
-  data-ingestion:
+  market-data:
     build:
-      context: ./data_ingestion
+      context: ./utility_agents/market_data
       dockerfile: Dockerfile
-    container_name: openlogic-data-ingestion
+    container_name: openlogic-market-data
     ports:
       - "8000:8000"
     volumes:
@@ -20,7 +20,7 @@ services:
 
   moef-coordinator:
     build:
-      context: ./moe_coordinator
+      context: ./research_papers_to_agents/moe_coordinator
       dockerfile: Dockerfile
     container_name: openlogic-moef-coordinator
     ports:

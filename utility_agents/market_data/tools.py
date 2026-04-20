@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 # Apply robust fallback for API flakiness (Day 4: Robustness)
 @retry(wait=wait_exponential(multiplier=1, min=2, max=10), stop=stop_after_attempt(3))
-def fetch_stock_data(ticker: str = "SPY", period: str = "10y") -> dict:
+def fetch_asset_data(ticker: str = "SPY", period: str = "10y") -> dict:
     """
-    Fetches historical stock prices using yfinance.
+    Fetches historical asset prices (equities, crypto, ETFs) using yfinance.
 
     Args:
-        ticker: The stock ticker to fetch (default SPY).
+        ticker: The asset ticker to fetch (default SPY).
         period: The historical period to fetch (default 10y).
         
     Returns:

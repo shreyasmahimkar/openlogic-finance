@@ -27,15 +27,15 @@ Start by bootstrapping your `uv` environment from the repository root:
 ```bash
 uv venv --python "python3.11" "data-ingestion-env"
 source data-ingestion-env/bin/activate
-uv pip install -r data_ingestion/requirements.txt
+uv pip install -r market_data/requirements.txt
 ```
 
 **1. Trace Cognitive Flows in the Browser:**
 ```bash
-adk web data_ingestion
+adk web market_data
 ```
 
 **2. Verify Deterministic Tool Accuracy:**
 ```bash
-adk eval data_ingestion data_ingestion/eval/spy_fetch.test.json
+adk eval market_data market_data/eval/spy_fetch.test.json
 ```
