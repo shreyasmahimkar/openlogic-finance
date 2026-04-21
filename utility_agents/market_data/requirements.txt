@@ -1,4 +1,4 @@
 google-adk[eval]>=1.0.0
 yfinance>=0.2.50
-matplotlib>=3.9.0
+matplotlib==3.8.2
 pandas>=2.2.3
