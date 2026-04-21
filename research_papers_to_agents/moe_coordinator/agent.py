@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import datetime
 
 from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
-from google.adk.tools.agent_tool import AgentTool
-from google.adk.state.session_state import SessionState
+from google.adk.tools import FunctionTool, AgentTool
 
 # Import other components
 from utility_agents.market_data.agent import root_agent as market_data_agent
@@ -17,12 +16,11 @@ from .experts import moe_parallel_swarm
 # ---------------------------------------------------------
 # Phase 1: Data Ingestion Pipeline
 # ---------------------------------------------------------
-market_data_tool = AgentTool(
-    name="DataIngestionTool",
-    func=lambda: "dummy_url_placeholder.csv", # Usually this runs the market_data_agent
-    agent=market_data_agent,
-    description="Tool that extracts market data using the specialized market_data package."
-)
+def data_ingestion_stub():
+    """Tool that extracts market data using the specialized market_data package."""
+    return "data/spy_2025_mock.csv" # [STUB] Usually this runs the live market_data_agent for Yahoo Finance
+
+market_data_tool = FunctionTool(func=data_ingestion_stub)
 
 market_extractor = LlmAgent(
     name="MarketDataExtractor",
@@ -48,6 +46,8 @@ market_data_pipeline = SequentialAgent(
 # Phase 2: Swarm (ParallelFilterPhase) (imported above)
 # ---------------------------------------------------------
 # moe_parallel_swarm
+# [STUB] NOTE: For live runs, the expert_llama, expert_gpt, and expert_mixtral LlmAgents (defined in experts.py)
+# would be triggered here to produce predictions against the live API, invoking the stochastic_filter_update_tool.
 
 # ---------------------------------------------------------
 # Phase 3: Robust Aggregator (Coordinator Synthesizer)
@@ -74,11 +74,12 @@ def render_moe_trajectories(state) -> str:
         if os.path.exists(history_file):
             df_hist = pd.read_csv(history_file)
         else:
-            df_hist = pd.DataFrame(columns=["y_true", "moef_prediction"])
+            df_hist = pd.DataFrame(columns=["Turn", "y_true", "moef_prediction"])
         
-        # Append mock truth and new prediction 
-        # (Assuming y_true is evaluated outside, but we append a dummy for plotting)
-        new_row = {"y_true": np.random.choice([0.0, 0.5, 1.0]), "moef_prediction": y_final}
+        # We append a mock ground truth and new prediction 
+        # (Assuming y_true is evaluated outside during final_test simulations)
+        turn_index = len(df_hist)
+        new_row = {"Turn": turn_index, "y_true": state.get("current_ground_truth", 0.5), "moef_prediction": y_final}
         df_hist = pd.concat([df_hist, pd.DataFrame([new_row])], ignore_index=True)
         df_hist.to_csv(history_file, index=False)
         
@@ -87,12 +88,15 @@ def render_moe_trajectories(state) -> str:
             # 7-day smoothing
             df_hist['rolling_moe'] = df_hist['moef_prediction'].rolling(window=7).mean()
             
-            plt.figure(figsize=(10, 5))
-            plt.plot(range(len(df_hist)), df_hist['y_true'], color='black', label='True Market Trajectory', linewidth=2)
-            plt.plot(range(len(df_hist)), df_hist['rolling_moe'], color='green', linestyle='--', label='MoE-F Filtered Trajectory (7-Day)', linewidth=2)
-            plt.xlabel('Trading Days')
-            plt.ylabel('Market Movement Direction')
-            plt.title('MoE-F Mechanism 7-Day Rolling Trajectory vs Ground Truth')
+            plt.figure(figsize=(12, 6))
+            plt.plot(df_hist['Turn'], df_hist['y_true'], color='black', label='True Market Trajectory (Ground Truth)', linewidth=2)
+            plt.plot(df_hist['Turn'], df_hist['rolling_moe'], color='green', linestyle='--', label='MoE-F Filtered Trajectory (7-Day)', linewidth=2)
+            
+            # Formatting as required by paper Figure 1
+            plt.yticks([0.0, 0.5, 1.0], ['Bearish (0.0)', 'Neutral (0.5)', 'Bullish (1.0)'])
+            plt.xlabel('Trading Days (2025)')
+            plt.ylabel('Market Movement Direction / Regime')
+            plt.title('MoE-F Mechanism 7-Day Rolling Trajectory vs Ground Truth (SPY 2025)')
             plt.legend()
             plt.grid(True)
             
@@ -106,11 +110,7 @@ def render_moe_trajectories(state) -> str:
     except Exception as e:
         return f"Plotting failed: {str(e)}"
 
-render_tool = AgentTool(
-    name="RenderMoETrajectories",
-    func=render_moe_trajectories,
-    description="Loads the rolling predictions and generates the finalized Figure 1 chart."
-)
+render_tool = FunctionTool(func=render_moe_trajectories)
 
 plotting_agent = LlmAgent(
     name="PlottingAgent",

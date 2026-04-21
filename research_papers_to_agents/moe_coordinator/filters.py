@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.linalg as la
-from google.adk.tools import AgentTool
+from google.adk.tools import FunctionTool
 from typing import Dict, Any
 
 def compute_input_sensitivity_gradient(prediction: float, ground_truth: float, delta_f: float) -> float:
@@ -72,11 +72,7 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
     return float(np.dot(new_pi, all_expert_preds))
 
 
-stochastic_filter_update_tool = AgentTool(
-    name="StochasticFilterUpdate",
-    func=stochastic_filter_update,
-    description="Updates the Bayesian belief state for the expert using local SDE calculations."
-)
+stochastic_filter_update_tool = FunctionTool(func=stochastic_filter_update)
 
 def robust_gibbs_aggregation(state: Any) -> float:
     """
@@ -116,8 +112,4 @@ def robust_gibbs_aggregation(state: Any) -> float:
     state.set("final_prediction", final_y)
     return float(final_y)
 
-robust_gibbs_aggregation_tool = AgentTool(
-    name="GibbsAggregator",
-    func=robust_gibbs_aggregation,
-    description="Aggregates the Swarm's filtered scores into a robust MoE-F prediction."
-)
+robust_gibbs_aggregation_tool = FunctionTool(func=robust_gibbs_aggregation)
