@@ -28,7 +28,7 @@ To fulfill our mission of transparency, we provide a deep-dive technical resourc
 3.  **Finance Theory to Agents:** We codify the 10-step "Quantitative Finance Checklist" into specialized financial agents. This maps sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into an orchestrated multi-agent framework.
 4.  **Utility Agents:** We build and share the "bricks" of the system—modular agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
 
-[Coming Soon] -- 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.google.com/search?q=%23)** -----
+👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn]([https://www.google.com/search?q=%23](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088))**
 
 ## 🏗️ Core Pillars
 
