@@ -12,6 +12,7 @@ from google.adk.tools import FunctionTool, AgentTool
 from utility_agents.market_data.agent import root_agent as market_data_agent
 from .filters import robust_gibbs_aggregation_tool
 from .experts import moe_parallel_swarm
+from .indicators import enrich_ohlcv_data
 
 # ---------------------------------------------------------
 # Phase 1: Data Ingestion Pipeline
@@ -30,16 +31,26 @@ market_extractor = LlmAgent(
     output_key="structured_market_data"
 )
 
+technical_indicators_tool = FunctionTool(func=enrich_ohlcv_data)
+
+quantitative_feature_agent = LlmAgent(
+    name="QuantitativeFeatureAgent",
+    model="gemini-2.5-flash",
+    instruction="Take the output from {structured_market_data} (which is a CSV file path) and use the technical_indicators_tool to calculate MoE-F technical indicators (MACD, Bollinger, RSI, CCI, DX, SMAs).",
+    tools=[technical_indicators_tool],
+    output_key="enriched_market_data"
+)
+
 sbert_news_filter = LlmAgent(
     name="SBERT_SemanticFilter",
     model="gemini-2.5-flash",
-    instruction="Apply similarity search to headlines in {structured_market_data}. Discard noise below 0.2 tf-idf threshold and output the precise news chunks.",
+    instruction="Apply similarity search to headlines in {enriched_market_data}. Discard noise below 0.2 tf-idf threshold and output the precise news chunks.",
     output_key="filtered_news_context"
 )
 
 market_data_pipeline = SequentialAgent(
     name="NIFTY_Ingestion_Pipeline",
-    sub_agents=[market_extractor, sbert_news_filter]
+    sub_agents=[market_extractor, quantitative_feature_agent, sbert_news_filter]
 )
 
 # ---------------------------------------------------------
