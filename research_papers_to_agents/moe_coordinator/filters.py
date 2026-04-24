@@ -101,54 +101,49 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
 
 stochastic_filter_update_tool = FunctionTool(func=stochastic_filter_update)
 
-def robust_gibbs_aggregation(state: Any) -> float:
+import logging
+import re
+logger = logging.getLogger(__name__)
+
+def robust_gibbs_aggregation(pred_llama: float = 0.5, pred_gpt: float = 0.5, pred_mixtral: float = 0.5, state: Any = None) -> float:
     """
     Executes Theorem 2: Softmin aggregation and outer-loop Q-Matrix update.
+    Calculates final robust probability based on LLM predictions.
     """
     t0 = time.time()
     
-    # ADK ParallelAgent outputs a list to the next Sequential step. 
-    # If state is a list, we extract the predictions directly from it and assume uniform scores.
-    if isinstance(state, list):
+    # We now take arguments explicitly so the LLM Agent can parse the raw Swarm textual output 
+    # and feed the function natively without relying on ADK's Parallel TaskGroup state merging.
+    predictions = [pred_llama, pred_gpt, pred_mixtral]
+    
+    if hasattr(state, "get"):
+        scores = [
+            state.get("score_Llama_Expert", 0.5), 
+            state.get("score_GPT4o_Expert", 0.5), 
+            state.get("score_Mixtral_Expert", 0.5)
+        ]
+        lambda_param = state.get("lambda_hyperparam", 1.0)
+        state_obj = state
+    else:
         scores = [0.5, 0.5, 0.5]
         lambda_param = 1.0
-        predictions = []
-        for item in state:
-            try:
-                # Try to parse the float from the expert's response
-                predictions.append(float(str(item).strip()))
-            except ValueError:
-                predictions.append(0.5)
         
-        # Pad or truncate to exactly 3 experts
-        while len(predictions) < 3: predictions.append(0.5)
-        predictions = predictions[:3]
-        
-        # Mock a state.set capability for the downstream tool
+        # Mock a state.set capability
         class MockState:
             def set(self, k, v): pass
             def get(self, k, d=None): return d
         state_obj = MockState()
-    else:
-        scores = [
-            state.get("score_Llama_Expert", 0.5) if hasattr(state, "get") else 0.5, 
-            state.get("score_GPT4o_Expert", 0.5) if hasattr(state, "get") else 0.5, 
-            state.get("score_Mixtral_Expert", 0.5) if hasattr(state, "get") else 0.5
-        ]
-        lambda_param = state.get("lambda_hyperparam", 1.0) if hasattr(state, "get") else 1.0
         
-        predictions = [
-            state.get("pred_llama", 0.5) if hasattr(state, "get") else 0.5, 
-            state.get("pred_gpt", 0.5) if hasattr(state, "get") else 0.5, 
-            state.get("pred_mixtral", 0.5) if hasattr(state, "get") else 0.5
-        ]
-        state_obj = state
+    logger.info(f"[Gibbs Aggregation] Triggered by LLM with Predictions: {predictions} | Filter Scores (State): {scores}")
+        
+    logger.info(f"[Gibbs Aggregation] Initialized with Scores: {scores} | Predictions: {predictions}")
     
     # PAC-Bayes Softmin aggregation
     exp_scores = np.exp(-lambda_param * np.array(scores))
     pi_bar = exp_scores / np.sum(exp_scores)
     
     final_y = np.dot(pi_bar, predictions)
+    logger.info(f"[Gibbs Aggregation] Computed pi_bar: {pi_bar} | Computed final_y: {final_y}")
     
     # Bi-level robust Q-Matrix Update with Regularization Perturbation
     alpha = 0.05
