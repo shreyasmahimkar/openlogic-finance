@@ -6,15 +6,23 @@ import matplotlib.pyplot as plt
 import datetime
 import sys
 import os
+from dotenv import load_dotenv
 
 # Ensure the root openlogic-finance directory is in the PYTHONPATH so adk web can find utility_agents
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+# Load API keys including NYT_API_KEY for MCP
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "../../utility_agents/financial_news/.env"))
 
 import time
 from .block_convey.prismtrace_client import send_trace_async
 
 from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.tools import FunctionTool, AgentTool
+from google.adk.tools.mcp_tool import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
+from mcp import StdioServerParameters
 
 # Import other components
 from utility_agents.market_data.agent import root_agent as market_data_agent
@@ -61,15 +69,42 @@ technical_indicators_tool = FunctionTool(func=enrich_ohlcv_data)
 quantitative_feature_agent = LlmAgent(
     name="QuantitativeFeatureAgent",
     model="gemini-2.5-flash",
-    instruction="Take the output from {structured_market_data} (which is a CSV file path) and use the technical_indicators_tool to calculate MoE-F technical indicators (MACD, Bollinger, RSI, CCI, DX, SMAs).",
+    instruction="Take the EXACT FILE PATH output from {structured_market_data} (DO NOT invent your own filename) and use the technical_indicators_tool to calculate MoE-F technical indicators (MACD, Bollinger, RSI, CCI, DX, SMAs).",
     tools=[technical_indicators_tool],
     output_key="enriched_market_data"
 )
 
+def sbert_telemetry_stub(news_text: str, state=None) -> str:
+    t0 = time.time()
+    ms = int((time.time() - t0) * 1000)
+    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
+    send_trace_async("SBERT Semantic Filter execution", "Processed news text", "sbert_semantic_filter", ms, "sentiment", 3, session_id)
+    return news_text
+
+sbert_tool = FunctionTool(func=sbert_telemetry_stub)
+
 sbert_news_filter = LlmAgent(
     name="SBERT_SemanticFilter",
     model="gemini-2.5-flash",
-    instruction="Apply similarity search to headlines in {enriched_market_data}. Discard noise below 0.2 tf-idf threshold and output the precise news chunks.",
+    instruction="""You are the SBERT Semantic Filter agent.
+Your goal is to provide precise recent financial news chunks to the downstream Swarm.
+1. Use the NYTimes search_articles MCP tool (query="financial news") to pull market news specifically representing the past 10 days.
+2. Filter the retrieved arrays to extract only the most highly relevant macroeconomic insights (acting as a tf-idf noise discarder).
+3. Output the final refined news summary by passing it directly to the sbert_telemetry_stub tool.
+""",
+    tools=[
+        sbert_tool,
+        McpToolset(
+            connection_params=StdioConnectionParams(
+                server_params=StdioServerParameters(
+                    command="/Users/shreyas/.local/bin/uvx",
+                    args=["--from", "git+https://github.com/jeffmm/nytimes-mcp.git", "nytimes-mcp"],
+                    env={"NYT_API_KEY": os.environ.get("NYT_API_KEY", "")}
+                )
+            ),
+            tool_filter=['search_articles']
+        )
+    ],
     output_key="filtered_news_context"
 )
 
@@ -169,7 +204,7 @@ render_tool = FunctionTool(func=render_moe_trajectories)
 plotting_agent = LlmAgent(
     name="PlottingAgent",
     model="gemini-2.5-flash",
-    instruction="You are the visualization reporter. Trigger the RenderMoETrajectories tool using the history from {synthesized_history_context}.",
+    instruction="You are the final visualization reporter. Trigger the RenderMoETrajectories tool to generate the chart. CRITICAL: In your final response to the user, you MUST summarize the entire pipeline run! Explicitly state what data was extracted, list what the Swarm experts predicted (extracted from the synthesized_history_context), and explain the final aggregated prediction before presenting the chart image.",
     tools=[render_tool],
     output_key="final_status"
 )

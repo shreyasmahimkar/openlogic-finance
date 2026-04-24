@@ -115,4 +115,6 @@ def enrich_ohlcv_data(csv_path: str, state=None) -> str:
     session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
     send_trace_async(f"Enrich {csv_path} with quantitative indicators", f"Saved to {enriched_path}", "quantitative_indicator", ms, "math", 2, session_id)
     
-    return enriched_path
+    # Return the actual data values so the downstream LLM Swarm can read it natively in their prompt context!
+    tail_data = df.tail(10).to_string(index=False)
+    return f"File saved to: {enriched_path}\n\nRecent Indicator Data Extracted:\n{tail_data}"
