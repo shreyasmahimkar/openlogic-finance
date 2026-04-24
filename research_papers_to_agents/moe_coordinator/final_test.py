@@ -72,7 +72,8 @@ async def run_simulation():
     session_service = InMemorySessionService()
     
     try:
-        sbert_runner = Runner(app_name="simulation", agent=sbert_news_filter, session_service=session_service, auto_create_session=True)
+        session = await session_service.create_session(app_name="simulation", user_id="test", session_id="test_sbert")
+        sbert_runner = Runner(app_name="simulation", agent=sbert_news_filter, session_service=session_service, auto_create_session=False)
         msg_obj = Content(role="user", parts=[Part.from_text(text="Fetch recent financial news for SPY from NYTimes and extract macro insights.")])
         sbert_gen = sbert_runner.run_async(user_id="test", session_id="test_sbert", new_message=msg_obj)
         async for ev in sbert_gen:
@@ -117,13 +118,26 @@ async def run_simulation():
         print(f"--- Swarm Evaluation for Day {i - start_idx + 1}/7 : [{date_str}] ---")
         
         # 1. Trigger true parallel swarm via Runner!
-        swarm_runner = Runner(app_name="simulation", agent=moe_parallel_swarm, session_service=session_service, auto_create_session=True)
-        msg_obj = Content(role="user", parts=[Part.from_text(text=f"Analyze {date_str} market direction for tomorrow.")])
+        session = await session_service.create_session(app_name="simulation", user_id="test", session_id=turn_id)
+        session.state["enriched_market_data"] = data_text
+        session.state["filtered_news_context"] = news_context
+        
+        # Get previous day's ground truth for the filter tool
+        prev_gt = 1.0
+        if i - start_idx > 0:
+            past_row = test_data.iloc[i-1]
+            if past_row['Close'] > test_data.iloc[i-2]['Close']:
+                prev_gt = 1.0
+            else:
+                prev_gt = 0.0
+                
+        swarm_runner = Runner(app_name="simulation", agent=moe_parallel_swarm, session_service=session_service, auto_create_session=False)
+        full_user_prompt = f"Analyze {date_str} market direction for tomorrow.\n\nQuantitative Context:\n{data_text}\n\nNews Context:\n{news_context}\n\nYesterday's Actual Ground Truth was {prev_gt}. If calling stochastic_filter_update_tool, use this truth value."
+        msg_obj = Content(role="user", parts=[Part.from_text(text=full_user_prompt)])
         swarm_gen = swarm_runner.run_async(
             user_id="test",
             session_id=turn_id,
-            new_message=msg_obj,
-            state_delta={"enriched_market_data": data_text, "filtered_news_context": news_context}
+            new_message=msg_obj
         )
         
         swarm_outputs = []
@@ -143,7 +157,20 @@ async def run_simulation():
             if hasattr(out_data, 'text') and getattr(out_data, 'text'):
                 text_str = out_data.text
             elif hasattr(out_data, 'parts') and len(out_data.parts) > 0:
-                text_str = getattr(out_data.parts[0], 'text', str(out_data))
+                # Handle text or FunctionCall
+                part = out_data.parts[0]
+                if getattr(part, 'function_call', None):
+                    import json
+                    try:
+                        args = part.function_call.args
+                        if 'prediction' in args:
+                            text_str = str(args['prediction'])
+                        else:
+                            text_str = str(args)
+                    except:
+                        text_str = str(part)
+                else:
+                    text_str = getattr(part, 'text', str(out_data))
             elif isinstance(out_data, list):
                 if len(out_data) >= 3:
                     try: pred_llama = float(''.join(c for c in str(out_data[0]) if c.isdigit() or c=='.'))
@@ -194,9 +221,12 @@ async def run_simulation():
         explain_prompt = f"Day: {date_str}. Actual Market GT: {gt}. Llama (Technical): {pred_llama}, GPT (Macro): {pred_gpt}, Mixtral (Contrarian): {pred_mixtral}. Aggregated Final: {final_agg:.3f}. Quantitative Data Context text: {data_text}. News Context text: {news_context}."
         
         # Use single runner invocation to generate the explanation text
-        exp_runner = Runner(app_name="simulation", agent=explainer_agent, session_service=session_service, auto_create_session=True)
+        explanation_session_id = turn_id + "_explain"
+        session_exp = await session_service.create_session(app_name="simulation", user_id="test", session_id=explanation_session_id)
+        
+        exp_runner = Runner(app_name="simulation", agent=explainer_agent, session_service=session_service, auto_create_session=False)
         msg_obj = Content(role="user", parts=[Part.from_text(text=explain_prompt)])
-        exp_gen = exp_runner.run_async(user_id="test", session_id=turn_id, new_message=msg_obj)
+        exp_gen = exp_runner.run_async(user_id="test", session_id=explanation_session_id, new_message=msg_obj)
         explanation_text = ""
         async for ev in exp_gen:
             if hasattr(ev, 'data') and isinstance(ev.data, str):
