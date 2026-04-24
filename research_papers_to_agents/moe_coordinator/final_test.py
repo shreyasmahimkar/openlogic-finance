@@ -4,6 +4,10 @@ import numpy as np
 import asyncio
 import time
 import uuid
+from dotenv import load_dotenv
+import os
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Minimal mock of ADK SessionState
 class SessionState:
@@ -19,6 +23,9 @@ from .experts import moe_parallel_swarm
 from .filters import stochastic_filter_update, robust_gibbs_aggregation
 from .block_convey.prismtrace_client import send_trace_async
 from google.adk.agents import LlmAgent
+from google.adk import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai.types import Content, Part
 
 # Create an explainer agent uniquely for generating the final analysis CSV
 explainer_agent = LlmAgent(
@@ -38,9 +45,9 @@ async def run_simulation():
     if os.path.exists(history_file):
         os.remove(history_file)
         
-    print("Step 1: Fetching 90-Day Base Data ONCE...")
-    # 1. Fetch 3mo data manually using the un-wrapped native python tools
-    raw_csv = market_data_tool.func(ticker="SPY", period="3mo", state=SessionState())
+    print("Step 1: Fetching 6mo Base Data ONCE (to satisfy 60-day SMA warmup)...")
+    raw_response = market_data_tool.func(ticker="SPY", period="6mo", state=SessionState())
+    raw_csv = raw_response.get("csv_path", raw_response) if isinstance(raw_response, dict) else str(raw_response)
     
     print("Step 2: Calculating Quantitative Indicators...")
     # 2. Enrich the data 
@@ -62,8 +69,12 @@ async def run_simulation():
     print("Step 3: Fetching 30-Day Sub-Window NYT Financial News ONCE...")
     # 3. Pull news context ONCE to avoid API rate limits
     news_context = ""
+    session_service = InMemorySessionService()
+    
     try:
-        sbert_gen = sbert_news_filter.run_async("Fetch recent financial news for SPY from NYTimes and extract macro insights.")
+        sbert_runner = Runner(app_name="simulation", agent=sbert_news_filter, session_service=session_service, auto_create_session=True)
+        msg_obj = Content(role="user", parts=[Part.from_text(text="Fetch recent financial news for SPY from NYTimes and extract macro insights.")])
+        sbert_gen = sbert_runner.run_async(user_id="test", session_id="test_sbert", new_message=msg_obj)
         async for ev in sbert_gen:
             if hasattr(ev, 'data') and isinstance(ev.data, dict) and "filtered_news_context" in ev.data:
                 news_context = ev.data["filtered_news_context"]
@@ -105,10 +116,14 @@ async def run_simulation():
         
         print(f"--- Swarm Evaluation for Day {i - start_idx + 1}/7 : [{date_str}] ---")
         
-        # 1. Trigger true parallel swarm!
-        swarm_gen = moe_parallel_swarm.run_async(
-            user_input=f"Analyze {date_str} market direction for tomorrow.",
-            variables={"enriched_market_data": data_text, "filtered_news_context": news_context}
+        # 1. Trigger true parallel swarm via Runner!
+        swarm_runner = Runner(app_name="simulation", agent=moe_parallel_swarm, session_service=session_service, auto_create_session=True)
+        msg_obj = Content(role="user", parts=[Part.from_text(text=f"Analyze {date_str} market direction for tomorrow.")])
+        swarm_gen = swarm_runner.run_async(
+            user_id="test",
+            session_id=turn_id,
+            new_message=msg_obj,
+            state_delta={"enriched_market_data": data_text, "filtered_news_context": news_context}
         )
         
         swarm_outputs = []
@@ -119,19 +134,37 @@ async def run_simulation():
                  if hasattr(ev, 'data'):
                      swarm_outputs.append((ev.source.name if hasattr(ev, 'source') and hasattr(ev.source, 'name') else str(len(swarm_outputs)), ev.data))
         
-        # The ParallelAgent returns a single event containing a List at the very end
-        # We handle extraction resiliently:
+        # Handle extraction resiliently by unwrapping ADK types and capturing regex
         pred_llama, pred_gpt, pred_mixtral = 0.5, 0.5, 0.5
 
-        # If data arrived as an aggregated list
-        for _, out_text in swarm_outputs:
-            if isinstance(out_text, list) and len(out_text) >= 3:
-                try: pred_llama = float(''.join(c for c in str(out_text[0]) if c.isdigit() or c=='.'))
-                except: pass
-                try: pred_gpt = float(''.join(c for c in str(out_text[1]) if c.isdigit() or c=='.'))
-                except: pass
-                try: pred_mixtral = float(''.join(c for c in str(out_text[2]) if c.isdigit() or c=='.'))
-                except: pass
+        for src, out_data in swarm_outputs:
+            import re
+            text_str = ""
+            if hasattr(out_data, 'text') and getattr(out_data, 'text'):
+                text_str = out_data.text
+            elif hasattr(out_data, 'parts') and len(out_data.parts) > 0:
+                text_str = getattr(out_data.parts[0], 'text', str(out_data))
+            elif isinstance(out_data, list):
+                if len(out_data) >= 3:
+                    try: pred_llama = float(''.join(c for c in str(out_data[0]) if c.isdigit() or c=='.'))
+                    except: pass
+                    try: pred_gpt = float(''.join(c for c in str(out_data[1]) if c.isdigit() or c=='.'))
+                    except: pass
+                    try: pred_mixtral = float(''.join(c for c in str(out_data[2]) if c.isdigit() or c=='.'))
+                    except: pass
+                text_str = "" # already parsed
+            else:
+                text_str = str(out_data)
+                
+            if text_str:
+                try:
+                    match = re.search(r"(0\.\d+|1\.0)", text_str)
+                    val = float(match.group(1)) if match else 0.5
+                except:
+                    val = 0.5
+                if "Llama" in str(src): pred_llama = val
+                elif "GPT" in str(src): pred_gpt = val
+                elif "Mixtral" in str(src): pred_mixtral = val
         
         # Ensure constraints
         pred_llama = float(np.clip(pred_llama, 0.0, 1.0))
@@ -160,7 +193,10 @@ async def run_simulation():
         # 5. Explainability AI
         explain_prompt = f"Day: {date_str}. Actual Market GT: {gt}. Llama (Technical): {pred_llama}, GPT (Macro): {pred_gpt}, Mixtral (Contrarian): {pred_mixtral}. Aggregated Final: {final_agg:.3f}. Quantitative Data Context text: {data_text}. News Context text: {news_context}."
         
-        exp_gen = explainer_agent.run_async(user_input=explain_prompt)
+        # Use single runner invocation to generate the explanation text
+        exp_runner = Runner(app_name="simulation", agent=explainer_agent, session_service=session_service, auto_create_session=True)
+        msg_obj = Content(role="user", parts=[Part.from_text(text=explain_prompt)])
+        exp_gen = exp_runner.run_async(user_id="test", session_id=turn_id, new_message=msg_obj)
         explanation_text = ""
         async for ev in exp_gen:
             if hasattr(ev, 'data') and isinstance(ev.data, str):
