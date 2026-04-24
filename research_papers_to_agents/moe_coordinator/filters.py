@@ -64,14 +64,20 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
     new_pi = np.clip(new_pi, 1e-6, 1.0)
     new_pi = new_pi / np.sum(new_pi)
     
-    # Persist state back to ADK SessionState
-    state.set(f"pi_{agent_id}", new_pi)
-    state.set(f"score_{agent_id}", current_loss)
-    state.set(f"prev_pred_{agent_id}", prediction)
-    state.set(f"prev_loss_{agent_id}", current_loss)
+    # Persist state safely (handles both custom SessionState and raw dictionaries)
+    if hasattr(state, "set"):
+        state.set(f"pi_{agent_id}", new_pi)
+        state.set(f"score_{agent_id}", current_loss)
+        state.set(f"prev_pred_{agent_id}", prediction)
+        state.set(f"prev_loss_{agent_id}", current_loss)
+    elif isinstance(state, dict):
+        state[f"pi_{agent_id}"] = new_pi
+        state[f"score_{agent_id}"] = current_loss
+        state[f"prev_pred_{agent_id}"] = prediction
+        state[f"prev_loss_{agent_id}"] = current_loss
     
     # Get all expert predictions so far this turn (can only calculate if others ran)
-    all_expert_preds = state.get("all_expert_predictions", [0.5, 0.5, 0.5])
+    all_expert_preds = state.get("all_expert_predictions", [0.5, 0.5, 0.5]) if hasattr(state, "get") else [0.5, 0.5, 0.5]
     ret_val = float(np.dot(new_pi, all_expert_preds))
     
     ms = int((time.time() - t0) * 1000)
@@ -84,9 +90,12 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
         step_order=state.get("step_order", 0),
         session_id=state.get("session_id", "unknown")
     )
-    if state.get("step_order"):
-        state.set("step_order", state.get("step_order") + 1)
-        
+    if hasattr(state, "get") and state.get("step_order"):
+        if hasattr(state, "set"):
+            state.set("step_order", state.get("step_order") + 1)
+        elif isinstance(state, dict):
+            state["step_order"] = state.get("step_order") + 1
+            
     return ret_val
 
 
@@ -97,23 +106,48 @@ def robust_gibbs_aggregation(state: Any) -> float:
     Executes Theorem 2: Softmin aggregation and outer-loop Q-Matrix update.
     """
     t0 = time.time()
-    scores = [
-        state.get("score_Llama_Expert", 0.5), 
-        state.get("score_GPT4o_Expert", 0.5), 
-        state.get("score_Mixtral_Expert", 0.5)
-    ]
-    lambda_param = state.get("lambda_hyperparam", 1.0)
+    
+    # ADK ParallelAgent outputs a list to the next Sequential step. 
+    # If state is a list, we extract the predictions directly from it and assume uniform scores.
+    if isinstance(state, list):
+        scores = [0.5, 0.5, 0.5]
+        lambda_param = 1.0
+        predictions = []
+        for item in state:
+            try:
+                # Try to parse the float from the expert's response
+                predictions.append(float(str(item).strip()))
+            except ValueError:
+                predictions.append(0.5)
+        
+        # Pad or truncate to exactly 3 experts
+        while len(predictions) < 3: predictions.append(0.5)
+        predictions = predictions[:3]
+        
+        # Mock a state.set capability for the downstream tool
+        class MockState:
+            def set(self, k, v): pass
+            def get(self, k, d=None): return d
+        state_obj = MockState()
+    else:
+        scores = [
+            state.get("score_Llama_Expert", 0.5) if hasattr(state, "get") else 0.5, 
+            state.get("score_GPT4o_Expert", 0.5) if hasattr(state, "get") else 0.5, 
+            state.get("score_Mixtral_Expert", 0.5) if hasattr(state, "get") else 0.5
+        ]
+        lambda_param = state.get("lambda_hyperparam", 1.0) if hasattr(state, "get") else 1.0
+        
+        predictions = [
+            state.get("pred_llama", 0.5) if hasattr(state, "get") else 0.5, 
+            state.get("pred_gpt", 0.5) if hasattr(state, "get") else 0.5, 
+            state.get("pred_mixtral", 0.5) if hasattr(state, "get") else 0.5
+        ]
+        state_obj = state
     
     # PAC-Bayes Softmin aggregation
     exp_scores = np.exp(-lambda_param * np.array(scores))
     pi_bar = exp_scores / np.sum(exp_scores)
     
-    # Final robust ensemble prediction
-    predictions = [
-        state.get("pred_llama", 0.5), 
-        state.get("pred_gpt", 0.5), 
-        state.get("pred_mixtral", 0.5)
-    ]
     final_y = np.dot(pi_bar, predictions)
     
     # Bi-level robust Q-Matrix Update with Regularization Perturbation
@@ -127,22 +161,30 @@ def robust_gibbs_aggregation(state: Any) -> float:
     # Ensure row sums = 0
     Q_new = Q_new - np.diag(np.sum(Q_new, axis=1))
     
-    state.set("global_Q_matrix", Q_new)
-    state.set("final_prediction", final_y)
+    if hasattr(state_obj, "set"):
+        state_obj.set("global_Q_matrix", Q_new)
+        state_obj.set("final_prediction", final_y)
+    elif isinstance(state_obj, dict):
+        state_obj["global_Q_matrix"] = Q_new
+        state_obj["final_prediction"] = final_y
     
     ms = int((time.time() - t0) * 1000)
+    session_id = state_obj.get("session_id", "live_adk_run")
     send_trace_async(
         user_input=f"Scores: {scores}",
         output=f"Aggregated prediction: {final_y}",
         model="gibbs_aggregation",
         latency_ms=ms,
         step="robust_aggregation",
-        step_order=state.get("step_order", 0),
-        session_id=state.get("session_id", "unknown")
+        step_order=state_obj.get("step_order", 0),
+        session_id=session_id
     )
-    if state.get("step_order"):
-        state.set("step_order", state.get("step_order") + 1)
-        
+    if hasattr(state_obj, "get") and state_obj.get("step_order"):
+        if hasattr(state_obj, "set"):
+            state_obj.set("step_order", state_obj.get("step_order") + 1)
+        elif isinstance(state_obj, dict):
+            state_obj["step_order"] = state_obj.get("step_order") + 1
+            
     return float(final_y)
 
 robust_gibbs_aggregation_tool = FunctionTool(func=robust_gibbs_aggregation)

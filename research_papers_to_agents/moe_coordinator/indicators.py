@@ -2,10 +2,12 @@ import logging
 import pandas as pd
 import numpy as np
 import os
+import time
+from .block_convey.prismtrace_client import send_trace_async
 
 logger = logging.getLogger(__name__)
 
-def enrich_ohlcv_data(csv_path: str) -> str:
+def enrich_ohlcv_data(csv_path: str, state=None) -> str:
     """
     Reads an OHLCV CSV file, calculates MoE-F required technical indicators using 
     pandas and numpy exclusively, and saves it to a new enriched CSV.
@@ -18,6 +20,13 @@ def enrich_ohlcv_data(csv_path: str) -> str:
     - 30-Day DX
     - 30-Day & 60-Day SMAs
     """
+    t0 = time.time()
+    
+    # If the LLM agent hallucinated a relative path or stripped the absolute path prefix, 
+    # force it back to the local data directory ONLY if the relative path doesn't actually exist.
+    if not os.path.isabs(csv_path) and not os.path.exists(csv_path):
+        csv_path = os.path.join(os.path.dirname(__file__), "data", os.path.basename(csv_path))
+
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"Cannot enrich data. File not found: {csv_path}")
         
@@ -101,4 +110,9 @@ def enrich_ohlcv_data(csv_path: str) -> str:
     df.to_csv(enriched_path, index=False)
     
     logger.info(f"Enriched CSV securely saved to {enriched_path}")
+    
+    ms = int((time.time() - t0) * 1000)
+    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
+    send_trace_async(f"Enrich {csv_path} with quantitative indicators", f"Saved to {enriched_path}", "quantitative_indicator", ms, "math", 2, session_id)
+    
     return enriched_path

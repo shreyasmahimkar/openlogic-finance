@@ -4,7 +4,7 @@ from .filters import stochastic_filter_update_tool
 # Expert 1: Llama (The Technician / Momentum)
 expert_llama = LlmAgent(
     name="Llama_Expert",
-    model="llama-3-8b",
+    model="gemini-2.5-flash",
     instruction="""You are a Technical Analyst Expert evaluating SPY.
 Given standard OHLCV prices and moving averages for the past 10 days provided in the context, predict if the price will Rise, Fall, or remain Neutral tomorrow.
 Use {enriched_market_data} and {filtered_news_context} for context.
@@ -17,7 +17,7 @@ No text, no preamble, just the float value.""",
 # Expert 2: GPT4o (The Fundamentalist / Macro)
 expert_gpt = LlmAgent(
     name="GPT4o_Expert",
-    model="gpt-4o",
+    model="gemini-2.5-flash",
     instruction="""You are a Fundamental Macroeconomic Analyst Expert evaluating the broader stock market (SPY).
 Given the market context provided, predict if the asset will experience a macro-level Rise, Fall, or Neutral move tomorrow. 
 Ignore short-term technical noise, focus on structural gravity and long-horizon price memory.
@@ -31,7 +31,7 @@ No text, no preamble, just the float value.""",
 # Expert 3: Mixtral (The Contrarian / Mean-Reversion)
 expert_mixtral = LlmAgent(
     name="Mixtral_Expert",
-    model="mixtral-8x7b",
+    model="gemini-2.5-flash",
     instruction="""You are a High-Frequency Mean-Reverting Analyst Expert.
 Look at the past 10 days of price context. If it rallied hard, bet that it Falls. If it dumped, bet that it Rises. You believe markets are rubber bands.
 Use {enriched_market_data} and {filtered_news_context} for context.

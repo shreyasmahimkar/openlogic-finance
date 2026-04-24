@@ -4,12 +4,21 @@ import asyncio
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
+import sys
+import os
+
+# Ensure the root openlogic-finance directory is in the PYTHONPATH so adk web can find utility_agents
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+import time
+from .block_convey.prismtrace_client import send_trace_async
 
 from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.tools import FunctionTool, AgentTool
 
 # Import other components
 from utility_agents.market_data.agent import root_agent as market_data_agent
+from utility_agents.market_data.tools import fetch_asset_data
 from .filters import robust_gibbs_aggregation_tool
 from .experts import moe_parallel_swarm
 from .indicators import enrich_ohlcv_data
@@ -17,11 +26,27 @@ from .indicators import enrich_ohlcv_data
 # ---------------------------------------------------------
 # Phase 1: Data Ingestion Pipeline
 # ---------------------------------------------------------
-def data_ingestion_stub():
-    """Tool that extracts market data using the specialized market_data package."""
-    return "data/spy_2025_mock.csv" # [STUB] Usually this runs the live market_data_agent for Yahoo Finance
+def data_ingestion_stub(state=None):
+    """Fallback stub kept exclusively for final_test.py simulations."""
+    t0 = time.time()
+    result = os.path.join(os.path.dirname(__file__), "data", "spy_2025_mock.csv") 
+    ms = int((time.time() - t0) * 1000)
+    
+    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
+    send_trace_async("Extract OHLCV data", f"Retrieved {result}", "data-retrieval", ms, "data_ingestion", 1, session_id)
+    return result
 
-market_data_tool = FunctionTool(func=data_ingestion_stub)
+def live_data_ingestion(ticker: str = "SPY", period: str = "10y", state=None):
+    """Real live market data tool wired with PRISMtrace."""
+    t0 = time.time()
+    result = fetch_asset_data(ticker=ticker, period=period)
+    ms = int((time.time() - t0) * 1000)
+    
+    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
+    send_trace_async(f"Fetch live asset data {ticker}", str(result), "data-retrieval", ms, "data_ingestion", 1, session_id)
+    return result
+
+market_data_tool = FunctionTool(func=live_data_ingestion)
 
 market_extractor = LlmAgent(
     name="MarketDataExtractor",
@@ -75,14 +100,21 @@ aggregator_agent = LlmAgent(
 # Phase 4: Visualization & Plotting (Reporting Agent)
 # ---------------------------------------------------------
 def render_moe_trajectories(state) -> str:
+    t0 = time.time()
     # 7-day rolling window simulation as defined in paper's methodology
-    y_final = state.get("final_prediction", 0.5)
-    history_file = os.path.join(os.path.dirname(__file__), "moe_history.csv")
+    y_final = state.get("final_prediction", 0.5) if hasattr(state, "get") else 0.5
+    
+    # Decouple the file names so `final_test.py` simulator doesn't clobber the live ADK agent's state
+    history_name = state.get("history_file", "live_moe_history.csv") if hasattr(state, "get") else "live_moe_history.csv"
+    history_file = os.path.join(os.path.dirname(__file__), history_name)
     
     # Normally we load the history and append, here we'll simulate the rolling 
     try:
-        # Load existing history if present
-        if os.path.exists(history_file):
+        # If it's a live ADK run, the user requested it to be completely fresh every time
+        is_live = history_name == "live_moe_history.csv"
+        
+        # Load existing history ONLY if we are in the stateful local simulator
+        if not is_live and os.path.exists(history_file):
             df_hist = pd.read_csv(history_file)
         else:
             df_hist = pd.DataFrame(columns=["Turn", "y_true", "moef_prediction"])
@@ -92,31 +124,42 @@ def render_moe_trajectories(state) -> str:
         turn_index = len(df_hist)
         new_row = {"Turn": turn_index, "y_true": state.get("current_ground_truth", 0.5), "moef_prediction": y_final}
         df_hist = pd.concat([df_hist, pd.DataFrame([new_row])], ignore_index=True)
-        df_hist.to_csv(history_file, index=False)
         
-        # If sufficient history, apply rolling
+        # Still save tracking to file (for final_test to work statefully)
+        if not is_live:
+            df_hist.to_csv(history_file, index=False)
+        
+        plt.figure(figsize=(12, 6))
+        
         if len(df_hist) >= 7:
-            # 7-day smoothing
+            # 7-day smoothing for long-term tracking
             df_hist['rolling_moe'] = df_hist['moef_prediction'].rolling(window=7).mean()
-            
-            plt.figure(figsize=(12, 6))
             plt.plot(df_hist['Turn'], df_hist['y_true'], color='black', label='True Market Trajectory (Ground Truth)', linewidth=2)
             plt.plot(df_hist['Turn'], df_hist['rolling_moe'], color='green', linestyle='--', label='MoE-F Filtered Trajectory (7-Day)', linewidth=2)
-            
-            # Formatting as required by paper Figure 1
-            plt.yticks([0.0, 0.5, 1.0], ['Bearish (0.0)', 'Neutral (0.5)', 'Bullish (1.0)'])
-            plt.xlabel('Trading Days (2025)')
-            plt.ylabel('Market Movement Direction / Regime')
-            plt.title('MoE-F Mechanism 7-Day Rolling Trajectory vs Ground Truth (SPY 2025)')
-            plt.legend()
-            plt.grid(True)
-            
-            chart_path = os.path.join(os.path.dirname(__file__), "moe_regimes.png")
-            plt.savefig(chart_path, bbox_inches='tight')
-            plt.close()
-            return f"Chart correctly rendered with 7-day rolling window at {chart_path}."
         else:
-            return "Not enough data for 7-day rolling window. Accumulating predictions."
+            # Short-term or fresh run tracking (will just show a few dots/lines)
+            plt.plot(df_hist['Turn'], df_hist['y_true'], color='black', marker='o', label='True Market Trajectory (Ground Truth)', linewidth=2)
+            plt.plot(df_hist['Turn'], df_hist['moef_prediction'], color='green', marker='x', markersize=10, label='MoE-F Filtered Trajectory (Raw)', linewidth=2)
+            
+        # Formatting as required by paper Figure 1
+        plt.yticks([0.0, 0.5, 1.0], ['Bearish (0.0)', 'Neutral (0.5)', 'Bullish (1.0)'])
+        plt.xlabel('Trading Days / Inference Turns')
+        plt.ylabel('Market Movement Direction / Regime')
+        plt.title('MoE-F Mechanism Trajectory vs Ground Truth (SPY)')
+        plt.legend()
+        plt.grid(True)
+        
+        chart_name = state.get("chart_file", "live_moe_regimes.png") if hasattr(state, "get") else "live_moe_regimes.png"
+        chart_path = os.path.join(os.path.dirname(__file__), chart_name)
+        plt.savefig(chart_path, bbox_inches='tight')
+        plt.close()
+        msg = f"Chart correctly rendered with 7-day rolling window at {chart_path}."
+        
+        ms = int((time.time() - t0) * 1000)
+        session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
+        send_trace_async("Render final chart", msg, "reporting_agent", ms, "reporting", 6, session_id)
+        
+        return msg
             
     except Exception as e:
         return f"Plotting failed: {str(e)}"

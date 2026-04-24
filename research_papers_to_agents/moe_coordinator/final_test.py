@@ -30,6 +30,9 @@ def run_test():
         
     df = pd.read_csv(data_file)
     state = SessionState()
+    # Explicitly enforce simulated files so live ADK won't read them
+    state.set("history_file", "moe_history.csv")
+    state.set("chart_file", "moe_regimes.png")
     
     print("Beginning 2025 SPY MoE-F Simulation Loop (252 Days)...")
     
