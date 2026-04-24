@@ -2,6 +2,8 @@ import numpy as np
 import scipy.linalg as la
 from google.adk.tools import FunctionTool
 from typing import Dict, Any
+import time
+from .block_convey.prismtrace_client import send_trace_async
 
 def compute_input_sensitivity_gradient(prediction: float, ground_truth: float, delta_f: float) -> float:
     # A_t implementation (Simplified for brevity based on BCE/MSE helper functions)
@@ -19,6 +21,7 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
     Executes the Euler-Maruyama discrete update for the Wonham-Shiryaev filter.
     Calculates At, Bt, Delta W, and updates the local belief pi.
     """
+    t0 = time.time()
     # Initialize state variables safely
     num_experts = 3
     pi = state.get(f"pi_{agent_id}", np.ones(num_experts) / num_experts)
@@ -69,7 +72,22 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
     
     # Get all expert predictions so far this turn (can only calculate if others ran)
     all_expert_preds = state.get("all_expert_predictions", [0.5, 0.5, 0.5])
-    return float(np.dot(new_pi, all_expert_preds))
+    ret_val = float(np.dot(new_pi, all_expert_preds))
+    
+    ms = int((time.time() - t0) * 1000)
+    send_trace_async(
+        user_input=f"{agent_id} pred: {prediction}, gt: {ground_truth}", 
+        output=f"Filter updated. new_pi sum: {np.sum(new_pi)}", 
+        model="math_guardrail",
+        latency_ms=ms,
+        step="stochastic_update",
+        step_order=state.get("step_order", 0),
+        session_id=state.get("session_id", "unknown")
+    )
+    if state.get("step_order"):
+        state.set("step_order", state.get("step_order") + 1)
+        
+    return ret_val
 
 
 stochastic_filter_update_tool = FunctionTool(func=stochastic_filter_update)
@@ -78,6 +96,7 @@ def robust_gibbs_aggregation(state: Any) -> float:
     """
     Executes Theorem 2: Softmin aggregation and outer-loop Q-Matrix update.
     """
+    t0 = time.time()
     scores = [
         state.get("score_Llama_Expert", 0.5), 
         state.get("score_GPT4o_Expert", 0.5), 
@@ -110,6 +129,20 @@ def robust_gibbs_aggregation(state: Any) -> float:
     
     state.set("global_Q_matrix", Q_new)
     state.set("final_prediction", final_y)
+    
+    ms = int((time.time() - t0) * 1000)
+    send_trace_async(
+        user_input=f"Scores: {scores}",
+        output=f"Aggregated prediction: {final_y}",
+        model="gibbs_aggregation",
+        latency_ms=ms,
+        step="robust_aggregation",
+        step_order=state.get("step_order", 0),
+        session_id=state.get("session_id", "unknown")
+    )
+    if state.get("step_order"):
+        state.set("step_order", state.get("step_order") + 1)
+        
     return float(final_y)
 
 robust_gibbs_aggregation_tool = FunctionTool(func=robust_gibbs_aggregation)

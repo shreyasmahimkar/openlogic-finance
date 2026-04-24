@@ -13,6 +13,9 @@ class SessionState:
 
 from .agent import render_moe_trajectories
 from .filters import stochastic_filter_update, robust_gibbs_aggregation
+import uuid
+import time
+from .block_convey.prismtrace_client import send_trace_async
 
 def run_test():
     base_dir = os.path.dirname(__file__)
@@ -31,6 +34,11 @@ def run_test():
     print("Beginning 2025 SPY MoE-F Simulation Loop (252 Days)...")
     
     for idx, row in df.iterrows():
+        # 1. Generate unique session ID for this step
+        turn_id = str(uuid.uuid4())
+        state.set("session_id", turn_id)
+        state.set("step_order", 1)
+        
         gt = row['Ground_Truth_Regime']
         news = row['SBERT_News_Sentiment']
         
@@ -38,11 +46,37 @@ def run_test():
         
         # MOCK EXPERT PREDICTIONS:
         # Llama_Expert (Technical) follows recent news
+        t0 = time.time()
         pred_llama = float(np.clip(news + np.random.normal(0, 0.1), 0.0, 1.0))
+        ms0 = int((time.time()-t0)*1000)
+        send_trace_async(
+            user_input=f"Analyze {row['Date']} technical indicators", 
+            output=str(pred_llama), model="llama-3-8b", latency_ms=ms0,
+            step="llm_call", step_order=state.get("step_order"), session_id=turn_id
+        )
+        state.set("step_order", state.get("step_order") + 1)
+        
         # GPT4o_Expert (Macro) more closely aligned with GT
+        t1 = time.time()
         pred_gpt = float(np.clip(gt + np.random.normal(0, 0.05), 0.0, 1.0))
+        ms1 = int((time.time()-t1)*1000)
+        send_trace_async(
+            user_input=f"Analyze {row['Date']} macro economy", 
+            output=str(pred_gpt), model="gpt-4o", latency_ms=ms1,
+            step="llm_call", step_order=state.get("step_order"), session_id=turn_id
+        )
+        state.set("step_order", state.get("step_order") + 1)
+        
         # Mixtral_Expert (Contrarian) mean-reverting behaviour
+        t2 = time.time()
         pred_mixtral = float(np.clip(1.0 - news + np.random.normal(0, 0.2), 0.0, 1.0))
+        ms2 = int((time.time()-t2)*1000)
+        send_trace_async(
+            user_input=f"Analyze {row['Date']} mean reversion", 
+            output=str(pred_mixtral), model="mixtral-8x7b", latency_ms=ms2,
+            step="llm_call", step_order=state.get("step_order"), session_id=turn_id
+        )
+        state.set("step_order", state.get("step_order") + 1)
         
         state.set("pred_llama", pred_llama)
         state.set("pred_gpt", pred_gpt)
