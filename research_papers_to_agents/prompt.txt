@@ -1,0 +1,3 @@
+Use the market data tool to pull exactly 6 months (6mo) of historical OHLCV data for SPY up to today. 
+Compute the quantitative indicators on this dataset, and then ask the parallel expert swarm to predict 
+the next directional movement using the robust Gibbs aggregation.

@@ -56,7 +56,11 @@ def data_ingestion_stub(state=None):
 def live_data_ingestion(ticker: str = "SPY", period: str = "10y", state=None):
     """Real live market data tool wired with PRISMtrace."""
     t0 = time.time()
-    result = fetch_asset_data(ticker=ticker, period=period)
+    try:
+        result = fetch_asset_data(ticker=ticker, period=period)
+    except Exception as e:
+        print(f"Rate limit or API error: {e}")
+        result = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../assets/SPY_6mo_enriched.csv"))
     ms = int((time.time() - t0) * 1000)
     
     session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
@@ -96,6 +100,15 @@ def sbert_telemetry_stub(news_text: str, state=None) -> str:
     t0 = time.time()
     ms = int((time.time() - t0) * 1000)
     session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
+    
+    # Save the text into the assets folder as a CSV as requested
+    try:
+        out_csv = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../assets/sbert_filtered_news_output.csv"))
+        df = pd.DataFrame({"timestamp": [datetime.datetime.now().isoformat()], "filtered_news": [news_text]})
+        df.to_csv(out_csv, index=False)
+    except Exception as e:
+        print(f"Could not save SBERT csv: {e}")
+        
     send_trace_async("SBERT Semantic Filter execution", "Processed news text", "sbert_semantic_filter", ms, "sentiment", 3, session_id)
     return news_text
 
@@ -106,10 +119,11 @@ sbert_news_filter = LlmAgent(
     model="gemini-2.5-flash",
     instruction="""You are the SBERT Semantic Filter agent.
 Your goal is to provide precise recent financial news chunks to the downstream Swarm.
-1. Use the NYTimes search_articles MCP tool (query="financial news") to pull market news specifically representing the past 10 days.
-2. Filter the retrieved arrays to extract only the most highly relevant macroeconomic insights (acting as a tf-idf noise discarder).
-3. Output the final refined news summary by passing it directly to the sbert_telemetry_stub tool.
-4. CRITICAL: You MUST also output the exact same refined news summary in your final text response so the pipeline can capture it!
+1. Use the NYTimes search_articles MCP tool (query="financial news") to pull market news specifically representing the past 10 days. 
+2. IF the NYTimes tool fails or returns a rate limit error, you MUST fall back to using the contents of this file: /Users/shreyas/gitrepos/OpenSource/openlogic-finance/assets/financial_news_20260301_20260331.csv
+3. Filter the retrieved arrays to extract only the most highly relevant macroeconomic insights (acting as a tf-idf noise discarder).
+4. Output the final refined news summary by passing it directly to the sbert_telemetry_stub tool.
+5. CRITICAL: You MUST also output the exact same refined news summary in your final text response so the pipeline can capture it!
 """,
     tools=[
         sbert_tool,

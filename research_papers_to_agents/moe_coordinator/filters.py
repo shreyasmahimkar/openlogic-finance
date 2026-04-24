@@ -105,7 +105,7 @@ import logging
 import re
 logger = logging.getLogger(__name__)
 
-def robust_gibbs_aggregation(pred_llama: float = 0.5, pred_gpt: float = 0.5, pred_mixtral: float = 0.5, state: Any = None) -> float:
+def robust_gibbs_aggregation(pred_llama: float = 0.5, pred_gpt: float = 0.5, pred_mixtral: float = 0.5, state=None) -> float:
     """
     Executes Theorem 2: Softmin aggregation and outer-loop Q-Matrix update.
     Calculates final robust probability based on LLM predictions.
