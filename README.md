@@ -56,6 +56,8 @@ To turn the theoretical foundations into production-ready agentic workflows, our
 4.  **Execution Layer (`execution_layer/`):** We orchestrate the multi-agent framework, mapping directly to containerized simulators and scalable cloud architectures to move from "paper to production."
 5.  **Interface (`interface/`):** We deliver user-centric touchpoints to visualize, interact with, and monitor the underlying orchestrated multi-agent frameworks.
 
+<img width="1408" height="768" alt="Gemini_Generated_Image_mg33qcmg33qcmg33 (2)" src="https://github.com/user-attachments/assets/5ec043b0-31de-4ea8-83c6-75152d4c8e6f" />
+
 -----
 
 ## 🗞️ The Knowledge Bridge: LinkedIn Newsletter
@@ -63,8 +65,6 @@ To turn the theoretical foundations into production-ready agentic workflows, our
 **"Research & ML Theory to AI Agents: Open-source Financial Engineering replacing black box models."**
 
 To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into the production-ready agentic workflows you see in this repository. 
-
-<img width="1408" height="768" alt="Gemini_Generated_Image_mg33qcmg33qcmg33 (2)" src="https://github.com/user-attachments/assets/5ec043b0-31de-4ea8-83c6-75152d4c8e6f" />
 
 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088)**
 
