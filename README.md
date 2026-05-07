@@ -21,12 +21,13 @@ We build for *every* investor. Warren Buffett bought his first stock when he was
 
 **"Research & ML Theory to AI Agents: Open-source Financial Engineering replacing black box models."**
 
-To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into production-ready agentic workflows. We focus on four key pillars of technical translation:
+To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into production-ready agentic workflows. We map these concepts across our five-box architecture:
 
-1.  **Research Papers to Multi-Agent Architecture:** We deconstruct the latest AI research and map it directly to multi-agent implementations, moving from "paper to production."
-2.  **ML Theory to Agents:** We bridge the gap between core machine learning principles—leveraging the symmetry between Mean-Covariance and Probabilistic frameworks—and the reasoning loops of autonomous agents. This involves transitioning from linear projections to non-linear distribution modeling. 
-3.  **Finance Theory to Agents:** We codify the 10-step "Quantitative Finance Checklist" into specialized financial agents. This maps sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into an orchestrated multi-agent framework.
-4.  **Utility Agents:** We build and share the "bricks" of the system—modular agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
+1.  **Data Ingestion (`data_ingestion/`):** We build and share the "bricks" of the system—modular utility agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
+2.  **Model Library (`model_library/`):** We deconstruct the latest AI research and bridge the gap between ML/Finance theory and agents—leveraging probabilistic frameworks and transitioning from linear projections to non-linear distribution modeling for autonomous reasoning.
+3.  **Strategy Testing (`strategy_testing/`):** We codify the 10-step "Quantitative Finance Checklist" into robust evaluation pipelines, mapping sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into testable scenarios.
+4.  **Execution Layer (`execution_layer/`):** We orchestrate the multi-agent framework, mapping directly to containerized simulators and scalable cloud architectures to move from "paper to production."
+5.  **Interface (`interface/`):** We deliver user-centric touchpoints to visualize, interact with, and monitor the underlying orchestrated multi-agent frameworks.
 
 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088)**
 
