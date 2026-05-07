@@ -1,5 +1,5 @@
 from google.adk.agents import LlmAgent, ParallelAgent
-from .filters import stochastic_filter_update_tool
+from model_library.ml_zoo.filters import stochastic_filter_update_tool
 
 # Expert 1: Llama (The Technician / Momentum)
 expert_llama = LlmAgent(

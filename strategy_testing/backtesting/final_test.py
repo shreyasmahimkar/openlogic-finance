@@ -11,8 +11,8 @@ class SessionState:
     def set(self, key, val):
         self._state[key] = val
 
-from .agent import render_moe_trajectories
-from .filters import stochastic_filter_update, robust_gibbs_aggregation
+from interface.cli.agent import render_moe_trajectories
+from model_library.ml_zoo.filters import stochastic_filter_update, robust_gibbs_aggregation
 
 def run_test():
     base_dir = os.path.dirname(__file__)
