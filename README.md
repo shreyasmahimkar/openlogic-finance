@@ -14,21 +14,7 @@ We build for *every* investor. Warren Buffett bought his first stock when he was
 
 <img width="2816" height="1536" alt="Vision-Infographic" src="https://github.com/user-attachments/assets/48042439-81b7-4de7-a60a-bd79df4a6280" />
 
-
 -----
-
-## 🗞️ The Knowledge Bridge: LinkedIn Newsletter
-
-**"Research & ML Theory to AI Agents: Open-source Financial Engineering replacing black box models."**
-
-To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into production-ready agentic workflows. We focus on four key pillars of technical translation:
-
-1.  **Research Papers to Multi-Agent Architecture:** We deconstruct the latest AI research and map it directly to multi-agent implementations, moving from "paper to production."
-2.  **ML Theory to Agents:** We bridge the gap between core machine learning principles—leveraging the symmetry between Mean-Covariance and Probabilistic frameworks—and the reasoning loops of autonomous agents. This involves transitioning from linear projections to non-linear distribution modeling. 
-3.  **Finance Theory to Agents:** We codify the 10-step "Quantitative Finance Checklist" into specialized financial agents. This maps sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into an orchestrated multi-agent framework.
-4.  **Utility Agents:** We build and share the "bricks" of the system—modular agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
-
-👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088)**
 
 ## 🏗️ Core Pillars
 
@@ -36,6 +22,51 @@ To fulfill our mission of transparency, we provide a deep-dive technical resourc
   * **Collaborative Forecasting:** A shift from proprietary trading to a community-centric model where users audit and improve predictive models, removing individual biases.
   * **Shared Datasets:** A centralized hub for "Alternative Data," such as satellite imagery, shipping manifests, and ESG sentiment analysis.
   * **Ethical Alpha:** Prioritizing responsible risk management. Our models provide a clear, transparent audit trail explaining *why* a market movement is predicted, promoting financial literacy.
+
+-----
+
+## 📚 Theoretical Foundations
+
+OpenLogic Finance is built upon institutional-grade blueprints to ensure academic and professional rigor.
+
+### The Machine Learning Ecosystem
+
+Our architecture recognizes the symmetry between two fundamental frameworks:
+
+  **Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections.
+  **Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence.
+
+### The Quantitative Finance Checklist
+
+We automate the sequential steps required to win the risk/return battle:
+
+1.  **Financial Engineering:** Agents focused on pricing instruments and estimating joint distributions of future payoffs. 
+2.  **Portfolio & Enterprise Risk Management:** Agents dedicated to aggregating payoffs and assessing portfolio-level risk.
+3.  **Portfolio Construction & Trading:** Agents optimizing strategy construction, trade execution, and performance attribution.
+
+-----
+
+## 🧩 Repository Architecture
+
+To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured into a modular, five-box architecture:
+
+1.  **Data Ingestion (`data_ingestion/`):** We build and share the "bricks" of the system—modular utility agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
+2.  **Model Library (`model_library/`):** We deconstruct the latest AI research and bridge the gap between ML/Finance theory and agents—leveraging probabilistic frameworks and transitioning from linear projections to non-linear distribution modeling for autonomous reasoning.
+3.  **Strategy Testing (`strategy_testing/`):** We codify the 10-step "Quantitative Finance Checklist" into robust evaluation pipelines, mapping sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into testable scenarios.
+4.  **Execution Layer (`execution_layer/`):** We orchestrate the multi-agent framework, mapping directly to containerized simulators and scalable cloud architectures to move from "paper to production."
+5.  **Interface (`interface/`):** We deliver user-centric touchpoints to visualize, interact with, and monitor the underlying orchestrated multi-agent frameworks.
+
+<img width="1408" height="768" alt="Gemini_Generated_Image_mg33qcmg33qcmg33 (2)" src="https://github.com/user-attachments/assets/5ec043b0-31de-4ea8-83c6-75152d4c8e6f" />
+
+-----
+
+## 🗞️ The Knowledge Bridge: LinkedIn Newsletter
+
+**"Research & ML Theory to AI Agents: Open-source Financial Engineering replacing black box models."**
+
+To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into the production-ready agentic workflows you see in this repository. 
+
+👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088)**
 
 -----
 
@@ -66,27 +97,6 @@ Our path moves from isolated problem-solving to self-evolving financial intellig
 **The Goal:** Creating autonomous infrastructure that identifies new market regimes and rewrites internal parameters in real-time.
 
   * **Agent Capabilities:** Meta-reasoning allows the system to identify gaps in its own capabilities and autonomously build, test, and deploy new agents (e.g., a "Sentiment Analysis Agent") on the fly.
-
------
-
-## 📚 Theoretical Foundations
-
-OpenLogic Finance is built upon institutional-grade blueprints to ensure academic and professional rigor.
-
-### The Machine Learning Ecosystem
-
-Our architecture recognizes the symmetry between two fundamental frameworks:
-
-  **Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections.
-  **Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence.
-
-### The Quantitative Finance Checklist
-
-We automate the sequential steps required to win the risk/return battle:
-
-1.  **Financial Engineering :** Agents focused on pricing instruments and estimating joint distributions of future payoffs. 
-2.  **Portfolio & Enterprise Risk Management :** Agents dedicated to aggregating payoffs and assessing portfolio-level risk.
-3.  **Portfolio Construction & Trading :** Agents optimizing strategy construction, trade execution, and performance attribution.
 
 -----
 

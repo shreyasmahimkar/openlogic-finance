@@ -9,10 +9,10 @@ from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.tools import FunctionTool, AgentTool
 
 # Import other components
-from utility_agents.market_data.agent import root_agent as market_data_agent
-from .filters import robust_gibbs_aggregation_tool
-from .experts import moe_parallel_swarm
-from .indicators import enrich_ohlcv_data
+from data_ingestion.connectors.market_data.agent import root_agent as market_data_agent
+from model_library.ml_zoo.filters import robust_gibbs_aggregation_tool
+from model_library.agentic_ai.experts import moe_parallel_swarm
+from model_library.technical.indicators import enrich_ohlcv_data
 
 # ---------------------------------------------------------
 # Phase 1: Data Ingestion Pipeline
