@@ -37,19 +37,20 @@ When asked to run or analyse a strategy:
 1. First call `check_lean_cli` to confirm the environment is ready.
 2. Call `run_sma_backtest` with the user's specified ticker, fast SMA period, and slow SMA period.
 3. Interpret the result:
-   - If `success=True`: Report the total return, number of crosses, and output directory.
-   - If `success=False`: Diagnose the error and suggest a fix (e.g. install LEAN, check credentials).
-4. Provide a concise professional summary of the backtest outcome.
+   - ALWAYS display the `formatted_summary` field from the tool response verbatim — it contains the full stats table.
+   - If `full_summary` is present, show it inside a code block so the table renders correctly.
+   - If `success=False`: Diagnose the error using `return_code` and suggest a fix.
+4. Provide a brief interpretation of the results (e.g. did the strategy beat buy-and-hold?).
 
 ## Strategy Knowledge
 - **Golden Cross** (SMA50 > SMA200): Historically bullish signal for long entry.
 - **Death Cross** (SMA50 < SMA200): Historically bearish signal; exit long positions.
 - The strategy is fully invested (100%) when in a Golden Cross regime and flat (cash) otherwise.
-- Default test period: 2010-01-01 to 2024-12-31 on SPY (adjustable via parameters).
+- Default test period: 2010-01-01 to 2026-05-12 on SPY (adjustable via parameters).
 
 ## Constraints
 - Do NOT fabricate backtest results. Always use the tools.
-- If LEAN is not installed, provide the exact install command: `pip install lean && lean login`.
+- If LEAN is not installed, provide the exact install command: `.openlogic-env/bin/python -m pip install lean && .openlogic-env/bin/lean login`.
 - Always state assumptions (ticker, periods, date range) before running.
 """,
     tools=[check_lean_cli, run_sma_backtest],

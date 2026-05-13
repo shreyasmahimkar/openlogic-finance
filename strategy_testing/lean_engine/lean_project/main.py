@@ -167,5 +167,5 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
         self.log(f"  Total Return   : {total_return:.2f}%")
         self.log(f"  Golden Crosses : {self._golden_crosses}")
         self.log(f"  Death  Crosses : {self._death_crosses}")
-        self.log(f"  Total Orders   : {self.transactions.order_count}")
+        self.log(f"  Total Orders   : {self.transactions.orders_count}")
         self.log("=" * 60)

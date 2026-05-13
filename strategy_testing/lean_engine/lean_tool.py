@@ -69,7 +69,29 @@ def run_sma_backtest(
         position_size = position_size,
     )
 
-    return result.to_dict()
+    d = result.to_dict()
+
+    # Build a human-readable summary the ADK agent can show directly
+    status = "✅ SUCCESS" if d["success"] else "❌ FAILED"
+    ret    = f"{d['total_return_pct']:.2f}%" if d["total_return_pct"] is not None else "N/A"
+
+    summary_lines = [
+        f"## LEAN Backtest Result — {d['strategy_name']}",
+        f"**Status**: {status}",
+        f"**Ticker**: {d['ticker']}",
+        f"**Fast SMA**: {d['fast_period']} | **Slow SMA**: {d['slow_period']}",
+        f"**Net Profit**: {ret}",
+        f"**Completed**: {d['completed_at']}",
+        "",
+    ]
+
+    if d.get("full_summary"):
+        summary_lines += ["### Full Statistics", "```", d["full_summary"], "```"]
+    elif not d["success"]:
+        summary_lines.append(f"**Error**: Check LEAN logs. Return code: {d['return_code']}")
+
+    d["formatted_summary"] = "\n".join(summary_lines)
+    return d
 
 
 def check_lean_cli() -> dict:
