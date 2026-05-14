@@ -36,3 +36,4 @@ storage/
 # Root-level lean.json (legacy artefact from running `lean init` at repo root)
 /lean.json
 
+*block_convey*
