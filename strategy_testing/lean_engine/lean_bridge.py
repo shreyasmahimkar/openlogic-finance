@@ -31,6 +31,14 @@ _DEFAULT_PROJECT    = Path(__file__).parent / "lean_project"
 _DEFAULT_WORKSPACE  = Path(__file__).parent / "lean_workspace"
 _VENV_LEAN          = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "lean"
 
+# ── model_library signal files to sync into lean_project before every push ───
+# key   = source path relative to repo root (model_library)
+# value = destination filename inside lean_project/
+_REPO_ROOT = Path(__file__).parents[2]
+_SIGNAL_SYNC_MAP: dict[str, str] = {
+    "model_library/technical/signals/sma_crossover_signal.py": "sma_crossover_signal.py",
+}
+
 
 @dataclass
 class BacktestResult:
@@ -146,13 +154,31 @@ class LeanEngineBridge:
             config_path = cfg_dir / "config.json"
             self._patch_config(config_path, ticker, fast_period, slow_period, position_size)
 
-        # ── Sync main.py to workspace if it differs ───────────────────────────
+        # ── Sync lean_project/ files to workspace ────────────────────────────
+        # 1. Always sync Main.py
         src_main  = self.project_path / "main.py"
         dest_main = self.workspace_path / "lean_project" / "main.py"
         if src_main.exists() and dest_main.parent.exists():
-            import shutil as _shutil
-            _shutil.copy2(src_main, dest_main)
+            shutil.copy2(src_main, dest_main)
             logger.info(f"[SYNC] Copied {src_main} → {dest_main}")
+
+        # 2. Sync model_library signal files (source of truth → lean_project → workspace)
+        #    This ensures LEAN cloud always runs the latest signal logic from Box 2.
+        for rel_src, dest_name in _SIGNAL_SYNC_MAP.items():
+            src_signal  = _REPO_ROOT / rel_src
+            dest_local  = self.project_path / dest_name                   # lean_project/ (tracked)
+            dest_ws     = self.workspace_path / "lean_project" / dest_name  # lean_workspace/ (cloud push)
+
+            if not src_signal.exists():
+                logger.warning(f"[SYNC SKIP] Signal source not found: {src_signal}")
+                continue
+
+            shutil.copy2(src_signal, dest_local)
+            logger.info(f"[SYNC] model_library → lean_project: {dest_name}")
+
+            if dest_ws.parent.exists():
+                shutil.copy2(src_signal, dest_ws)
+                logger.info(f"[SYNC] model_library → lean_workspace: {dest_name}")
 
         # ── Cloud push then cloud backtest (no Docker required) ───────────────
         push_cmd = [self.lean_cli, "cloud", "push", "--project", "lean_project"]

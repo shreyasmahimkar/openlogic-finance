@@ -4,7 +4,7 @@
     "parameters": {
         "fast-period": "50",
         "slow-period": "200",
-        "ticker": "SPY",
+        "ticker": "BTCUSD",
         "position-size": "1.0"
     },
     "cloud-node-type": "BacktestingZero",

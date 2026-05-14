@@ -175,3 +175,57 @@ cd strategy_testing/lean_engine/lean_workspace
 /Users/shreyas/gitrepos/OpenSource/openlogic-finance/.openlogic-env/bin/lean cloud push --project lean_project
 /Users/shreyas/gitrepos/OpenSource/openlogic-finance/.openlogic-env/bin/lean cloud backtest lean_project
 ```
+
+---
+
+## 5. Testing the Signal Layer (Box 2 ↔ Box 3)
+
+The signal logic in `model_library/technical/signals/` is independently testable — no LEAN runtime, no Docker, no cloud credentials required.
+
+### 1. Unit Tests (no LEAN, instant)
+
+```bash
+# From repo root
+.openlogic-env/bin/python -m pytest model_library/technical/signals/tests/ -v
+```
+
+Covers 31 test cases across:
+- `detect_crossover()` — Golden Cross, Death Cross, NONE, first bar (None prev values)
+- `drawdown_breached()` — threshold boundary, zero peak guard, custom thresholds
+- `StrategyConfig` — default construction, custom params, invalid input validation
+- End-to-end 7-bar simulation sequence
+
+### 2. Import the Signal in Any ADK Agent or Script
+
+```python
+from model_library.technical.signals import detect_crossover, SignalType
+
+signal = detect_crossover(fast=205.0, slow=200.0, prev_fast=199.0, prev_slow=200.0)
+# → SignalType.GOLDEN_CROSS
+```
+
+No LEAN dependency — usable by any Box 1–5 agent, MoE-F coordinator, or local backtesting script.
+
+### 3. End-to-End Cloud Backtest via ADK Agent
+
+```bash
+adk web strategy_testing
+# Then ask: "Run a backtest of SMA 50/200 on SPY"
+```
+
+The sync chain runs automatically:
+
+```
+Edit model_library/technical/signals/sma_crossover_signal.py
+        ↓
+lean_bridge.py syncs it → lean_project/ and lean_workspace/lean_project/
+        ↓
+lean cloud push  → uploads latest signal logic to QuantConnect
+        ↓
+lean cloud backtest → runs in QuantConnect cloud
+        ↓
+BacktestResult returned to ADK agent → formatted summary displayed
+```
+
+> **Rule:** Never edit `lean_project/sma_crossover_signal.py` directly.
+> It is an auto-synced copy. Always edit the source in `model_library/technical/signals/`.
