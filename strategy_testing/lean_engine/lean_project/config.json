@@ -1,0 +1,19 @@
+{
+    "algorithm-language": "Python",
+    "description": "SMA 50/200 Golden Cross strategy for OpenLogic Finance strategy testing.",
+    "parameters": {
+        "fast-period": "50",
+        "slow-period": "200",
+        "ticker": "BTCUSD",
+        "position-size": "1.0"
+    },
+    "cloud-node-type": "BacktestingZero",
+    "environments": {
+        "backtesting": {
+            "live-mode": false,
+            "data-folder": "./data",
+            "results-destination": "File",
+            "result-handler": "JsonResultHandler"
+        }
+    }
+}

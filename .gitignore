@@ -17,4 +17,23 @@ assets/
 
 # OS files
 .DS_Store
+
+# ── QuantConnect LEAN Engine ──────────────────────────────────────────────────
+# lean_workspace/ is a LEAN CLI runtime root — it contains downloaded market data
+# (can be many GB), Docker layer caches, and synced project copies.
+# Source of truth for strategy code stays in lean_engine/lean_project/.
+strategy_testing/lean_engine/lean_workspace/
+
+# Backtest result artefacts (HTML reports, JSON stats) written alongside source
+strategy_testing/lean_engine/backtests/
+
+# LEAN engine object store / storage cache
+storage/
+
+# LEAN credentials and Docker layer cache (stored in home dir by default)
+.lean/
+
+# Root-level lean.json (legacy artefact from running `lean init` at repo root)
+/lean.json
+
 *block_convey*
