@@ -1,6 +1,6 @@
 import vertexai
 from google.adk.agent_engines import AdkApp
-from .agent import moef_level_3_system
+from interface.cli.agent import moef_level_3_system
 
 def deploy_to_gcp():
     print("Authenticating with Google Cloud IAM...")

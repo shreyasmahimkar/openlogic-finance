@@ -35,8 +35,8 @@ def plot_asset_data(ticker: str = "SPY", period: str = "10y") -> str:
     if not os.path.exists(csv_path):
         logger.warning(f"Data file {csv_path} not found. Automatically invoking market_data tools to fetch it...")
         import sys
-        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-        from utility_agents.market_data.tools import fetch_asset_data
+        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+        from data_prep.connectors.market_data.tools import fetch_asset_data
         fetch_asset_data(ticker, period)
         
     df = pd.read_csv(csv_path, index_col=0, parse_dates=True)

@@ -9,7 +9,7 @@ from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.tools import FunctionTool, AgentTool
 
 # Import other components
-from data_ingestion.connectors.market_data.agent import root_agent as market_data_agent
+from data_prep.connectors.market_data.agent import root_agent as market_data_agent
 from model_library.ml_zoo.filters import robust_gibbs_aggregation_tool
 from model_library.agentic_ai.experts import moe_parallel_swarm
 from model_library.technical.indicators import enrich_ohlcv_data
