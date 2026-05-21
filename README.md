@@ -48,13 +48,44 @@ We automate the sequential steps required to win the risk/return battle:
 
 ## 🧩 Repository Architecture
 
-To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured into a modular, five-box architecture:
+To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured into a modular, **6-Box Architecture**, establishing a strict boundary between our horizontal infrastructure foundations and vertical agent orchestration layers:
 
-1.  **Data Ingestion (`data_ingestion/`):** We build and share the "bricks" of the system—modular utility agents designed for RAG (Retrieval-Augmented Generation), real-time search, and tool-use.
-2.  **Model Library (`model_library/`):** We deconstruct the latest AI research and bridge the gap between ML/Finance theory and agents—leveraging probabilistic frameworks and transitioning from linear projections to non-linear distribution modeling for autonomous reasoning.
-3.  **Strategy Testing (`strategy_testing/`):** We codify the 10-step "Quantitative Finance Checklist" into robust evaluation pipelines, mapping sequential functions across Financial Engineering, Risk Management, and Portfolio Construction into testable scenarios.
-4.  **Execution Layer (`execution_layer/`):** We orchestrate the multi-agent framework, mapping directly to containerized simulators and scalable cloud architectures to move from "paper to production."
-5.  **Interface (`interface/`):** We deliver user-centric touchpoints to visualize, interact with, and monitor the underlying orchestrated multi-agent frameworks.
+```
+                  ┌──────────────────────────────────────────┐
+                  │          AGENTIC WORKFLOWS (Vertical)    │
+                  │   Primitives  │  Orchestrators  │  Tools │
+                  └────────────────────┬─────────────────────┘
+                                       │
+  ┌────────────────────────────────────▼────────────────────────────────────┐
+  │                                6-BOX MODEL                              │
+  ├───────────────────┬───────────────────┬───────────────────┬─────────────┤
+  │    BOX 1          │    BOX 2          │    BOX 3          │    BOX 4    │
+  │    Data Prep      │    Model Library  │  Strategy Testing │  Risk Mgmt  │
+  ├───────────────────┼───────────────────┼───────────────────┼─────────────┤
+  │    BOX 5          │    BOX 6          │                   │             │
+  │  Live Execution   │    Interface      │                   │             │
+  └───────────────────┴───────────────────┴───────────────────┴─────────────┘
+                                       ▲
+                  ┌────────────────────┴─────────────────────┐
+                  │       HORIZONTAL FOUNDATION (Infrastructure)│
+                  │       Config    │     Utils    │    Core    │
+                  └──────────────────────────────────────────┘
+```
+
+### Architectural Foundations
+
+- **Horizontal Foundation (`horizontal_foundation/`)**: Provides baseline system configuration, logging, core primitives, and helper utilities passive to all higher layers.
+- **Vertical Orchestration (`agentic_workflows/`)**: Orchestrates agent memory, thinking loops, and tool invocation pathways across multiple domains.
+
+### The 6 Core Boxes
+
+1. **Data Prep (`data_prep/` - Box 1)**: Manages real-time market pipelines, unstructured news connectors, and financial feature engineering.
+2. **Model Library (`model_library/` - Box 2)**: Translates financial and ML research into agentic models, including stochastic filters and Gibbs PAC-Bayes aggregation.
+3. **Strategy Testing (`strategy_testing/` - Box 3)**: Integrates lightweight simulators and high-fidelity QuantConnect LEAN backtest engines.
+4. **Risk Management (`risk_management/` - Box 4)**: Enforces Value-at-Risk limits, drawdowns, and operates active Risk Auditor Agents capable of vetoing trades.
+5. **Live & Paper Execution (`live_paper_execution/` - Box 5)**: Manages secure trading connectivity, Docker simulator environments, and GCP cloud deploy rigs.
+6. **Interface (`interface/` - Box 6)**: Delivers interactive Jupyter templates, CLI agent consoles, and elegant Streamlit monitoring dashboards.
+
 
 <img width="2816" height="1536" alt="Gemini_Generated_Image_l8d497l8d497l8d4" src="https://github.com/user-attachments/assets/6821bf05-40a3-4b67-aa69-d93dd86c3ee7" />
 
