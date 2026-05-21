@@ -100,37 +100,6 @@ To fulfill our mission of transparency, we provide a deep-dive technical resourc
 
 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088)**
 
------
-
-## 🗺️ Strategic Roadmap: The Evolution of Agentic Finance
-
-Our path moves from isolated problem-solving to self-evolving financial intelligence.
-
-### Phase 1: Connected Problem-Solvers
-
-**The Goal:** Establishing the core truth layer and unified open-source libraries.
-
-  * **Agent Capabilities:** Level 1 agents using "Think, Act, Observe" loops to query financial APIs and synthesize real-time data.
-
-### Phase 2: Strategic Planners
-
-**The Goal:** Introducing heuristic planning to move from reactive data to predictive market scenarios.
-
-  * **Agent Capabilities:** Level 2 "Context Engineering," where agents package relevant information to plan complex goals without attention overload.
-
-### Phase 3: Collaborative Multi-Agent Systems (Current Focus)
-
-**The Goal:** Deploying specialized teams that negotiate, challenge assumptions, and synthesize consensus-driven forecasts.
-
-  * **Agent Capabilities:** Orchestrating specialist agents (e.g., Market Research, Risk Analysis, Web Dev) to mirror a human organization’s workflow.
-
-### Phase 4: Self-Evolving Systems
-
-**The Goal:** Creating autonomous infrastructure that identifies new market regimes and rewrites internal parameters in real-time.
-
-  * **Agent Capabilities:** Meta-reasoning allows the system to identify gaps in its own capabilities and autonomously build, test, and deploy new agents (e.g., a "Sentiment Analysis Agent") on the fly.
-
------
 
 **Join the movement to open the "Black Box."**
 *Explore our repositories, audit our models, and subscribe to the newsletter to build the future of agentic finance.*
