@@ -56,7 +56,8 @@ To turn the theoretical foundations into production-ready agentic workflows, our
 4.  **Execution Layer (`execution_layer/`):** We orchestrate the multi-agent framework, mapping directly to containerized simulators and scalable cloud architectures to move from "paper to production."
 5.  **Interface (`interface/`):** We deliver user-centric touchpoints to visualize, interact with, and monitor the underlying orchestrated multi-agent frameworks.
 
-<img width="1408" height="768" alt="Gemini_Generated_Image_mg33qcmg33qcmg33 (2)" src="https://github.com/user-attachments/assets/5ec043b0-31de-4ea8-83c6-75152d4c8e6f" />
+<img width="2816" height="1536" alt="Gemini_Generated_Image_l8d497l8d497l8d4" src="https://github.com/user-attachments/assets/6821bf05-40a3-4b67-aa69-d93dd86c3ee7" />
+
 
 -----
 
