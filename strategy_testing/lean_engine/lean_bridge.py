@@ -128,6 +128,7 @@ class LeanEngineBridge:
         fast_period:   int = 50,
         slow_period:   int = 200,
         position_size: float = 1.0,
+        max_drawdown_pct: float = 0.15,
         output_dir:    Optional[str] = None,
     ) -> BacktestResult:
         """
@@ -138,6 +139,7 @@ class LeanEngineBridge:
             fast_period:   Fast SMA period (default 50).
             slow_period:   Slow SMA period (default 200).
             position_size: Fractional portfolio allocation on signal (default 1.0).
+            max_drawdown_pct: Maximum allowed drawdown stop limit (default 0.15).
             output_dir:    Where LEAN writes results. Defaults to lean_project/backtests/.
 
         Returns:
@@ -152,7 +154,7 @@ class LeanEngineBridge:
         # Patch both the source lean_project and the workspace copy
         for cfg_dir in [self.project_path, self.workspace_path / "lean_project"]:
             config_path = cfg_dir / "config.json"
-            self._patch_config(config_path, ticker, fast_period, slow_period, position_size)
+            self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct)
 
         # ── Sync lean_project/ files to workspace ────────────────────────────
         # 1. Always sync Main.py
@@ -296,6 +298,7 @@ class LeanEngineBridge:
         fast_period:   int,
         slow_period:   int,
         position_size: float,
+        max_drawdown_pct: float = 0.15,
     ) -> None:
         """Overwrite config.json parameters without touching other settings."""
         if not config_path.exists():
@@ -311,6 +314,7 @@ class LeanEngineBridge:
                 "slow-period":    str(slow_period),
                 "ticker":         ticker,
                 "position-size":  str(position_size),
+                "max-drawdown-pct": str(max_drawdown_pct),
             }
         )
 

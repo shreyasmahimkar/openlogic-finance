@@ -167,3 +167,33 @@ def drawdown_breached(
 
     drawdown = (peak_value - current_value) / peak_value
     return drawdown >= threshold
+
+
+def generate_crossover_signals(df, config: StrategyConfig):
+    """
+    Enriches a price DataFrame with Fast SMA, Slow SMA, and raw crossover signals.
+    """
+    import pandas as pd
+    df = df.copy()
+    df["Fast_SMA"] = df["Close"].rolling(window=config.fast_period).mean()
+    df["Slow_SMA"] = df["Close"].rolling(window=config.slow_period).mean()
+    
+    signals = []
+    prev_fast = None
+    prev_slow = None
+    
+    for idx, row in df.iterrows():
+        fast = row["Fast_SMA"]
+        slow = row["Slow_SMA"]
+        
+        if pd.isna(fast) or pd.isna(slow):
+            signals.append(SignalType.NONE)
+        else:
+            sig = detect_crossover(fast, slow, prev_fast, prev_slow)
+            signals.append(sig)
+            prev_fast = fast
+            prev_slow = slow
+            
+    df["Signal"] = [s.value for s in signals]
+    return df
+
