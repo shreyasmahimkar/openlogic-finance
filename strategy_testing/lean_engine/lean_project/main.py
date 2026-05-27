@@ -43,7 +43,7 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
         )
 
         # ── Date Range ────────────────────────────────────────────────────────
-        self.set_start_date(2010, 1, 1)
+        self.set_start_date(2016, 5, 27)
         self.set_end_date(2026, 5, 12)
         self.set_cash(100_000)
 
