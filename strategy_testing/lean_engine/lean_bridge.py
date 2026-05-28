@@ -37,6 +37,7 @@ _VENV_LEAN          = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "le
 _REPO_ROOT = Path(__file__).parents[2]
 _SIGNAL_SYNC_MAP: dict[str, str] = {
     "model_library/technical/signals/sma_crossover_signal.py": "sma_crossover_signal.py",
+    "model_library/ml_zoo/logistic_regression.py": "logistic_regression.py",
 }
 
 
@@ -129,6 +130,8 @@ class LeanEngineBridge:
         slow_period:   int = 200,
         position_size: float = 1.0,
         max_drawdown_pct: float = 0.15,
+        probability_threshold: float = 0.5,
+        rsi_period:    int = 14,
         output_dir:    Optional[str] = None,
     ) -> BacktestResult:
         """
@@ -154,7 +157,7 @@ class LeanEngineBridge:
         # Patch both the source lean_project and the workspace copy
         for cfg_dir in [self.project_path, self.workspace_path / "lean_project"]:
             config_path = cfg_dir / "config.json"
-            self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct)
+            self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct, probability_threshold, rsi_period)
 
         # ── Sync lean_project/ files to workspace ────────────────────────────
         # 1. Always sync Main.py
@@ -299,6 +302,8 @@ class LeanEngineBridge:
         slow_period:   int,
         position_size: float,
         max_drawdown_pct: float = 0.15,
+        probability_threshold: float = 0.5,
+        rsi_period:    int = 14,
     ) -> None:
         """Overwrite config.json parameters without touching other settings."""
         if not config_path.exists():
@@ -315,6 +320,8 @@ class LeanEngineBridge:
                 "ticker":         ticker,
                 "position-size":  str(position_size),
                 "max-drawdown-pct": str(max_drawdown_pct),
+                "probability-threshold": str(probability_threshold),
+                "rsi-period":     str(rsi_period),
             }
         )
 
