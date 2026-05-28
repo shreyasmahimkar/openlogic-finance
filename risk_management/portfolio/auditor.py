@@ -14,7 +14,7 @@ def run_audited_simulation(
 ) -> tuple[pd.DataFrame, bool, any, float, float]:
     """
     Simulates crossover strategy with active drawdown auditing (Box 4).
-    If a breach occurs, liquidates to cash and halts permanently.
+    If a breach occurs, liquidates to cash and resumes trading at the next golden crossover.
     
     Returns:
         tuple: (sim_df with Strat_Value_RM, risk_halted, halt_date, peak_value, final_value)
@@ -32,33 +32,34 @@ def run_audited_simulation(
         close = row["Close"]
         sig = row["Signal"]
         
-        # 1. If halted, remain in cash
-        if risk_halted:
-            portfolio_values_rm.append(cash_rm)
-            continue
-            
-        # 2. Execute signals
+        # 1. Execute signals
         if sig == "GOLDEN_CROSS" and position_rm == 0:
             shares_rm = cash_rm / close
             cash_rm = 0.0
             position_rm = 1
+            # Reset peak value to start tracking drawdown for the new trade
+            peak_val_rm = shares_rm * close
         elif sig == "DEATH_CROSS" and position_rm == 1:
             cash_rm = shares_rm * close
             shares_rm = 0.0
             position_rm = 0
             
-        # 3. Calculate portfolio value
+        # 2. Calculate portfolio value
         current_val = cash_rm + (shares_rm * close)
         if current_val > peak_val_rm:
             peak_val_rm = current_val
             
-        # 4. Check drawdown
-        if drawdown_breached(current_val, peak_val_rm, threshold=max_drawdown_pct):
+        # 3. Check drawdown (only check when in a long position)
+        if position_rm == 1 and drawdown_breached(current_val, peak_val_rm, threshold=max_drawdown_pct):
             cash_rm = current_val
             shares_rm = 0.0
             position_rm = 0
             risk_halted = True
-            halt_date = date
+            if halt_date is None:
+                # Record the first breach date for reporting
+                halt_date = date
+            # Reset peak to start tracking drawdown from our new cash balance
+            peak_val_rm = cash_rm
             
         portfolio_values_rm.append(current_val)
         

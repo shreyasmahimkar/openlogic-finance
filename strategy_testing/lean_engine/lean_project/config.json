@@ -6,7 +6,7 @@
         "slow-period": "200",
         "ticker": "SPY",
         "position-size": "1.0",
-        "max-drawdown-pct": "0.99"
+        "max-drawdown-pct": "0.15"
     },
     "cloud-node-type": "BacktestingZero",
     "environments": {

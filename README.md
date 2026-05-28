@@ -18,10 +18,10 @@ We build for *every* investor. Warren Buffett bought his first stock when he was
 
 ## 🏗️ Core Pillars
 
-  * **Open Source Alpha:** A central repository to share backtesting frameworks, risk models, and open-source AI models fine-tuned on SEC filings, earnings calls, and global macroeconomic data.
-  * **Collaborative Forecasting:** A shift from proprietary trading to a community-centric model where users audit and improve predictive models, removing individual biases.
-  * **Shared Datasets:** A centralized hub for "Alternative Data," such as satellite imagery, shipping manifests, and ESG sentiment analysis.
-  * **Ethical Alpha:** Prioritizing responsible risk management. Our models provide a clear, transparent audit trail explaining *why* a market movement is predicted, promoting financial literacy.
+* **Open Source Alpha:** A central repository to share backtesting frameworks, risk models, and open-source AI models fine-tuned on SEC filings, earnings calls, and global macroeconomic data.
+* **Collaborative Forecasting:** A shift from proprietary trading to a community-centric model where users audit and improve predictive models, removing individual biases.
+* **Shared Datasets:** A centralized hub for "Alternative Data," such as satellite imagery, shipping manifests, and ESG sentiment analysis.
+* **Ethical Alpha:** Prioritizing responsible risk management. Our models provide a clear, transparent audit trail explaining *why* a market movement is predicted, promoting financial literacy.
 
 -----
 
@@ -33,22 +33,22 @@ OpenLogic Finance is built upon institutional-grade blueprints to ensure academi
 
 Our architecture recognizes the symmetry between two fundamental frameworks:
 
-  **Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections.
-  **Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence.
+* **Mean-Covariance Framework:** Where randomness is modeled by mean and covariance, utilizing affine transformations and linear projections.
+* **Probabilistic Framework:** Where randomness is modeled by full distributions, utilizing non-linear functions and conditional independence.
 
 ### The Quantitative Finance Checklist
 
 We automate the sequential steps required to win the risk/return battle:
 
-1.  **Financial Engineering:** Agents focused on pricing instruments and estimating joint distributions of future payoffs. 
-2.  **Portfolio & Enterprise Risk Management:** Agents dedicated to aggregating payoffs and assessing portfolio-level risk.
-3.  **Portfolio Construction & Trading:** Agents optimizing strategy construction, trade execution, and performance attribution.
+1. **Financial Engineering:** Agents focused on pricing instruments and estimating joint distributions of future payoffs.
+2. **Portfolio & Enterprise Risk Management:** Agents dedicated to aggregating payoffs and assessing portfolio-level risk.
+3. **Portfolio Construction & Trading:** Agents optimizing strategy construction, trade execution, and performance attribution.
 
 -----
 
 ## 🧩 Repository Architecture
 
-To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured i- **6-Box Architecture**, establishing a strict boundary between our horizontal infrastructure foundations and vertical agent orchestration layers:
+To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured into a **6-Box Architecture**, establishing a strict boundary between our horizontal infrastructure foundations and vertical agent orchestration layers:
 
 ```
                   ┌──────────────────────────────────────────┐
@@ -75,18 +75,7 @@ To turn the theoretical foundations into production-ready agentic workflows, our
 ### Architectural Foundations
 
 - **Horizontal Foundation (`horizontal_foundation/`)**: Provides baseline system configuration, logging helpers, core primitives, and a dedicated multi-tier **Interpretability Engine** passive to all higher layers.
-- **Vertical Orchestration (`agentic_workflows/`)**: Orchestrates agent memory, thinking loops, and tool invocation pathways, forming cross-cutting **Vertical Slices** that traverse sequentially from Box 1 to Box 6.�────────┴───────────────────┴───────────────────┴─────────────┘
-                                       ▲
-                  ┌────────────────────┴─────────────────────┐
-                  │       HORIZONTAL FOUNDATION (Infrastructure)│
-                  │       Config    │     Utils    │    Core    │
-                  └──────────────────────────────────────────┘
-```
-
-### Architectural Foundations
-
-- **Horizontal Foundation (`horizontal_foundation/`)**: Provides baseline system configuration, logging, core primitives, and helper utilities passive to all higher layers.
-- **Vertical Orchestration (`agentic_workflows/`)**: Orchestrates agent memory, thinking loops, and tool invocation pathways across multiple domains.
+- **Vertical Orchestration (`agentic_workflows/`)**: Orchestrates agent memory, thinking loops, and tool invocation pathways, forming cross-cutting **Vertical Slices** that traverse sequentially from Box 1 to Box 6.
 
 ### The 6 Core Boxes
 
@@ -97,9 +86,7 @@ To turn the theoretical foundations into production-ready agentic workflows, our
 5. **Live & Paper Execution (`live_paper_execution/` - Box 5)**: Manages secure trading connectivity, Docker simulator environments, and GCP cloud deploy rigs.
 6. **Interface (`interface/` - Box 6)**: Delivers interactive Jupyter templates, CLI agent consoles, and elegant Streamlit monitoring dashboards.
 
-
 <img width="2816" height="1536" alt="Gemini_Generated_Image_l8d497l8d497l8d4" src="https://github.com/user-attachments/assets/6821bf05-40a3-4b67-aa69-d93dd86c3ee7" />
-
 
 -----
 
@@ -107,10 +94,9 @@ To turn the theoretical foundations into production-ready agentic workflows, our
 
 **"Research & ML Theory to AI Agents: Open-source Financial Engineering replacing black box models."**
 
-To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into the production-ready agentic workflows you see in this repository. 
+To fulfill our mission of transparency, we provide a deep-dive technical resource for the community. Our newsletter serves as the blueprint for transforming abstract concepts into the production-ready agentic workflows you see in this repository.
 
 👉 **[Subscribe to the OpenLogic Finance Newsletter on LinkedIn](https://www.linkedin.com/build-relation/newsletter-follow?entityUrn=7451959465815257088)**
-
 
 **Join the movement to open the "Black Box."**
 *Explore our repositories, audit our models, and subscribe to the newsletter to build the future of agentic finance.*
