@@ -48,14 +48,14 @@ We automate the sequential steps required to win the risk/return battle:
 
 ## 🧩 Repository Architecture
 
-To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured into a modular, **6-Box Architecture**, establishing a strict boundary between our horizontal infrastructure foundations and vertical agent orchestration layers:
+To turn the theoretical foundations into production-ready agentic workflows, our codebase is structured i- **6-Box Architecture**, establishing a strict boundary between our horizontal infrastructure foundations and vertical agent orchestration layers:
 
 ```
                   ┌──────────────────────────────────────────┐
                   │          AGENTIC WORKFLOWS (Vertical)    │
                   │   Primitives  │  Orchestrators  │  Tools │
                   └────────────────────┬─────────────────────┘
-                                       │
+                                       │ (Cross-cutting Orchestration)
   ┌────────────────────────────────────▼────────────────────────────────────┐
   │                                6-BOX MODEL                              │
   ├───────────────────┬───────────────────┬───────────────────┬─────────────┤
@@ -65,6 +65,17 @@ To turn the theoretical foundations into production-ready agentic workflows, our
   │    BOX 5          │    BOX 6          │                   │             │
   │  Live Execution   │    Interface      │                   │             │
   └───────────────────┴───────────────────┴───────────────────┴─────────────┘
+                                       ▲
+                  ┌────────────────────┴────────────────────────────────┐
+                  │          HORIZONTAL FOUNDATION (Infrastructure)     │
+                  │  Config  │  Utils  │  Core  │  Interpretability     │
+                  └─────────────────────────────────────────────────────┘
+```
+
+### Architectural Foundations
+
+- **Horizontal Foundation (`horizontal_foundation/`)**: Provides baseline system configuration, logging helpers, core primitives, and a dedicated multi-tier **Interpretability Engine** passive to all higher layers.
+- **Vertical Orchestration (`agentic_workflows/`)**: Orchestrates agent memory, thinking loops, and tool invocation pathways, forming cross-cutting **Vertical Slices** that traverse sequentially from Box 1 to Box 6.�────────┴───────────────────┴───────────────────┴─────────────┘
                                        ▲
                   ┌────────────────────┴─────────────────────┐
                   │       HORIZONTAL FOUNDATION (Infrastructure)│
