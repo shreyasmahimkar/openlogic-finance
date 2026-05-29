@@ -57,6 +57,9 @@ class BacktestResult:
     started_at:      str              = field(default_factory=lambda: datetime.utcnow().isoformat())
     completed_at:    Optional[str]    = None
     total_return_pct: Optional[float] = None   # parsed from LEAN logs when available
+    cagr_pct:        Optional[float] = None
+    max_drawdown_pct: Optional[float] = None
+    total_orders:    Optional[int]   = None
     full_summary:    Optional[str]    = None   # full stats table from lean cloud backtest
 
     def to_dict(self) -> dict:
@@ -68,6 +71,9 @@ class BacktestResult:
             "success":          self.success,
             "return_code":      self.return_code,
             "total_return_pct": self.total_return_pct,
+            "cagr_pct":         self.cagr_pct,
+            "max_drawdown_pct": self.max_drawdown_pct,
+            "total_orders":     self.total_orders,
             "output_dir":       self.output_dir,
             "started_at":       self.started_at,
             "completed_at":     self.completed_at,
@@ -240,6 +246,9 @@ class LeanEngineBridge:
 
             # ── Parse stats from cloud backtest table output ──────────────────
             total_return = self._parse_return(combined_out)
+            cagr = self._parse_cagr(combined_out)
+            drawdown = self._parse_drawdown(combined_out)
+            orders = self._parse_orders(combined_out)
             full_summary = self._extract_summary_table(combined_out)
 
             return BacktestResult(
@@ -255,6 +264,9 @@ class LeanEngineBridge:
                 started_at       = started_at,
                 completed_at     = completed_at,
                 total_return_pct = total_return,
+                cagr_pct         = cagr,
+                max_drawdown_pct = drawdown,
+                total_orders     = orders,
                 full_summary     = full_summary,
             )
 
@@ -373,6 +385,39 @@ class LeanEngineBridge:
                         return float(match.group(1))
                     except ValueError:
                         pass
+        return None
+
+    @staticmethod
+    def _parse_cagr(stdout: str) -> Optional[float]:
+        import re
+        for line in stdout.splitlines():
+            # │ Compounding Annual  │ 8.072%         │
+            if "Compounding Annual" in line:
+                match = re.search(r"│\s*Compounding Annual\s*│\s*([\-\+]?\d+\.?\d*)%", line)
+                if match:
+                    return float(match.group(1))
+        return None
+
+    @staticmethod
+    def _parse_drawdown(stdout: str) -> Optional[float]:
+        import re
+        for line in stdout.splitlines():
+            # │ Drawdown           │ 19.900%          │
+            if "Drawdown" in line and "Recovery" not in line:
+                match = re.search(r"│\s*Drawdown\s*│\s*([\-\+]?\d+\.?\d*)%", line)
+                if match:
+                    return float(match.group(1))
+        return None
+
+    @staticmethod
+    def _parse_orders(stdout: str) -> Optional[int]:
+        import re
+        for line in stdout.splitlines():
+            # │ Total Orders       │ 7                │
+            if "Total Orders" in line:
+                match = re.search(r"│\s*Total Orders\s*│\s*(\d+)", line)
+                if match:
+                    return int(match.group(1))
         return None
 
     @staticmethod
