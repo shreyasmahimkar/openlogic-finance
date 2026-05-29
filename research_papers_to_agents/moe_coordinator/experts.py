@@ -1,5 +1,17 @@
+import os
+import sys
 from google.adk.agents import LlmAgent, ParallelAgent
 from .filters import stochastic_filter_update_tool
+
+# Ensure root path is in PYTHONPATH for importing prismtrace
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+from prismtrace import PRISMtraceADKAdapter
+
+expert_adapter = PRISMtraceADKAdapter(
+    api_key=os.environ.get("PRISMTRACE_API_KEY", ""),
+    project_id="3a06f38f-3103-4c38-a38d-b6e3c68414d3",
+    agent_name="my-adk-expert",
+)
 
 # Expert 1: Llama (The Technician / Momentum)
 expert_llama = LlmAgent(
@@ -11,7 +23,13 @@ Use {enriched_market_data} and {filtered_news_context} for context.
 Output your prediction EXACTLY as a single float between 0.0 and 1.0, where 1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall. 
 No text, no preamble, just the float value.""",
     tools=[stochastic_filter_update_tool],
-    output_key="pred_llama"
+    output_key="pred_llama",
+    before_model_callback=expert_adapter.before_model,
+    after_model_callback=expert_adapter.after_model,
+    before_tool_callback=expert_adapter.before_tool,
+    after_tool_callback=expert_adapter.after_tool,
+    before_agent_callback=expert_adapter.before_agent,
+    after_agent_callback=expert_adapter.after_agent,
 )
 
 # Expert 2: GPT4o (The Fundamentalist / Macro)
@@ -25,7 +43,13 @@ Use {enriched_market_data} and {filtered_news_context} for context.
 Output your prediction EXACTLY as a single float between 0.0 and 1.0, where 1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall.
 No text, no preamble, just the float value.""",
     tools=[stochastic_filter_update_tool],
-    output_key="pred_gpt"
+    output_key="pred_gpt",
+    before_model_callback=expert_adapter.before_model,
+    after_model_callback=expert_adapter.after_model,
+    before_tool_callback=expert_adapter.before_tool,
+    after_tool_callback=expert_adapter.after_tool,
+    before_agent_callback=expert_adapter.before_agent,
+    after_agent_callback=expert_adapter.after_agent,
 )
 
 # Expert 3: Mixtral (The Contrarian / Mean-Reversion)
@@ -38,7 +62,13 @@ Use {enriched_market_data} and {filtered_news_context} for context.
 Output your prediction EXACTLY as a single float between 0.0 and 1.0, where 1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall.
 No text, no preamble, just the float value.""",
     tools=[stochastic_filter_update_tool],
-    output_key="pred_mixtral"
+    output_key="pred_mixtral",
+    before_model_callback=expert_adapter.before_model,
+    after_model_callback=expert_adapter.after_model,
+    before_tool_callback=expert_adapter.before_tool,
+    after_tool_callback=expert_adapter.after_tool,
+    before_agent_callback=expert_adapter.before_agent,
+    after_agent_callback=expert_adapter.after_agent,
 )
 
 # Group them into a Parallel Swarm for Fan-Out execution

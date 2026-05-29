@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 
 # Minimal mock of ADK SessionState
 class SessionState:
@@ -21,7 +22,6 @@ class SessionState:
 from .agent import render_moe_trajectories, market_data_tool, technical_indicators_tool, sbert_news_filter
 from .experts import moe_parallel_swarm
 from .filters import stochastic_filter_update, robust_gibbs_aggregation
-from .block_convey.prismtrace_client import send_trace_async
 from google.adk.agents import LlmAgent
 from google.adk import Runner
 from google.adk.sessions import InMemorySessionService
@@ -83,6 +83,8 @@ async def run_simulation():
                 news_context = ev.data
     except Exception as e:
         print(f"SBERT News Fetch Failed (API / Rate limit timeout): {e}")
+        from .agent import pipeline_adapter
+        pipeline_adapter.record_model_error(e, callback_context=session)
         
     if not news_context:
         news_context = "Fallback News: Markets digesting recent macroeconomic data."
@@ -119,14 +121,17 @@ async def run_simulation():
         
         # 1. Trigger true parallel swarm via Runner!
         session = await session_service.create_session(app_name="simulation", user_id="test", session_id=turn_id)
+        # Directly update the stored session state in the session service to avoid mutating a copied session
+        session_service.sessions["simulation"]["test"][turn_id].state["enriched_market_data"] = data_text
+        session_service.sessions["simulation"]["test"][turn_id].state["filtered_news_context"] = news_context
         session.state["enriched_market_data"] = data_text
         session.state["filtered_news_context"] = news_context
         
         # Get previous day's ground truth for the filter tool
         prev_gt = 1.0
         if i - start_idx > 0:
-            past_row = test_data.iloc[i-1]
-            if past_row['Close'] > test_data.iloc[i-2]['Close']:
+            past_row = df_valid.iloc[i-1]
+            if past_row['Close'] > df_valid.iloc[i-2]['Close']:
                 prev_gt = 1.0
             else:
                 prev_gt = 0.0
@@ -134,19 +139,25 @@ async def run_simulation():
         swarm_runner = Runner(app_name="simulation", agent=moe_parallel_swarm, session_service=session_service, auto_create_session=False)
         full_user_prompt = f"Analyze {date_str} market direction for tomorrow.\n\nQuantitative Context:\n{data_text}\n\nNews Context:\n{news_context}\n\nYesterday's Actual Ground Truth was {prev_gt}. If calling stochastic_filter_update_tool, use this truth value."
         msg_obj = Content(role="user", parts=[Part.from_text(text=full_user_prompt)])
-        swarm_gen = swarm_runner.run_async(
-            user_id="test",
-            session_id=turn_id,
-            new_message=msg_obj
-        )
         
         swarm_outputs = []
-        async for ev in swarm_gen:
-            # We catch any string data emitted from the parallel agents
-            # Since ADK ParallelAgent encapsulates sub-agents, we collect raw strings and guess order based on typical resolution
-            if hasattr(ev, 'type') and "ResponseEvent" in str(type(ev)):
-                 if hasattr(ev, 'data'):
-                     swarm_outputs.append((ev.source.name if hasattr(ev, 'source') and hasattr(ev.source, 'name') else str(len(swarm_outputs)), ev.data))
+        try:
+            swarm_gen = swarm_runner.run_async(
+                user_id="test",
+                session_id=turn_id,
+                new_message=msg_obj
+            )
+            async for ev in swarm_gen:
+                # We catch any string data emitted from the parallel agents
+                # Since ADK ParallelAgent encapsulates sub-agents, we collect raw strings and guess order based on typical resolution
+                if hasattr(ev, 'type') and "ResponseEvent" in str(type(ev)):
+                     if hasattr(ev, 'data'):
+                         swarm_outputs.append((ev.source.name if hasattr(ev, 'source') and hasattr(ev.source, 'name') else str(len(swarm_outputs)), ev.data))
+        except Exception as e:
+            print(f"Swarm runner execution failed: {e}")
+            from .agent import pipeline_adapter
+            pipeline_adapter.record_model_error(e, callback_context=session)
+            raise
         
         # Handle extraction resiliently by unwrapping ADK types and capturing regex
         pred_llama, pred_gpt, pred_mixtral = 0.5, 0.5, 0.5
@@ -211,7 +222,7 @@ async def run_simulation():
         stochastic_filter_update("Mixtral_Expert", pred_mixtral, gt, state)
         
         # 3. Gibbs Aggregation
-        final_agg = robust_gibbs_aggregation(state)
+        final_agg = robust_gibbs_aggregation(pred_llama, pred_gpt, pred_mixtral, state)
         print(f"Gibbs Aggregated Score: {final_agg:.3f}")
         
         # 4. Render Point Append
@@ -226,11 +237,18 @@ async def run_simulation():
         
         exp_runner = Runner(app_name="simulation", agent=explainer_agent, session_service=session_service, auto_create_session=False)
         msg_obj = Content(role="user", parts=[Part.from_text(text=explain_prompt)])
-        exp_gen = exp_runner.run_async(user_id="test", session_id=explanation_session_id, new_message=msg_obj)
+        
         explanation_text = ""
-        async for ev in exp_gen:
-            if hasattr(ev, 'data') and isinstance(ev.data, str):
-                explanation_text = ev.data
+        try:
+            exp_gen = exp_runner.run_async(user_id="test", session_id=explanation_session_id, new_message=msg_obj)
+            async for ev in exp_gen:
+                if hasattr(ev, 'data') and isinstance(ev.data, str):
+                    explanation_text = ev.data
+        except Exception as e:
+            print(f"Explanation runner failed: {e}")
+            from .agent import pipeline_adapter
+            pipeline_adapter.record_model_error(e, callback_context=session_exp)
+            explanation_text = "Analysis completed with errors."
         
         if not explanation_text:
             explanation_text = "Analysis completed."

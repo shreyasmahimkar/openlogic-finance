@@ -3,7 +3,6 @@ import scipy.linalg as la
 from google.adk.tools import FunctionTool
 from typing import Dict, Any
 import time
-from .block_convey.prismtrace_client import send_trace_async
 
 def compute_input_sensitivity_gradient(prediction: float, ground_truth: float, delta_f: float) -> float:
     # A_t implementation (Simplified for brevity based on BCE/MSE helper functions)
@@ -76,26 +75,9 @@ def stochastic_filter_update(agent_id: str, prediction: float, ground_truth: flo
         state[f"prev_pred_{agent_id}"] = prediction
         state[f"prev_loss_{agent_id}"] = current_loss
     
-    # Get all expert predictions so far this turn (can only calculate if others ran)
     all_expert_preds = state.get("all_expert_predictions", [0.5, 0.5, 0.5]) if hasattr(state, "get") else [0.5, 0.5, 0.5]
     ret_val = float(np.dot(new_pi, all_expert_preds))
     
-    ms = int((time.time() - t0) * 1000)
-    send_trace_async(
-        user_input=f"{agent_id} pred: {prediction}, gt: {ground_truth}", 
-        output=f"Filter updated. new_pi sum: {np.sum(new_pi)}", 
-        model="math_guardrail",
-        latency_ms=ms,
-        step="stochastic_update",
-        step_order=state.get("step_order", 0),
-        session_id=state.get("session_id", "unknown")
-    )
-    if hasattr(state, "get") and state.get("step_order"):
-        if hasattr(state, "set"):
-            state.set("step_order", state.get("step_order") + 1)
-        elif isinstance(state, dict):
-            state["step_order"] = state.get("step_order") + 1
-            
     return ret_val
 
 
@@ -163,23 +145,6 @@ def robust_gibbs_aggregation(pred_llama: float = 0.5, pred_gpt: float = 0.5, pre
         state_obj["global_Q_matrix"] = Q_new
         state_obj["final_prediction"] = final_y
     
-    ms = int((time.time() - t0) * 1000)
-    session_id = state_obj.get("session_id", "live_adk_run")
-    send_trace_async(
-        user_input=f"Scores: {scores}",
-        output=f"Aggregated prediction: {final_y}",
-        model="gibbs_aggregation",
-        latency_ms=ms,
-        step="robust_aggregation",
-        step_order=state_obj.get("step_order", 0),
-        session_id=session_id
-    )
-    if hasattr(state_obj, "get") and state_obj.get("step_order"):
-        if hasattr(state_obj, "set"):
-            state_obj.set("step_order", state_obj.get("step_order") + 1)
-        elif isinstance(state_obj, dict):
-            state_obj["step_order"] = state_obj.get("step_order") + 1
-            
     return float(final_y)
 
 robust_gibbs_aggregation_tool = FunctionTool(func=robust_gibbs_aggregation)

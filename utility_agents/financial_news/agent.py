@@ -35,7 +35,8 @@ Workflow:
                         "git+https://github.com/jeffmm/nytimes-mcp.git",
                         "nytimes-mcp"
                     ],
-                    env={"NYT_API_KEY": os.environ.get("NYT_API_KEY", "")}
+                    env={"NYT_API_KEY": os.environ.get("NYT_API_KEY", "")},
+                    cwd=os.path.dirname(__file__)
                 )
             ),
             tool_filter=['search_articles']

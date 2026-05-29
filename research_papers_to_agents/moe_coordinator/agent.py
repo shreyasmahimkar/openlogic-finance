@@ -13,10 +13,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 
 # Load API keys including NYT_API_KEY for MCP
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../utility_agents/financial_news/.env"))
 
 import time
-from .block_convey.prismtrace_client import send_trace_async
+from prismtrace import PRISMtraceADKAdapter
+
+pipeline_adapter = PRISMtraceADKAdapter(
+    api_key=os.environ.get("PRISMTRACE_API_KEY", ""),
+    project_id="3a06f38f-3103-4c38-a38d-b6e3c68414d3",
+    agent_name="my-adk-agent",
+)
 
 from google.adk.agents import Agent, LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.tools import FunctionTool, AgentTool
@@ -36,11 +43,7 @@ from .indicators import enrich_ohlcv_data
 # ---------------------------------------------------------
 def data_ingestion_stub(state=None):
     """Fallback stub kept exclusively for final_test.py simulations."""
-    t0 = time.time()
     result = os.path.join(os.path.dirname(__file__), "data", "spy_2025_mock.csv") 
-    ms = int((time.time() - t0) * 1000)
-    
-    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
     
     # Pre-seed ADK session state to prevent KeyErrors if downstream agents crash
     if hasattr(state, "set"):
@@ -50,20 +53,15 @@ def data_ingestion_stub(state=None):
         state["filtered_news_context"] = "No macroeconomic news successfully filtered."
         state["enriched_market_data"] = "No quantitative data successfully enriched."
         
-    send_trace_async("Extract OHLCV data", f"Retrieved {result}", "data-retrieval", ms, "data_ingestion", 1, session_id)
     return result
 
 def live_data_ingestion(ticker: str = "SPY", period: str = "10y", state=None):
-    """Real live market data tool wired with PRISMtrace."""
-    t0 = time.time()
+    """Real live market data tool."""
     try:
         result = fetch_asset_data(ticker=ticker, period=period)
     except Exception as e:
         print(f"Rate limit or API error: {e}")
         result = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../assets/SPY_6mo_enriched.csv"))
-    ms = int((time.time() - t0) * 1000)
-    
-    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
     
     # Pre-seed ADK session state to prevent KeyErrors if downstream agents crash
     if hasattr(state, "set"):
@@ -73,7 +71,6 @@ def live_data_ingestion(ticker: str = "SPY", period: str = "10y", state=None):
         state["filtered_news_context"] = "No macroeconomic news successfully filtered."
         state["enriched_market_data"] = "No quantitative data successfully enriched."
 
-    send_trace_async(f"Fetch live asset data {ticker}", str(result), "data-retrieval", ms, "data_ingestion", 1, session_id)
     return result
 
 market_data_tool = FunctionTool(func=live_data_ingestion)
@@ -83,7 +80,13 @@ market_extractor = LlmAgent(
     model="gemini-2.5-flash",
     instruction="Use the DataIngestionTool to extract 10 years of OHLCV historical data and news for the SPY ticker. Structure this data logically.",
     tools=[market_data_tool],
-    output_key="structured_market_data"
+    output_key="structured_market_data",
+    before_model_callback=pipeline_adapter.before_model,
+    after_model_callback=pipeline_adapter.after_model,
+    before_tool_callback=pipeline_adapter.before_tool,
+    after_tool_callback=pipeline_adapter.after_tool,
+    before_agent_callback=pipeline_adapter.before_agent,
+    after_agent_callback=pipeline_adapter.after_agent,
 )
 
 technical_indicators_tool = FunctionTool(func=enrich_ohlcv_data)
@@ -93,14 +96,16 @@ quantitative_feature_agent = LlmAgent(
     model="gemini-2.5-flash",
     instruction="Take the EXACT FILE PATH output from {structured_market_data} (DO NOT invent your own filename) and use the technical_indicators_tool to calculate MoE-F technical indicators (MACD, Bollinger, RSI, CCI, DX, SMAs).",
     tools=[technical_indicators_tool],
-    output_key="enriched_market_data"
+    output_key="enriched_market_data",
+    before_model_callback=pipeline_adapter.before_model,
+    after_model_callback=pipeline_adapter.after_model,
+    before_tool_callback=pipeline_adapter.before_tool,
+    after_tool_callback=pipeline_adapter.after_tool,
+    before_agent_callback=pipeline_adapter.before_agent,
+    after_agent_callback=pipeline_adapter.after_agent,
 )
 
 def sbert_telemetry_stub(news_text: str, state=None) -> str:
-    t0 = time.time()
-    ms = int((time.time() - t0) * 1000)
-    session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
-    
     # Save the text into the assets folder as a CSV as requested
     try:
         out_csv = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../assets/sbert_filtered_news_output.csv"))
@@ -109,7 +114,6 @@ def sbert_telemetry_stub(news_text: str, state=None) -> str:
     except Exception as e:
         print(f"Could not save SBERT csv: {e}")
         
-    send_trace_async("SBERT Semantic Filter execution", "Processed news text", "sbert_semantic_filter", ms, "sentiment", 3, session_id)
     return news_text
 
 sbert_tool = FunctionTool(func=sbert_telemetry_stub)
@@ -132,13 +136,20 @@ Your goal is to provide precise recent financial news chunks to the downstream S
                 server_params=StdioServerParameters(
                     command="/Users/shreyas/.local/bin/uvx",
                     args=["--from", "git+https://github.com/jeffmm/nytimes-mcp.git", "nytimes-mcp"],
-                    env={"NYT_API_KEY": os.environ.get("NYT_API_KEY", "")}
+                    env={"NYT_API_KEY": os.environ.get("NYT_API_KEY", "")},
+                    cwd=os.path.join(os.path.dirname(__file__), "data")
                 )
             ),
             tool_filter=['search_articles']
         )
     ],
-    output_key="filtered_news_context"
+    output_key="filtered_news_context",
+    before_model_callback=pipeline_adapter.before_model,
+    after_model_callback=pipeline_adapter.after_model,
+    before_tool_callback=pipeline_adapter.before_tool,
+    after_tool_callback=pipeline_adapter.after_tool,
+    before_agent_callback=pipeline_adapter.before_agent,
+    after_agent_callback=pipeline_adapter.after_agent,
 )
 
 market_data_pipeline = SequentialAgent(
@@ -163,7 +174,13 @@ aggregator_agent = LlmAgent(
 You will receive an array of predictions from the Swarm in the exact order: [Llama, GPT4o, Mixtral]. 
 Parse these 3 float values and pass them as specific arguments (pred_llama, pred_gpt, pred_mixtral) into the aggregation tool to calculate the final synthesis.""",
     tools=[robust_gibbs_aggregation_tool],
-    output_key="synthesized_history_context"
+    output_key="synthesized_history_context",
+    before_model_callback=pipeline_adapter.before_model,
+    after_model_callback=pipeline_adapter.after_model,
+    before_tool_callback=pipeline_adapter.before_tool,
+    after_tool_callback=pipeline_adapter.after_tool,
+    before_agent_callback=pipeline_adapter.before_agent,
+    after_agent_callback=pipeline_adapter.after_agent,
 )
 
 # ---------------------------------------------------------
@@ -225,10 +242,6 @@ def render_moe_trajectories(state) -> str:
         plt.close()
         msg = f"Chart correctly rendered with 7-day rolling window at {chart_path}."
         
-        ms = int((time.time() - t0) * 1000)
-        session_id = state.get("session_id", "live_adk_run") if hasattr(state, "get") else "live_adk_run"
-        send_trace_async("Render final chart", msg, "reporting_agent", ms, "reporting", 6, session_id)
-        
         return msg
             
     except Exception as e:
@@ -241,7 +254,13 @@ plotting_agent = LlmAgent(
     model="gemini-2.5-flash",
     instruction="You are the final visualization reporter. Trigger the RenderMoETrajectories tool to generate the chart. CRITICAL: In your final response to the user, you MUST summarize the entire pipeline run! Explicitly state what data was extracted, list what the Swarm experts predicted (extracted from the synthesized_history_context), and explain the final aggregated prediction before presenting the chart image.",
     tools=[render_tool],
-    output_key="final_status"
+    output_key="final_status",
+    before_model_callback=pipeline_adapter.before_model,
+    after_model_callback=pipeline_adapter.after_model,
+    before_tool_callback=pipeline_adapter.before_tool,
+    after_tool_callback=pipeline_adapter.after_tool,
+    before_agent_callback=pipeline_adapter.before_agent,
+    after_agent_callback=pipeline_adapter.after_agent,
 )
 
 # ---------------------------------------------------------
