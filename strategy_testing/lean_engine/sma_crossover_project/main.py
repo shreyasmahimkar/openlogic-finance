@@ -123,16 +123,13 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
             self._peak_value = current_value
 
         # ── Drawdown Guard — decision delegated to model_library ──────────────
-        if drawdown_breached(current_value, self._peak_value, self._cfg.max_drawdown_pct):
-            if self.portfolio[self.symbol].is_long:
-                self.liquidate(self.symbol, tag="MAX_DRAWDOWN_STOP")
-                self.log(
-                    f"[DRAWDOWN STOP] Liquidated @ ${price:.2f} | "
-                    f"Drawdown exceeded {self._cfg.max_drawdown_pct * 100:.0f}% limit"
-                )
-            self._prev_fast = fast
-            self._prev_slow = slow
-            return
+        if self.portfolio[self.symbol].is_long and drawdown_breached(current_value, self._peak_value, self._cfg.max_drawdown_pct):
+            self.liquidate(self.symbol, tag="MAX_DRAWDOWN_STOP")
+            self.log(
+                f"[DRAWDOWN STOP] Liquidated @ ${price:.2f} | "
+                f"Drawdown exceeded {self._cfg.max_drawdown_pct * 100:.0f}% limit"
+            )
+            self._peak_value = self.portfolio.total_portfolio_value  # Reset peak to cash balance
 
         # ── Crossover Signal — decision delegated to model_library ────────────
         signal: SignalType = detect_crossover(fast, slow, self._prev_fast, self._prev_slow)
@@ -140,6 +137,7 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
         if signal == SignalType.GOLDEN_CROSS:
             if not self.portfolio[self.symbol].is_long:
                 self.set_holdings(self.symbol, self._cfg.position_size)
+                self._peak_value = self.portfolio.total_portfolio_value  # Reset peak value on trade entry
                 self._golden_crosses += 1
                 self.plot("Trade Signals", "Golden Cross", price)
                 self.log(

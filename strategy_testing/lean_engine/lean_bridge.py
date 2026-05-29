@@ -27,7 +27,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # ── Default project root relative to this file ───────────────────────────────
-_DEFAULT_PROJECT    = Path(__file__).parent / "lean_project"
+_DEFAULT_PROJECT    = Path(__file__).parent / "logistic_regression_project"
 _DEFAULT_WORKSPACE  = Path(__file__).parent / "lean_workspace"
 _VENV_LEAN          = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "lean"
 
@@ -37,6 +37,7 @@ _VENV_LEAN          = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "le
 _REPO_ROOT = Path(__file__).parents[2]
 _SIGNAL_SYNC_MAP: dict[str, str] = {
     "model_library/technical/signals/sma_crossover_signal.py": "sma_crossover_signal.py",
+    "model_library/ml_zoo/logistic_regression.py": "logistic_regression.py",
 }
 
 
@@ -56,6 +57,9 @@ class BacktestResult:
     started_at:      str              = field(default_factory=lambda: datetime.utcnow().isoformat())
     completed_at:    Optional[str]    = None
     total_return_pct: Optional[float] = None   # parsed from LEAN logs when available
+    cagr_pct:        Optional[float] = None
+    max_drawdown_pct: Optional[float] = None
+    total_orders:    Optional[int]   = None
     full_summary:    Optional[str]    = None   # full stats table from lean cloud backtest
 
     def to_dict(self) -> dict:
@@ -67,6 +71,9 @@ class BacktestResult:
             "success":          self.success,
             "return_code":      self.return_code,
             "total_return_pct": self.total_return_pct,
+            "cagr_pct":         self.cagr_pct,
+            "max_drawdown_pct": self.max_drawdown_pct,
+            "total_orders":     self.total_orders,
             "output_dir":       self.output_dir,
             "started_at":       self.started_at,
             "completed_at":     self.completed_at,
@@ -96,10 +103,16 @@ class LeanEngineBridge:
         project_path: Optional[str] = None,
         lean_cli:     Optional[str] = None,
     ):
-        self.project_path = Path(
-            project_path
-            or os.getenv("LEAN_PROJECT_PATH", str(_DEFAULT_PROJECT))
-        ).resolve()
+        if project_path:
+            p = Path(project_path)
+            if not p.is_absolute():
+                self.project_path = (_REPO_ROOT / p).resolve()
+            else:
+                self.project_path = p.resolve()
+        else:
+            self.project_path = Path(
+                os.getenv("LEAN_PROJECT_PATH", str(_DEFAULT_PROJECT))
+            ).resolve()
 
         # Prefer venv lean binary → env override → shutil.which (pyenv-safe fallback)
         self.lean_cli = (
@@ -110,14 +123,16 @@ class LeanEngineBridge:
             or "lean"
         )
 
-        # lean_workspace contains lean.json — all CLI commands must run from here
         self.workspace_path = Path(
             os.getenv("LEAN_WORKSPACE_PATH", str(_DEFAULT_WORKSPACE))
         ).resolve()
 
+        self.project_name = self.project_path.name
+
         logger.info(
             f"[LeanEngineBridge] project_path={self.project_path} "
-            f"| workspace={self.workspace_path} | lean_cli={self.lean_cli}"
+            f"| workspace={self.workspace_path} | lean_cli={self.lean_cli} "
+            f"| project_name={self.project_name}"
         )
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -129,6 +144,8 @@ class LeanEngineBridge:
         slow_period:   int = 200,
         position_size: float = 1.0,
         max_drawdown_pct: float = 0.15,
+        probability_threshold: float = 0.5,
+        rsi_period:    int = 14,
         output_dir:    Optional[str] = None,
     ) -> BacktestResult:
         """
@@ -150,41 +167,51 @@ class LeanEngineBridge:
 
         logger.info(f"[BACKTEST START] {strategy_name}")
 
-        # ── Patch config.json with caller-supplied parameters ─────────────────
-        # Patch both the source lean_project and the workspace copy
-        for cfg_dir in [self.project_path, self.workspace_path / "lean_project"]:
-            config_path = cfg_dir / "config.json"
-            self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct)
+        # Ensure the project directory exists under lean_workspace
+        dest_project_dir = self.workspace_path / self.project_name
+        dest_project_dir.mkdir(parents=True, exist_ok=True)
 
-        # ── Sync lean_project/ files to workspace ────────────────────────────
-        # 1. Always sync Main.py
+        # Copy config.json to workspace project folder if missing there
+        src_config = self.project_path / "config.json"
+        dest_config = dest_project_dir / "config.json"
+        if src_config.exists() and not dest_config.exists():
+            shutil.copy2(src_config, dest_config)
+            logger.info(f"[SYNC] Copied config.json → {dest_config}")
+
+        # ── Patch config.json with caller-supplied parameters ─────────────────
+        # Patch both the source project and the workspace copy
+        for cfg_dir in [self.project_path, dest_project_dir]:
+            config_path = cfg_dir / "config.json"
+            self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct, probability_threshold, rsi_period)
+
+        # ── Sync strategy files to workspace ────────────────────────────
+        # 1. Always sync main.py
         src_main  = self.project_path / "main.py"
-        dest_main = self.workspace_path / "lean_project" / "main.py"
-        if src_main.exists() and dest_main.parent.exists():
+        dest_main = dest_project_dir / "main.py"
+        if src_main.exists():
             shutil.copy2(src_main, dest_main)
             logger.info(f"[SYNC] Copied {src_main} → {dest_main}")
 
-        # 2. Sync model_library signal files (source of truth → lean_project → workspace)
+        # 2. Sync model_library signal files (source of truth → project_dir → workspace)
         #    This ensures LEAN cloud always runs the latest signal logic from Box 2.
         for rel_src, dest_name in _SIGNAL_SYNC_MAP.items():
             src_signal  = _REPO_ROOT / rel_src
-            dest_local  = self.project_path / dest_name                   # lean_project/ (tracked)
-            dest_ws     = self.workspace_path / "lean_project" / dest_name  # lean_workspace/ (cloud push)
+            dest_local  = self.project_path / dest_name                   # project_dir/ (tracked)
+            dest_ws     = dest_project_dir / dest_name                    # lean_workspace/project_name/ (cloud push)
 
             if not src_signal.exists():
                 logger.warning(f"[SYNC SKIP] Signal source not found: {src_signal}")
                 continue
 
             shutil.copy2(src_signal, dest_local)
-            logger.info(f"[SYNC] model_library → lean_project: {dest_name}")
+            logger.info(f"[SYNC] model_library → project_dir: {dest_name}")
 
-            if dest_ws.parent.exists():
-                shutil.copy2(src_signal, dest_ws)
-                logger.info(f"[SYNC] model_library → lean_workspace: {dest_name}")
+            shutil.copy2(src_signal, dest_ws)
+            logger.info(f"[SYNC] model_library → lean_workspace: {dest_name}")
 
         # ── Cloud push then cloud backtest (no Docker required) ───────────────
-        push_cmd = [self.lean_cli, "cloud", "push", "--project", "lean_project"]
-        bt_cmd   = [self.lean_cli, "cloud", "backtest", "lean_project"]
+        push_cmd = [self.lean_cli, "cloud", "push", "--project", self.project_name]
+        bt_cmd   = [self.lean_cli, "cloud", "backtest", self.project_name]
 
         logger.info(f"[LEAN PUSH] {' '.join(push_cmd)}")
 
@@ -219,6 +246,9 @@ class LeanEngineBridge:
 
             # ── Parse stats from cloud backtest table output ──────────────────
             total_return = self._parse_return(combined_out)
+            cagr = self._parse_cagr(combined_out)
+            drawdown = self._parse_drawdown(combined_out)
+            orders = self._parse_orders(combined_out)
             full_summary = self._extract_summary_table(combined_out)
 
             return BacktestResult(
@@ -234,6 +264,9 @@ class LeanEngineBridge:
                 started_at       = started_at,
                 completed_at     = completed_at,
                 total_return_pct = total_return,
+                cagr_pct         = cagr,
+                max_drawdown_pct = drawdown,
+                total_orders     = orders,
                 full_summary     = full_summary,
             )
 
@@ -299,6 +332,8 @@ class LeanEngineBridge:
         slow_period:   int,
         position_size: float,
         max_drawdown_pct: float = 0.15,
+        probability_threshold: float = 0.5,
+        rsi_period:    int = 14,
     ) -> None:
         """Overwrite config.json parameters without touching other settings."""
         if not config_path.exists():
@@ -315,6 +350,8 @@ class LeanEngineBridge:
                 "ticker":         ticker,
                 "position-size":  str(position_size),
                 "max-drawdown-pct": str(max_drawdown_pct),
+                "probability-threshold": str(probability_threshold),
+                "rsi-period":     str(rsi_period),
             }
         )
 
@@ -348,6 +385,39 @@ class LeanEngineBridge:
                         return float(match.group(1))
                     except ValueError:
                         pass
+        return None
+
+    @staticmethod
+    def _parse_cagr(stdout: str) -> Optional[float]:
+        import re
+        for line in stdout.splitlines():
+            # │ Compounding Annual  │ 8.072%         │
+            if "Compounding Annual" in line:
+                match = re.search(r"│\s*Compounding Annual\s*│\s*([\-\+]?\d+\.?\d*)%", line)
+                if match:
+                    return float(match.group(1))
+        return None
+
+    @staticmethod
+    def _parse_drawdown(stdout: str) -> Optional[float]:
+        import re
+        for line in stdout.splitlines():
+            # │ Drawdown           │ 19.900%          │
+            if "Drawdown" in line and "Recovery" not in line:
+                match = re.search(r"│\s*Drawdown\s*│\s*([\-\+]?\d+\.?\d*)%", line)
+                if match:
+                    return float(match.group(1))
+        return None
+
+    @staticmethod
+    def _parse_orders(stdout: str) -> Optional[int]:
+        import re
+        for line in stdout.splitlines():
+            # │ Total Orders       │ 7                │
+            if "Total Orders" in line:
+                match = re.search(r"│\s*Total Orders\s*│\s*(\d+)", line)
+                if match:
+                    return int(match.group(1))
         return None
 
     @staticmethod
