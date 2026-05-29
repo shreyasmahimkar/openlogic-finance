@@ -97,10 +97,16 @@ class LeanEngineBridge:
         project_path: Optional[str] = None,
         lean_cli:     Optional[str] = None,
     ):
-        self.project_path = Path(
-            project_path
-            or os.getenv("LEAN_PROJECT_PATH", str(_DEFAULT_PROJECT))
-        ).resolve()
+        if project_path:
+            p = Path(project_path)
+            if not p.is_absolute():
+                self.project_path = (_REPO_ROOT / p).resolve()
+            else:
+                self.project_path = p.resolve()
+        else:
+            self.project_path = Path(
+                os.getenv("LEAN_PROJECT_PATH", str(_DEFAULT_PROJECT))
+            ).resolve()
 
         # Prefer venv lean binary → env override → shutil.which (pyenv-safe fallback)
         self.lean_cli = (
