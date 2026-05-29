@@ -27,7 +27,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # ── Default project root relative to this file ───────────────────────────────
-_DEFAULT_PROJECT    = Path(__file__).parent / "lean_project"
+_DEFAULT_PROJECT    = Path(__file__).parent / "logistic_regression_project"
 _DEFAULT_WORKSPACE  = Path(__file__).parent / "lean_workspace"
 _VENV_LEAN          = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "lean"
 
@@ -111,14 +111,16 @@ class LeanEngineBridge:
             or "lean"
         )
 
-        # lean_workspace contains lean.json — all CLI commands must run from here
         self.workspace_path = Path(
             os.getenv("LEAN_WORKSPACE_PATH", str(_DEFAULT_WORKSPACE))
         ).resolve()
 
+        self.project_name = self.project_path.name
+
         logger.info(
             f"[LeanEngineBridge] project_path={self.project_path} "
-            f"| workspace={self.workspace_path} | lean_cli={self.lean_cli}"
+            f"| workspace={self.workspace_path} | lean_cli={self.lean_cli} "
+            f"| project_name={self.project_name}"
         )
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -153,41 +155,51 @@ class LeanEngineBridge:
 
         logger.info(f"[BACKTEST START] {strategy_name}")
 
+        # Ensure the project directory exists under lean_workspace
+        dest_project_dir = self.workspace_path / self.project_name
+        dest_project_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy config.json to workspace project folder if missing there
+        src_config = self.project_path / "config.json"
+        dest_config = dest_project_dir / "config.json"
+        if src_config.exists() and not dest_config.exists():
+            shutil.copy2(src_config, dest_config)
+            logger.info(f"[SYNC] Copied config.json → {dest_config}")
+
         # ── Patch config.json with caller-supplied parameters ─────────────────
-        # Patch both the source lean_project and the workspace copy
-        for cfg_dir in [self.project_path, self.workspace_path / "lean_project"]:
+        # Patch both the source project and the workspace copy
+        for cfg_dir in [self.project_path, dest_project_dir]:
             config_path = cfg_dir / "config.json"
             self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct, probability_threshold, rsi_period)
 
-        # ── Sync lean_project/ files to workspace ────────────────────────────
-        # 1. Always sync Main.py
+        # ── Sync strategy files to workspace ────────────────────────────
+        # 1. Always sync main.py
         src_main  = self.project_path / "main.py"
-        dest_main = self.workspace_path / "lean_project" / "main.py"
-        if src_main.exists() and dest_main.parent.exists():
+        dest_main = dest_project_dir / "main.py"
+        if src_main.exists():
             shutil.copy2(src_main, dest_main)
             logger.info(f"[SYNC] Copied {src_main} → {dest_main}")
 
-        # 2. Sync model_library signal files (source of truth → lean_project → workspace)
+        # 2. Sync model_library signal files (source of truth → project_dir → workspace)
         #    This ensures LEAN cloud always runs the latest signal logic from Box 2.
         for rel_src, dest_name in _SIGNAL_SYNC_MAP.items():
             src_signal  = _REPO_ROOT / rel_src
-            dest_local  = self.project_path / dest_name                   # lean_project/ (tracked)
-            dest_ws     = self.workspace_path / "lean_project" / dest_name  # lean_workspace/ (cloud push)
+            dest_local  = self.project_path / dest_name                   # project_dir/ (tracked)
+            dest_ws     = dest_project_dir / dest_name                    # lean_workspace/project_name/ (cloud push)
 
             if not src_signal.exists():
                 logger.warning(f"[SYNC SKIP] Signal source not found: {src_signal}")
                 continue
 
             shutil.copy2(src_signal, dest_local)
-            logger.info(f"[SYNC] model_library → lean_project: {dest_name}")
+            logger.info(f"[SYNC] model_library → project_dir: {dest_name}")
 
-            if dest_ws.parent.exists():
-                shutil.copy2(src_signal, dest_ws)
-                logger.info(f"[SYNC] model_library → lean_workspace: {dest_name}")
+            shutil.copy2(src_signal, dest_ws)
+            logger.info(f"[SYNC] model_library → lean_workspace: {dest_name}")
 
         # ── Cloud push then cloud backtest (no Docker required) ───────────────
-        push_cmd = [self.lean_cli, "cloud", "push", "--project", "lean_project"]
-        bt_cmd   = [self.lean_cli, "cloud", "backtest", "lean_project"]
+        push_cmd = [self.lean_cli, "cloud", "push", "--project", self.project_name]
+        bt_cmd   = [self.lean_cli, "cloud", "backtest", self.project_name]
 
         logger.info(f"[LEAN PUSH] {' '.join(push_cmd)}")
 
