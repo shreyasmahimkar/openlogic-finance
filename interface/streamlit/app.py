@@ -1179,99 +1179,17 @@ with tabs[2]:
                     ])
                     safe_rerun()
     else:
-        # Active configuration locked to Standard Portfolio (No Veto Stop)
-        mode_key = "none"
-        metrics_tbl = get_metrics_table(sim_results, mode_key)
-        
-        # Render KPI Metric Cards side-by-side
-        m_col1, m_col2, m_col3 = st.columns(3)
-        
-        # Extract values for model comparison
-        m_a_tot = float(metrics_tbl.loc[0, "raw_total"])
-        m_b_tot = float(metrics_tbl.loc[1, "raw_total"])
-        bench_tot = float(metrics_tbl.loc[2, "raw_total"])
-        
-        m_a_dd = float(metrics_tbl.loc[0, "raw_max_dd"])
-        m_b_dd = float(metrics_tbl.loc[1, "raw_max_dd"])
-        bench_dd = float(metrics_tbl.loc[2, "raw_max_dd"])
-        
-        m_a_sh = float(metrics_tbl.loc[0, "Sharpe Ratio"])
-        m_b_sh = float(metrics_tbl.loc[1, "Sharpe Ratio"])
-        bench_sh = float(metrics_tbl.loc[2, "Sharpe Ratio"])
-        
-        with m_col1:
-            st.metric(
-                label="📈 Model A: Logistic Regression Strategy Total Return",
-                value=f"{m_a_tot * 100:.2f}%",
-                delta=f"{(m_a_tot - bench_tot) * 100:+.2f}% vs. SPY"
-            )
-        with m_col2:
-            st.metric(
-                label="📈 Model B: SMA Crossover Strategy Total Return",
-                value=f"{m_b_tot * 100:.2f}%",
-                delta=f"{(m_b_tot - bench_tot) * 100:+.2f}% vs. SPY"
-            )
-        with m_col3:
-            st.metric(
-                label="📊 Benchmark Index (SPY Buy & Hold) Total Return",
-                value=f"{bench_tot * 100:.2f}%"
-            )
+        # We only display QuantConnect results!
+        if st.session_state.lean_res_a is None and st.session_state.lean_res_b is None:
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #66FCF1; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #66FCF1;">📡 Awaiting Cloud Performance Data</h4>
+                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 0px;">
+                    No cloud backtest has been executed yet. Click the <b>Execute Unified Dual-Model LEAN Cloud Backtest</b> button below to push configurations and run both strategies live on the remote LEAN engine.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        st.markdown("#### ⚖️ High-Fidelity Performance Summary Matrix")
-        st.table(metrics_tbl.drop(columns=["raw_total", "raw_sharpe", "raw_max_dd"]))
-        
-        # Render Interactive Plotly Equity Curves
-        st.markdown("#### 📊 Comparative Equity Growth Curves (Initial Capital: $100,000)")
-        
-        # Determine if we should calibrate the curves to the high-fidelity remote LEAN cloud outcomes
-        res_a = st.session_state.lean_res_a
-        res_b = st.session_state.lean_res_b
-        
-        y_a = sim_df['ModelA_Std_Val'].copy()
-        y_b = sim_df['ModelB_Std_Val'].copy()
-        y_bench = sim_df['Benchmark_Value'].copy()
-        
-        label_a = "Model A: LR (Standard / No Veto)"
-        label_b = "Model B: SMA (Standard / No Veto)"
-        title_chart = "Comparative Equity Growth Curves"
-        
-        if res_a is not None or res_b is not None:
-            title_chart = "High-Fidelity QuantConnect LEAN Comparative Equity Curves"
-            
-            # Calibrate Model A
-            if res_a is not None and res_a.success and res_a.total_return_pct is not None:
-                final_local_a = y_a.iloc[-1]
-                target_final_a = 100000.0 * (1.0 + float(res_a.total_return_pct) / 100.0)
-                scale_a = (target_final_a - 100000.0) / (final_local_a - 100000.0) if (final_local_a - 100000.0) != 0 else 1.0
-                y_a = 100000.0 + (y_a - 100000.0) * scale_a
-                label_a = f"Model A: LR (LEAN Cloud: {res_a.total_return_pct:.3f}%)"
-                
-            # Calibrate Model B
-            if res_b is not None and res_b.success and res_b.total_return_pct is not None:
-                final_local_b = y_b.iloc[-1]
-                target_final_b = 100000.0 * (1.0 + float(res_b.total_return_pct) / 100.0)
-                scale_b = (target_final_b - 100000.0) / (final_local_b - 100000.0) if (final_local_b - 100000.0) != 0 else 1.0
-                y_b = 100000.0 + (y_b - 100000.0) * scale_b
-                label_b = f"Model B: SMA (LEAN Cloud: {res_b.total_return_pct:.3f}%)"
-                
-        fig_eq = go.Figure()
-        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_a, name=label_a, line=dict(color='#8F94FB', width=2)))
-        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_b, name=label_b, line=dict(color='#00E676', width=2)))
-        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_bench, name='SPY Buy & Hold Benchmark', line=dict(color='#FFD600', width=1.5, dash='dash')))
-        
-        fig_eq.update_layout(
-            title=title_chart,
-            template="plotly_dark",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=400,
-            margin=dict(l=0, r=0, t=30, b=10),
-            xaxis_title="Timeline",
-            yaxis_title="Portfolio Growth ($)"
-        )
-        st.plotly_chart(fig_eq, width='stretch')
-    
-        st.markdown("---")
         st.markdown("### 🚀 QuantConnect LEAN Engine Cloud Bridge")
         st.markdown("""
         Push this strategy configuration and Box 2 signal layer to **QuantConnect Cloud** and execute a live, high-fidelity backtest using the institutional-grade LEAN Engine:
