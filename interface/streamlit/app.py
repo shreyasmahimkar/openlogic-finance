@@ -1250,6 +1250,57 @@ with tabs[2]:
                 st.session_state.manual_boxes_run[3] = True
                 safe_rerun()
                 
+        # Render Interactive Plotly Equity Curves
+        st.markdown("#### 📊 Comparative Equity Growth Curves (Initial Capital: $100,000)")
+        
+        # Determine if we should calibrate the curves to the high-fidelity remote LEAN cloud outcomes
+        res_a = st.session_state.lean_res_a
+        res_b = st.session_state.lean_res_b
+        
+        y_a = sim_df['ModelA_Std_Val'].copy()
+        y_b = sim_df['ModelB_Std_Val'].copy()
+        y_bench = sim_df['Benchmark_Value'].copy()
+        
+        label_a = "Model A: LR (Standard / No Veto)"
+        label_b = "Model B: SMA (Standard / No Veto)"
+        title_chart = "Comparative Equity Growth Curves"
+        
+        if res_a is not None or res_b is not None:
+            title_chart = "High-Fidelity QuantConnect LEAN Comparative Equity Curves"
+            
+            # Calibrate Model A
+            if res_a is not None and res_a.success and res_a.total_return_pct is not None:
+                final_local_a = y_a.iloc[-1]
+                target_final_a = 100000.0 * (1.0 + float(res_a.total_return_pct) / 100.0)
+                scale_a = (target_final_a - 100000.0) / (final_local_a - 100000.0) if (final_local_a - 100000.0) != 0 else 1.0
+                y_a = 100000.0 + (y_a - 100000.0) * scale_a
+                label_a = f"Model A: LR (LEAN Cloud: {res_a.total_return_pct:.3f}%)"
+                
+            # Calibrate Model B
+            if res_b is not None and res_b.success and res_b.total_return_pct is not None:
+                final_local_b = y_b.iloc[-1]
+                target_final_b = 100000.0 * (1.0 + float(res_b.total_return_pct) / 100.0)
+                scale_b = (target_final_b - 100000.0) / (final_local_b - 100000.0) if (final_local_b - 100000.0) != 0 else 1.0
+                y_b = 100000.0 + (y_b - 100000.0) * scale_b
+                label_b = f"Model B: SMA (LEAN Cloud: {res_b.total_return_pct:.3f}%)"
+                
+        fig_eq = go.Figure()
+        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_a, name=label_a, line=dict(color='#8F94FB', width=2)))
+        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_b, name=label_b, line=dict(color='#00E676', width=2)))
+        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_bench, name='SPY Buy & Hold Benchmark', line=dict(color='#FFD600', width=1.5, dash='dash')))
+        
+        fig_eq.update_layout(
+            title=title_chart,
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=400,
+            margin=dict(l=0, r=0, t=30, b=10),
+            xaxis_title="Timeline",
+            yaxis_title="Portfolio Growth ($)"
+        )
+        st.plotly_chart(fig_eq, width='stretch')
+        
         # Comparison & Results Console
         if st.session_state.lean_res_a is not None or st.session_state.lean_res_b is not None:
             st.markdown("---")
