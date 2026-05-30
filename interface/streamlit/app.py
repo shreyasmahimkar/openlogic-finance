@@ -1146,38 +1146,15 @@ with tabs[1]:
 with tabs[2]:
     st.markdown("### 🧪 Box 3: QuantConnect LEAN Engine Cloud Bridge")
     
-    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(3, False):
-        if not st.session_state.manual_boxes_run.get(2, False):
-            st.markdown("""
-            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
-                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 3: Sandbox Strategy Testing Locked</h4>
-                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
-                    Awaiting previous step execution. Please complete <b>🔬 Box 2: Model Mathematical Foundations</b> before unlocking Strategy Sandbox Testing.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="obsidian-card" style="border-left: 4px solid #00E676; margin-bottom: 25px;">
-                <h4 style="margin-top: 0; color: #00E676;">🧪 Box 3 Strategy Sandbox: Awaiting Manual Trigger</h4>
-                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
-                    The Sandbox Strategy block runs event-driven high-fidelity simulations for Model A and Model B using standard backtesting configurations. It compiles key performance matrices (CAGR, Sharpe, Max Drawdown) and supports direct cloud patches to the QuantConnect LEAN Engine.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if st.button("▶️ Execute Strategy Sandbox Testing", key="run_box_3", width='stretch'):
-                with st.spinner("Constructing local event-driven backtesting environment and compiling standard strategy metrics..."):
-                    time.sleep(1.0)
-                    st.session_state.manual_boxes_run[3] = True
-                    st.session_state.agent_logs.extend([
-                        "[Backtest Agent] ⚙️ Building local high-fidelity backtest harness...",
-                        "[Backtest Agent] ⚡ Executing event-driven simulation for Model A (Logistic Regression)...",
-                        "[Backtest Agent] ⚡ Executing event-driven simulation for Model B (SMA Crossover)...",
-                        "[Backtest Agent] 📊 Statistics compiled: CAGR, Sharpe, Sortino ratios computed.",
-                        "[Backtest Agent] ✅ Strategy backtest completed successfully."
-                    ])
-                    safe_rerun()
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(2, False):
+        st.markdown("""
+        <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+            <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 3: QuantConnect LEAN Engine Cloud Bridge Locked</h4>
+            <p style="font-size: 13px; color: #8F94FB; line-height: 1.6; margin-bottom: 0px;">
+                Awaiting previous step execution. Please complete <b>🔬 Box 2: Model Mathematical Foundations</b> before unlocking Strategy Sandbox Testing.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         # We only display QuantConnect results!
         if st.session_state.lean_res_a is None and st.session_state.lean_res_b is None:
@@ -1270,6 +1247,7 @@ with tabs[2]:
                         status_b.update(label="❌ Model B System Error!", state="error")
                         st.error(f"System Error interfacing with LEAN Cloud for Model B: {e}")
                 
+                st.session_state.manual_boxes_run[3] = True
                 safe_rerun()
                 
         # Comparison & Results Console
