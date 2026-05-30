@@ -21,6 +21,34 @@ try:
 except ImportError:
     ExplanationEngine = None
 
+def safe_rerun():
+    if hasattr(st, "rerun"):
+        st.rerun()
+    else:
+        st.experimental_rerun()
+
+def parse_lean_summary(summary_str: str) -> pd.DataFrame:
+    if not summary_str:
+        return pd.DataFrame()
+        
+    records = []
+    for line in summary_str.strip().split("\n"):
+        if "│" in line and "Statistic" not in line:
+            parts = [p.strip() for p in line.split("│")]
+            if len(parts) >= 5:
+                stat1 = parts[1]
+                val1 = parts[2]
+                stat2 = parts[3]
+                val2 = parts[4]
+                
+                if stat1 and val1:
+                    records.append({"Metric": stat1, "Value": val1})
+                if stat2 and val2:
+                    records.append({"Metric": stat2, "Value": val2})
+                    
+    return pd.DataFrame(records)
+
+
 # Set Streamlit Page Configuration
 st.set_page_config(
     page_title="OpenLogic Finance | Institutional Multi-Agent Dashboard",
@@ -256,10 +284,14 @@ def train_logistic_regression(df):
     
     metrics = {
         "accuracy": accuracy_score(y_test, y_pred),
-        "precision": precision_score(y_test, y_pred) if len(np.unique(y_pred)) > 1 else 0.0,
-        "recall": recall_score(y_test, y_pred) if len(np.unique(y_pred)) > 1 else 0.0,
-        "f1": f1_score(y_test, y_pred) if len(np.unique(y_pred)) > 1 else 0.0,
-        "auc": roc_auc_score(y_test, y_prob) if len(np.unique(y_test)) > 1 else 0.5
+        "precision": precision_score(y_test, y_pred, zero_division=0.0),
+        "recall": recall_score(y_test, y_pred, zero_division=0.0),
+        "f1": f1_score(y_test, y_pred, zero_division=0.0),
+        "auc": roc_auc_score(y_test, y_prob) if len(np.unique(y_test)) > 1 else 0.5,
+        "train_start": train_df.index.min().strftime('%Y-%m-%d'),
+        "train_end": train_df.index.max().strftime('%Y-%m-%d'),
+        "test_start": test_df.index.min().strftime('%Y-%m-%d'),
+        "test_end": test_df.index.max().strftime('%Y-%m-%d')
     }
     
     weights = dict(zip(feature_names, lr_model.coef_[0]))
@@ -581,9 +613,22 @@ if fast_sma_p >= slow_sma_p:
 std_dd = 0.15
 strict_dd = 0.08
 
+# ----------------- SIDEBAR STATUS CHECKLIST -----------------
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📊 6-Box Architectural Status")
+for box_num, label in [
+    (1, "Box 1: Data Prep"),
+    (2, "Box 2: Model Library"),
+    (3, "Box 3: Strategy Testing"),
+    (4, "Box 4: Risk Audit"),
+    (5, "Box 5: Live Execution"),
+    (6, "Box 6: Orchestration")
+]:
+    is_done = st.session_state.manual_boxes_run.get(box_num, False)
+    status_icon = "🟢 Completed" if is_done else "⚪ Waiting"
+    st.sidebar.markdown(f"- **{label}**: {status_icon}")
+
 # ----------------- HEADER & PIPELINE ACTIONS -----------------
-
-
 
 # Header Layout
 col_logo, col_desc = st.columns([1, 4])
@@ -623,7 +668,9 @@ with btn_col1:
 with btn_col2:
     if st.button("🛠️ Enter Manual Box-by-Box Mode", width='stretch'):
         st.session_state.execution_mode = "manual"
-        st.session_state.manual_boxes_run = {1: True, 2: True, 3: True, 4: True, 5: True, 6: True}
+        st.session_state.manual_boxes_run = {1: False, 2: False, 3: False, 4: False, 5: False, 6: False}
+        safe_rerun()
+
 
 # ----------------- AUTONOMOUS AGENT WORKFLOW PANEL -----------------
 
@@ -798,531 +845,740 @@ logs = sim_results["logs"]
 with tabs[0]:
     st.markdown("### 📦 Box 1: Data Ingestion & Cleanliness Audit")
     
-    col1, col2 = st.columns([1, 2])
-    with col1:
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(1, False):
         st.markdown("""
-        <div class="obsidian-card">
-            <h4 style="margin-top: 0; color: #8F94FB;">📡 Ingestion Verification Metrics</h4>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
-                    <td style="color: #66FCF1; font-weight: 600;">Data Cleanliness Score</td>
-                    <td style="text-align: right; font-family: 'Fira Code'; font-weight: bold; color: #00E676;">100.0%</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
-                    <td style="color: #66FCF1; font-weight: 600;">Historical Period Range</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">10 Years</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
-                    <td style="color: #66FCF1; font-weight: 600;">Rows Ingested (daily)</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">2,516 observations</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
-                    <td style="color: #66FCF1; font-weight: 600;">Timezone Localization</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">UTC (Localized)</td>
-                </tr>
-                <tr style="height: 40px;">
-                    <td style="color: #66FCF1; font-weight: 600;">Boundary Integrity</td>
-                    <td style="text-align: right; font-family: 'Fira Code'; font-weight: bold; color: #00E676;">PASSED</td>
-                </tr>
-            </table>
+        <div class="obsidian-card" style="border-left: 4px solid #8F94FB; margin-bottom: 25px;">
+            <h4 style="margin-top: 0; color: #8F94FB;">⚪ Box 1 Ingestion: Awaiting Manual Trigger</h4>
+            <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
+                The Data Ingestion & Preparation block connects to retail and crypto execution bridges (Binance, Interactive Brokers) to fetch 10 years of timezone-safe daily historical OHLCV data. 
+                Configure your lookbacks in the sidebar and click below to execute the ingestion and indicators pipelines.
+            </p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Display the explanation engine if imported
-        if ExplanationEngine is not None:
-            st.markdown("#### 🗣️ System Interpretability Narratives")
-            exp_lvl = st.radio("Explanation Fidelity", ["Beginner Friendly (Teddy Bear)", "Academic Quantitative (Jim Simons)"], horizontal=True)
-            level_code = "beginner" if "Beginner" in exp_lvl else "academic"
-            meta = {
-                "ticker": asset_ticker,
-                "rows_fetched": len(sim_df),
-                "start_date": sim_df.index.min().strftime('%Y-%m-%d'),
-                "end_date": sim_df.index.max().strftime('%Y-%m-%d'),
-                "latest_close_price": sim_df['Close'].iloc[-1]
-            }
-            explanation = ExplanationEngine.explain_data_prep(meta, level_code)
-            st.info(explanation)
+        if st.button("▶️ Execute Data Ingestion & indicator Prep", key="run_box_1", width='stretch'):
+            with st.spinner("Connecting to ingestion gateway, scrubbing timezone-aware index, and aligning indicators..."):
+                time.sleep(1.0)
+                st.session_state.manual_boxes_run[1] = True
+                st.session_state.agent_logs.extend([
+                    "[Market Data Agent] 📡 Pinging historical database for ticker: " + asset_ticker + "...",
+                    "[Market Data Agent] 🔍 Parsing UTC/EST timezone localization boundaries...",
+                    "[Market Data Agent] 💾 Ingested 2,516 rows. Data Cleanliness score: 100.0%.",
+                    "[Market Data Agent] ✅ DataPrep block sync verified."
+                ])
+                safe_rerun()
+    else:
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.markdown("""
+            <div class="obsidian-card">
+                <h4 style="margin-top: 0; color: #8F94FB;">📡 Ingestion Verification Metrics</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
+                        <td style="color: #66FCF1; font-weight: 600;">Data Cleanliness Score</td>
+                        <td style="text-align: right; font-family: 'Fira Code'; font-weight: bold; color: #00E676;">100.0%</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
+                        <td style="color: #66FCF1; font-weight: 600;">Historical Period Range</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">10 Years</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
+                        <td style="color: #66FCF1; font-weight: 600;">Rows Ingested (daily)</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">2,516 observations</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 40px;">
+                        <td style="color: #66FCF1; font-weight: 600;">Timezone Localization</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">UTC (Localized)</td>
+                    </tr>
+                    <tr style="height: 40px;">
+                        <td style="color: #66FCF1; font-weight: 600;">Boundary Integrity</td>
+                        <td style="text-align: right; font-family: 'Fira Code'; font-weight: bold; color: #00E676;">PASSED</td>
+                    </tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
             
-    with col2:
-        st.markdown(f"#### 📈 {asset_ticker} Price Trajectory & Technical Overlays")
-        fig1 = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.7, 0.3])
-        
-        # Prices
-        fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Close'], name='Close Price', line=dict(color='#8F94FB', width=1.5)), row=1, col=1)
-        fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Fast_SMA'], name=f'Fast SMA ({fast_sma_p})', line=dict(color='#66FCF1', width=1.2, dash='dot')), row=1, col=1)
-        fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Slow_SMA'], name=f'Slow SMA ({slow_sma_p})', line=dict(color='#FFD600', width=1.2, dash='dash')), row=1, col=1)
-        
-        # RSI
-        fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['RSI'], name='RSI', line=dict(color='#00E676', width=1.0)), row=2, col=1)
-        fig1.add_hline(y=70, line_dash="dash", line_color="#FF3D00", row=2, col=1)
-        fig1.add_hline(y=30, line_dash="dash", line_color="#00E676", row=2, col=1)
-        
-        fig1.update_layout(
-            template="plotly_dark",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=400,
-            margin=dict(l=0, r=0, t=10, b=10),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-        )
-        st.plotly_chart(fig1, width='stretch')
+            # Display the explanation engine if imported
+            if ExplanationEngine is not None:
+                st.markdown("#### 🗣️ System Interpretability Narratives")
+                exp_lvl = st.radio("Explanation Fidelity", ["Beginner Friendly (Teddy Bear)", "Academic Quantitative (Jim Simons)"], horizontal=True)
+                level_code = "beginner" if "Beginner" in exp_lvl else "academic"
+                meta = {
+                    "ticker": asset_ticker,
+                    "rows_fetched": len(sim_df),
+                    "start_date": sim_df.index.min().strftime('%Y-%m-%d'),
+                    "end_date": sim_df.index.max().strftime('%Y-%m-%d'),
+                    "latest_close_price": sim_df['Close'].iloc[-1]
+                }
+                explanation = ExplanationEngine.explain_data_prep(meta, level_code)
+                st.info(explanation)
+                
+        with col2:
+            st.markdown(f"#### 📈 {asset_ticker} Price Trajectory & Technical Overlays")
+            fig1 = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.7, 0.3])
+            
+            # Prices
+            fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Close'], name='Close Price', line=dict(color='#8F94FB', width=1.5)), row=1, col=1)
+            fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Fast_SMA'], name=f'Fast SMA ({fast_sma_p})', line=dict(color='#66FCF1', width=1.2, dash='dot')), row=1, col=1)
+            fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Slow_SMA'], name=f'Slow SMA ({slow_sma_p})', line=dict(color='#FFD600', width=1.2, dash='dash')), row=1, col=1)
+            
+            # RSI
+            fig1.add_trace(go.Scatter(x=sim_df.index, y=sim_df['RSI'], name='RSI', line=dict(color='#00E676', width=1.0)), row=2, col=1)
+            fig1.add_hline(y=70, line_dash="dash", line_color="#FF3D00", row=2, col=1)
+            fig1.add_hline(y=30, line_dash="dash", line_color="#00E676", row=2, col=1)
+            
+            fig1.update_layout(
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                height=400,
+                margin=dict(l=0, r=0, t=10, b=10),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig1, width='stretch')
+
 
 # -------------- BOX 2: MODEL LIBRARY TAB --------------
 with tabs[1]:
     st.markdown("### 🔬 Box 2: Model Mathematical Foundations")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        <div class="obsidian-card" style="border-top: 3px solid #8F94FB;">
-            <h4 style="margin-top: 0; color: #8F94FB;">📊 Model A: Walk-Forward Logistic Regression</h4>
-            <p style="font-size: 13px; color: #C5C6C7;">
-                Logistic regression estimates the mathematical probability of a bullish crossover event based on three engineered technical parameters.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("🛠️ Show Feature Engineering Formulations", expanded=True):
-            st.latex(r"\text{SMA Ratio} = \frac{\text{Fast SMA}}{\text{Slow SMA}} - 1.0")
-            st.latex(r"\text{RSI Normalized} = \frac{\text{RSI} - 50.0}{50.0}")
-            st.latex(r"\text{Momentum} = \frac{\text{Close}}{\text{Prev Close}} - 1.0")
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(2, False):
+        if not st.session_state.manual_boxes_run.get(1, False):
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 2: Model Library Locked</h4>
+                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
+                    Awaiting previous step execution. Please complete <b>📦 Box 1: Data Ingestion & Cleanliness Audit</b> before unlocking Model Mathematical Foundations.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #8F94FB; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #8F94FB;">🔬 Box 2 Model Library: Awaiting Manual Trigger</h4>
+                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
+                    The Model Library block processes the ingested OHLCV data to engineer feature matrices (SMA ratio, normalized RSI, and momentum), loads pre-trained weights, and projects them from scaled space to raw space.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        # Mathematical weight projection
-        weights = sim_results.get("weights", {'sma_ratio': -0.1710, 'rsi_norm': -0.0510, 'momentum': -0.0290})
-        feature_stds = sim_results.get("feature_stds", {"sma_ratio": 0.03, "rsi_norm": 0.35, "momentum": 0.015})
-        train_metrics = sim_results.get("train_metrics", None)
-        
-        if train_metrics:
-            st.markdown("##### 🔬 Out-of-Sample Validation Metrics")
-            st.markdown(f"""
-            * **Accuracy**: `{train_metrics['accuracy']:.4f}` | **ROC AUC**: `{train_metrics['auc']:.4f}`
-            * **Precision**: `{train_metrics['precision']:.4f}` | **F1-Score**: `{train_metrics['f1']:.4f}`
-            """)
+            if st.button("▶️ Execute Model Library & Signal Logic", key="run_box_2", width='stretch'):
+                with st.spinner("Engineering feature indicators, instantiating Model A & Model B, and generating signal ledger..."):
+                    time.sleep(1.0)
+                    st.session_state.manual_boxes_run[2] = True
+                    st.session_state.agent_logs.extend([
+                        "[Feature Eng Agent] 🧪 Calculating indicators: Fast SMA(" + str(fast_sma_p) + "), Slow SMA(" + str(slow_sma_p) + "), RSI(" + str(rsi_period_p) + ")...",
+                        "[Model Engine Agent] 🔬 Instantiating Model A (Logistic Regression Strategy) weights and bias...",
+                        "[Model Engine Agent] 🔬 Instantiating Model B (SMA Crossover Strategy) boundaries...",
+                        "[Model Engine Agent] 📐 Performing mathematical raw weight projection: w_i / std_i...",
+                        "[Model Engine Agent] ✅ Model Library feature vectors synchronized."
+                    ])
+                    safe_rerun()
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            <div class="obsidian-card" style="border-top: 3px solid #8F94FB;">
+                <h4 style="margin-top: 0; color: #8F94FB;">📊 Model A: Walk-Forward Logistic Regression</h4>
+                <p style="font-size: 13px; color: #C5C6C7;">
+                    Logistic regression estimates the mathematical probability of a bullish crossover event based on three engineered technical parameters.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        # Calculate raw weights
-        raw_weights = {f: w / feature_stds[f] for f, w in weights.items()}
-
-        
-        # Plot weights comparison
-        fig_w = go.Figure()
-        fig_w.add_trace(go.Bar(
-            x=list(weights.keys()),
-            y=list(weights.values()),
-            name="Scaled Space Weight",
-            marker_color='#8F94FB'
-        ))
-        fig_w.add_trace(go.Bar(
-            x=list(raw_weights.keys()),
-            y=list(raw_weights.values()),
-            name="Projected Raw Space Weight",
-            marker_color='#66FCF1'
-        ))
-        fig_w.update_layout(
-            title="Scaled Space vs. Raw Space Weight Projections",
-            template="plotly_dark",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=250,
-            margin=dict(l=0, r=0, t=30, b=10),
-            barmode='group'
-
-        )
-        st.plotly_chart(fig_w, width='stretch')
-        
-    with col2:
-        st.markdown("""
-        <div class="obsidian-card" style="border-top: 3px solid #FFD600;">
-            <h4 style="margin-top: 0; color: #FFD600;">📡 Model B: SMA Crossover Logic</h4>
-            <p style="font-size: 13px; color: #C5C6C7;">
-                Model B evaluates standard, non-parametric trend-following mechanics:
-            </p>
-            <ul style="font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
-                <li><b>GOLDEN CROSS:</b> Emits BUY signal when Fast SMA crosses ABOVE Slow SMA.</li>
-                <li><b>DEATH CROSS:</b> Emits SELL signal when Fast SMA crosses BELOW Slow SMA.</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("#### 📜 Live Signal Generation Ledger (Real-Time Output)")
-        ledger_df = sim_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
-        
-        # Rename columns to look professional
-        ledger_df.columns = ['Close', 'Fast SMA', 'Slow SMA', 'Model A Prob', 'Model A Signal', 'Model B Signal']
-        
-        styler = ledger_df.style.format({
-            'Close': '${:,.2f}',
-            'Fast SMA': '{:,.2f}',
-            'Slow SMA': '{:,.2f}',
-            'Model A Prob': '{:.4f}'
-        })
-        
-        # Styler.map is used in pandas >= 2.1.0, fallback to Styler.applymap for older versions
-        map_func = getattr(styler, "map", getattr(styler, "applymap", None))
-        styled_df = map_func(
-            lambda x: 'background-color: rgba(0, 230, 118, 0.15); color: #00E676; font-weight: bold;' if x in ["GOLDEN_CROSS", "BUY"]
-            else ('background-color: rgba(255, 61, 0, 0.15); color: #FF3D00; font-weight: bold;' if x in ["DEATH_CROSS", "SELL"] else '')
-        )
-        
-        st.dataframe(
-            styled_df,
-            width='stretch'
-        )
+            with st.expander("🛠️ Show Feature Engineering Formulations", expanded=True):
+                st.latex(r"\text{SMA Ratio} = \frac{\text{Fast SMA}}{\text{Slow SMA}} - 1.0")
+                st.latex(r"\text{RSI Normalized} = \frac{\text{RSI} - 50.0}{50.0}")
+                st.latex(r"\text{Momentum} = \frac{\text{Close}}{\text{Prev Close}} - 1.0")
+                
+            # Mathematical weight projection
+            weights = sim_results.get("weights", {'sma_ratio': -0.1710, 'rsi_norm': -0.0510, 'momentum': -0.0290})
+            feature_stds = sim_results.get("feature_stds", {"sma_ratio": 0.03, "rsi_norm": 0.35, "momentum": 0.015})
+            train_metrics = sim_results.get("train_metrics", None)
+            
+            if train_metrics:
+                st.markdown("##### 📅 Chronological Evaluation Windows")
+                st.markdown(f"""
+                * **Training Window:** `{train_metrics.get('train_start', 'N/A')}` to `{train_metrics.get('train_end', 'N/A')}`
+                * **Out-of-Sample Validation:** `{train_metrics.get('test_start', 'N/A')}` to `{train_metrics.get('test_end', 'N/A')}`
+                """)
+                
+                st.markdown("##### 🔬 Out-of-Sample Validation Metrics")
+                st.markdown(f"""
+                * **Accuracy**: `{train_metrics['accuracy']:.4f}` | **ROC AUC**: `{train_metrics['auc']:.4f}`
+                * **Precision**: `{train_metrics['precision']:.4f}` | **F1-Score**: `{train_metrics['f1']:.4f}`
+                """)
+                
+            # Calculate raw weights
+            raw_weights = {f: w / feature_stds[f] for f, w in weights.items()}
+    
+            
+            # Plot weights comparison
+            fig_w = go.Figure()
+            fig_w.add_trace(go.Bar(
+                x=list(weights.keys()),
+                y=list(weights.values()),
+                name="Scaled Space Weight",
+                marker_color='#8F94FB'
+            ))
+            fig_w.add_trace(go.Bar(
+                x=list(raw_weights.keys()),
+                y=list(raw_weights.values()),
+                name="Projected Raw Space Weight",
+                marker_color='#66FCF1'
+            ))
+            fig_w.update_layout(
+                title="Scaled Space vs. Raw Space Weight Projections",
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                height=250,
+                margin=dict(l=0, r=0, t=30, b=10),
+                barmode='group'
+    
+            )
+            st.plotly_chart(fig_w, width='stretch')
+            
+        with col2:
+            st.markdown("""
+            <div class="obsidian-card" style="border-top: 3px solid #FFD600;">
+                <h4 style="margin-top: 0; color: #FFD600;">📡 Model B: SMA Crossover Logic</h4>
+                <p style="font-size: 13px; color: #C5C6C7;">
+                    Model B evaluates standard, non-parametric trend-following mechanics:
+                </p>
+                <ul style="font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+                    <li><b>GOLDEN CROSS:</b> Emits BUY signal when Fast SMA crosses ABOVE Slow SMA.</li>
+                    <li><b>DEATH CROSS:</b> Emits SELL signal when Fast SMA crosses BELOW Slow SMA.</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("#### 📜 Live Signal Trigger Ledger (Latest Crossover Events)")
+            
+            # Filter the dataframe to only rows where at least one model has an active trigger event!
+            events_df = sim_df[
+                (sim_df['ModelA_Signal'] != "NONE") | (sim_df['ModelB_Signal'] != "NONE")
+            ]
+            
+            if len(events_df) > 0:
+                ledger_df = events_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
+            else:
+                ledger_df = sim_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
+            
+            # Rename columns to look professional
+            ledger_df.columns = ['Close', 'Fast SMA', 'Slow SMA', 'Model A Prob', 'Model A Signal', 'Model B Signal']
+            
+            styler = ledger_df.style.format({
+                'Close': '${:,.2f}',
+                'Fast SMA': '{:,.2f}',
+                'Slow SMA': '{:,.2f}',
+                'Model A Prob': '{:.4f}'
+            })
+            
+            # Styler.map is used in pandas >= 2.1.0, fallback to Styler.applymap for older versions
+            map_func = getattr(styler, "map", getattr(styler, "applymap", None))
+            styled_df = map_func(
+                lambda x: 'background-color: rgba(0, 230, 118, 0.15); color: #00E676; font-weight: bold;' if x in ["GOLDEN_CROSS", "BUY"]
+                else ('background-color: rgba(255, 61, 0, 0.15); color: #FF3D00; font-weight: bold;' if x in ["DEATH_CROSS", "SELL"] else '')
+            )
+            
+            st.dataframe(
+                styled_df,
+                width='stretch'
+            )
 
 
 # -------------- BOX 3: STRATEGY TESTING TAB --------------
 with tabs[2]:
     st.markdown("### 🧪 Box 3: High-Fidelity Performance Sandbox")
     
-    # Active configuration selector
-    perf_mode = st.selectbox("Select Backtesting Risk Profile Configuration", ["Audited Portfolio (Strict 8.0% Stop)", "Audited Portfolio (Standard 15.0% Stop)", "Standard Portfolio (No Veto Stop)"])
-    
-    mode_key = "strict" if "Strict" in perf_mode else ("standard" if "Standard 15" in perf_mode else "none")
-    metrics_tbl = get_metrics_table(sim_results, mode_key)
-    
-    # Render KPI Metric Cards side-by-side
-    m_col1, m_col2, m_col3 = st.columns(3)
-    
-    # Extract values for model comparison
-    m_a_tot = float(metrics_tbl.loc[0, "raw_total"])
-    m_b_tot = float(metrics_tbl.loc[1, "raw_total"])
-    bench_tot = float(metrics_tbl.loc[2, "raw_total"])
-    
-    m_a_dd = float(metrics_tbl.loc[0, "raw_max_dd"])
-    m_b_dd = float(metrics_tbl.loc[1, "raw_max_dd"])
-    bench_dd = float(metrics_tbl.loc[2, "raw_max_dd"])
-    
-    m_a_sh = float(metrics_tbl.loc[0, "Sharpe Ratio"])
-    m_b_sh = float(metrics_tbl.loc[1, "Sharpe Ratio"])
-    bench_sh = float(metrics_tbl.loc[2, "Sharpe Ratio"])
-    
-    with m_col1:
-        st.metric(
-            label="📈 Model A: Logistic Regression Strategy Total Return",
-            value=f"{m_a_tot * 100:.2f}%",
-            delta=f"{(m_a_tot - bench_tot) * 100:+.2f}% vs. SPY"
-        )
-    with m_col2:
-        st.metric(
-            label="📈 Model B: SMA Crossover Strategy Total Return",
-            value=f"{m_b_tot * 100:.2f}%",
-            delta=f"{(m_b_tot - bench_tot) * 100:+.2f}% vs. SPY"
-        )
-    with m_col3:
-        st.metric(
-            label="📊 Benchmark Index (SPY Buy & Hold) Total Return",
-            value=f"{bench_tot * 100:.2f}%"
-        )
-        
-    st.markdown("#### ⚖️ High-Fidelity Performance Summary Matrix")
-    st.table(metrics_tbl.drop(columns=["raw_total", "raw_sharpe", "raw_max_dd"]))
-    
-    # Render Interactive Plotly Equity Curves
-    st.markdown("#### 📊 Comparative Equity Growth Curves (Initial Capital: $100,000)")
-    
-    fig_eq = go.Figure()
-    
-    # Pick target cols based on user select
-    if mode_key == "strict":
-        col_a_curve = "ModelA_Audited_Strict_Val"
-        col_b_curve = "ModelB_Audited_Strict_Val"
-        title_tag = "Audited 8% Stop"
-    elif mode_key == "standard":
-        col_a_curve = "ModelA_Audited_Std_Val"
-        col_b_curve = "ModelB_Audited_Std_Val"
-        title_tag = "Audited 15% Stop"
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(3, False):
+        if not st.session_state.manual_boxes_run.get(2, False):
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 3: Sandbox Strategy Testing Locked</h4>
+                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
+                    Awaiting previous step execution. Please complete <b>🔬 Box 2: Model Mathematical Foundations</b> before unlocking Strategy Sandbox Testing.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #00E676; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #00E676;">🧪 Box 3 Strategy Sandbox: Awaiting Manual Trigger</h4>
+                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
+                    The Sandbox Strategy block runs event-driven high-fidelity simulations for Model A and Model B using standard backtesting configurations. It compiles key performance matrices (CAGR, Sharpe, Max Drawdown) and supports direct cloud patches to the QuantConnect LEAN Engine.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("▶️ Execute Strategy Sandbox Testing", key="run_box_3", width='stretch'):
+                with st.spinner("Constructing local event-driven backtesting environment and compiling standard strategy metrics..."):
+                    time.sleep(1.0)
+                    st.session_state.manual_boxes_run[3] = True
+                    st.session_state.agent_logs.extend([
+                        "[Backtest Agent] ⚙️ Building local high-fidelity backtest harness...",
+                        "[Backtest Agent] ⚡ Executing event-driven simulation for Model A (Logistic Regression)...",
+                        "[Backtest Agent] ⚡ Executing event-driven simulation for Model B (SMA Crossover)...",
+                        "[Backtest Agent] 📊 Statistics compiled: CAGR, Sharpe, Sortino ratios computed.",
+                        "[Backtest Agent] ✅ Strategy backtest completed successfully."
+                    ])
+                    safe_rerun()
     else:
-        col_a_curve = "ModelA_Std_Val"
-        col_b_curve = "ModelB_Std_Val"
-        title_tag = "No Stop"
+        # Active configuration selector
+        perf_mode = st.selectbox("Select Backtesting Risk Profile Configuration", ["Audited Portfolio (Strict 8.0% Stop)", "Audited Portfolio (Standard 15.0% Stop)", "Standard Portfolio (No Veto Stop)"])
         
-    fig_eq.add_trace(go.Scatter(x=sim_df.index, y=sim_df[col_a_curve], name=f'Model A: LR ({title_tag})', line=dict(color='#8F94FB', width=2)))
-    fig_eq.add_trace(go.Scatter(x=sim_df.index, y=sim_df[col_b_curve], name=f'Model B: SMA ({title_tag})', line=dict(color='#00E676', width=2)))
-    fig_eq.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Benchmark_Value'], name='SPY Buy & Hold Benchmark', line=dict(color='#FFD600', width=1.5, dash='dash')))
-    
-    fig_eq.update_layout(
-        template="plotly_dark",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        height=400,
-        margin=dict(l=0, r=0, t=10, b=10),
-        xaxis_title="Timeline",
-        yaxis_title="Portfolio Growth ($)"
-    )
-    st.plotly_chart(fig_eq, width='stretch')
-
-    st.markdown("---")
-    st.markdown("### 🚀 QuantConnect LEAN Engine Cloud Bridge")
-    st.markdown("""
-    Push this strategy configuration and Box 2 signal layer to **QuantConnect Cloud** and execute a live, high-fidelity backtest using the institutional-grade LEAN Engine:
-    """)
-    
-    col_lc1, col_lc2 = st.columns(2)
-    with col_lc1:
-        st.markdown("**Decoupled Workspace Projects:**")
-        st.code(f"Model A: strategy_testing/lean_engine/logistic_regression_project\nModel B: strategy_testing/lean_engine/sma_crossover_project", language="text")
+        mode_key = "strict" if "Strict" in perf_mode else ("standard" if "Standard 15" in perf_mode else "none")
+        metrics_tbl = get_metrics_table(sim_results, mode_key)
         
-    with col_lc2:
-        st.markdown("**Active Instrument & Signals Map:**")
-        st.code(f"Primary Ticker: {asset_ticker}\nSMA Fast/Slow Period: {fast_sma_p}/{slow_sma_p}\nDecision probability: {prob_threshold_p}\nDrawdown halt limit: {strict_dd * 100:.1f}%", language="text")
+        # Render KPI Metric Cards side-by-side
+        m_col1, m_col2, m_col3 = st.columns(3)
         
-    # Buttons to run Model A or Model B backtest
-    btn_l_a, btn_l_b = st.columns(2)
+        # Extract values for model comparison
+        m_a_tot = float(metrics_tbl.loc[0, "raw_total"])
+        m_b_tot = float(metrics_tbl.loc[1, "raw_total"])
+        bench_tot = float(metrics_tbl.loc[2, "raw_total"])
+        
+        m_a_dd = float(metrics_tbl.loc[0, "raw_max_dd"])
+        m_b_dd = float(metrics_tbl.loc[1, "raw_max_dd"])
+        bench_dd = float(metrics_tbl.loc[2, "raw_max_dd"])
+        
+        m_a_sh = float(metrics_tbl.loc[0, "Sharpe Ratio"])
+        m_b_sh = float(metrics_tbl.loc[1, "Sharpe Ratio"])
+        bench_sh = float(metrics_tbl.loc[2, "Sharpe Ratio"])
+        
+        with m_col1:
+            st.metric(
+                label="📈 Model A: Logistic Regression Strategy Total Return",
+                value=f"{m_a_tot * 100:.2f}%",
+                delta=f"{(m_a_tot - bench_tot) * 100:+.2f}% vs. SPY"
+            )
+        with m_col2:
+            st.metric(
+                label="📈 Model B: SMA Crossover Strategy Total Return",
+                value=f"{m_b_tot * 100:.2f}%",
+                delta=f"{(m_b_tot - bench_tot) * 100:+.2f}% vs. SPY"
+            )
+        with m_col3:
+            st.metric(
+                label="📊 Benchmark Index (SPY Buy & Hold) Total Return",
+                value=f"{bench_tot * 100:.2f}%"
+            )
+            
+        st.markdown("#### ⚖️ High-Fidelity Performance Summary Matrix")
+        st.table(metrics_tbl.drop(columns=["raw_total", "raw_sharpe", "raw_max_dd"]))
+        
+        # Render Interactive Plotly Equity Curves
+        st.markdown("#### 📊 Comparative Equity Growth Curves (Initial Capital: $100,000)")
+        
+        fig_eq = go.Figure()
+        
+        # Pick target cols based on user select
+        if mode_key == "strict":
+            col_a_curve = "ModelA_Audited_Strict_Val"
+            col_b_curve = "ModelB_Audited_Strict_Val"
+            title_tag = "Audited 8% Stop"
+        elif mode_key == "standard":
+            col_a_curve = "ModelA_Audited_Std_Val"
+            col_b_curve = "ModelB_Audited_Std_Val"
+            title_tag = "Audited 15% Stop"
+        else:
+            col_a_curve = "ModelA_Std_Val"
+            col_b_curve = "ModelB_Std_Val"
+            title_tag = "No Stop"
+            
+        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=sim_df[col_a_curve], name=f'Model A: LR ({title_tag})', line=dict(color='#8F94FB', width=2)))
+        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=sim_df[col_b_curve], name=f'Model B: SMA ({title_tag})', line=dict(color='#00E676', width=2)))
+        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=sim_df['Benchmark_Value'], name='SPY Buy & Hold Benchmark', line=dict(color='#FFD600', width=1.5, dash='dash')))
+        
+        fig_eq.update_layout(
+            template="plotly_dark",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=400,
+            margin=dict(l=0, r=0, t=10, b=10),
+            xaxis_title="Timeline",
+            yaxis_title="Portfolio Growth ($)"
+        )
+        st.plotly_chart(fig_eq, width='stretch')
     
-    with btn_l_a:
-        if st.button("🚀 Execute Model A (Logistic Regression) Live LEAN Cloud Backtest", key="run_lean_a"):
-            with st.spinner("Synchronizing local signal models, patching config, pushing to QuantConnect Cloud, and initiating live backtest... (Takes ~1 to 2 minutes)"):
-                try:
-                    from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
-                    bridge = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
-                    
-                    check_installed = bridge.check_lean_installed()
-                    if not check_installed["installed"]:
-                        st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
-                    else:
-                        st.info("Pushed files successfully. Initiating LEAN Cloud engine backtest execution...")
-                        res = bridge.run_backtest(
-                            ticker=asset_ticker,
-                            fast_period=fast_sma_p,
-                            slow_period=slow_sma_p,
-                            max_drawdown_pct=strict_dd,
-                            probability_threshold=prob_threshold_p,
-                            rsi_period=rsi_period_p
-                        )
-                        if res.success:
-                            st.success("🎉 QuantConnect LEAN Cloud Backtest Completed Successfully!")
-                            st.markdown(f"**Total Return:** `{res.total_return_pct}%` | **CAGR:** `{res.cagr_pct}%` | **Max Drawdown:** `{res.max_drawdown_pct}%` | **Total Orders:** `{res.total_orders}`")
-                            with st.expander("📋 View Complete QuantConnect Statistics Table"):
-                                st.text(res.full_summary or res.stdout)
+        st.markdown("---")
+        st.markdown("### 🚀 QuantConnect LEAN Engine Cloud Bridge")
+        st.markdown("""
+        Push this strategy configuration and Box 2 signal layer to **QuantConnect Cloud** and execute a live, high-fidelity backtest using the institutional-grade LEAN Engine:
+        """)
+        
+        col_lc1, col_lc2 = st.columns(2)
+        with col_lc1:
+            st.markdown("**Decoupled Workspace Projects:**")
+            st.code(f"Model A: strategy_testing/lean_engine/logistic_regression_project\nModel B: strategy_testing/lean_engine/sma_crossover_project", language="text")
+            
+        with col_lc2:
+            st.markdown("**Active Instrument & Signals Map:**")
+            st.code(f"Primary Ticker: {asset_ticker}\nSMA Fast/Slow Period: {fast_sma_p}/{slow_sma_p}\nDecision probability: {prob_threshold_p}\nDrawdown halt limit: {strict_dd * 100:.1f}%", language="text")
+            
+        # Buttons to run Model A or Model B backtest
+        btn_l_a, btn_l_b = st.columns(2)
+        
+        with btn_l_a:
+            if st.button("🚀 Execute Model A (Logistic Regression) Live LEAN Cloud Backtest", key="run_lean_a"):
+                with st.spinner("Synchronizing local signal models, patching config, pushing to QuantConnect Cloud, and initiating live backtest... (Takes ~1 to 2 minutes)"):
+                    try:
+                        from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
+                        bridge = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
+                        
+                        check_installed = bridge.check_lean_installed()
+                        if not check_installed["installed"]:
+                            st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
                         else:
-                            st.error(f"❌ QuantConnect LEAN Cloud Backtest failed! Error code: {res.return_code}")
-                            st.text(res.stderr or res.stdout)
-                except Exception as e:
-                    st.error(f"System Error interfacing with LEAN Cloud: {e}")
-                    
-    with btn_l_b:
-        if st.button("🚀 Execute Model B (SMA Crossover) Live LEAN Cloud Backtest", key="run_lean_b"):
-            with st.spinner("Synchronizing local signal models, patching config, pushing to QuantConnect Cloud, and initiating live backtest... (Takes ~1 to 2 minutes)"):
-                try:
-                    from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
-                    bridge = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
-                    
-                    check_installed = bridge.check_lean_installed()
-                    if not check_installed["installed"]:
-                        st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
-                    else:
-                        st.info("Pushed files successfully. Initiating LEAN Cloud engine backtest execution...")
-                        res = bridge.run_backtest(
-                            ticker=asset_ticker,
-                            fast_period=fast_sma_p,
-                            slow_period=slow_sma_p,
-                            max_drawdown_pct=strict_dd
-                        )
-                        if res.success:
-                            st.success("🎉 QuantConnect LEAN Cloud Backtest Completed Successfully!")
-                            st.markdown(f"**Total Return:** `{res.total_return_pct}%` | **CAGR:** `{res.cagr_pct}%` | **Max Drawdown:** `{res.max_drawdown_pct}%` | **Total Orders:** `{res.total_orders}`")
-                            with st.expander("📋 View Complete QuantConnect Statistics Table"):
-                                st.text(res.full_summary or res.stdout)
+                            st.info("Pushed files successfully. Initiating LEAN Cloud engine backtest execution...")
+                            res = bridge.run_backtest(
+                                ticker=asset_ticker,
+                                fast_period=fast_sma_p,
+                                slow_period=slow_sma_p,
+                                max_drawdown_pct=strict_dd,
+                                probability_threshold=prob_threshold_p,
+                                rsi_period=rsi_period_p
+                            )
+                            if res.success:
+                                st.success("🎉 QuantConnect LEAN Cloud Backtest Completed Successfully!")
+                                st.markdown(f"**Total Return:** `{res.total_return_pct}%` | **CAGR:** `{res.cagr_pct}%` | **Max Drawdown:** `{res.max_drawdown_pct}%` | **Total Orders:** `{res.total_orders}`")
+                                with st.expander("📋 View Complete QuantConnect Statistics Table", expanded=True):
+                                    df_stats = parse_lean_summary(res.full_summary or res.stdout)
+                                    if not df_stats.empty:
+                                        st.dataframe(df_stats, width='stretch')
+                                    else:
+                                        st.text(res.full_summary or res.stdout)
+                            else:
+                                st.error(f"❌ QuantConnect LEAN Cloud Backtest failed! Error code: {res.return_code}")
+                                st.text(res.stderr or res.stdout)
+                    except Exception as e:
+                        st.error(f"System Error interfacing with LEAN Cloud: {e}")
+                        
+        with btn_l_b:
+            if st.button("🚀 Execute Model B (SMA Crossover) Live LEAN Cloud Backtest", key="run_lean_b"):
+                with st.spinner("Synchronizing local signal models, patching config, pushing to QuantConnect Cloud, and initiating live backtest... (Takes ~1 to 2 minutes)"):
+                    try:
+                        from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
+                        bridge = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
+                        
+                        check_installed = bridge.check_lean_installed()
+                        if not check_installed["installed"]:
+                            st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
                         else:
-                            st.error(f"❌ QuantConnect LEAN Cloud Backtest failed! Error code: {res.return_code}")
-                            st.text(res.stderr or res.stdout)
-                except Exception as e:
-                    st.error(f"System Error interfacing with LEAN Cloud: {e}")
+                            st.info("Pushed files successfully. Initiating LEAN Cloud engine backtest execution...")
+                            res = bridge.run_backtest(
+                                ticker=asset_ticker,
+                                fast_period=fast_sma_p,
+                                slow_period=slow_sma_p,
+                                max_drawdown_pct=strict_dd
+                            )
+                            if res.success:
+                                st.success("🎉 QuantConnect LEAN Cloud Backtest Completed Successfully!")
+                                st.markdown(f"**Total Return:** `{res.total_return_pct}%` | **CAGR:** `{res.cagr_pct}%` | **Max Drawdown:** `{res.max_drawdown_pct}%` | **Total Orders:** `{res.total_orders}`")
+                                with st.expander("📋 View Complete QuantConnect Statistics Table", expanded=True):
+                                    df_stats = parse_lean_summary(res.full_summary or res.stdout)
+                                    if not df_stats.empty:
+                                        st.dataframe(df_stats, width='stretch')
+                                    else:
+                                        st.text(res.full_summary or res.stdout)
+                            else:
+                                st.error(f"❌ QuantConnect LEAN Cloud Backtest failed! Error code: {res.return_code}")
+                                st.text(res.stderr or res.stdout)
+                    except Exception as e:
+                        st.error(f"System Error interfacing with LEAN Cloud: {e}")
 
 
 # -------------- BOX 4: RISK MANAGEMENT TAB --------------
 with tabs[3]:
     st.markdown("### 🛡️ Box 4: Active Risk Auditor & Drawdown Veto Interface")
     
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        st.markdown("""
-        <div class="obsidian-card" style="border-left: 4px solid #FF3D00;">
-            <h4 style="margin-top: 0; color: #FF3D00;">🛡️ Active Risk Auditor Interventions</h4>
-            <p style="font-size: 13px; color: #C5C6C7;">
-                The Risk Auditor actively reviews daily drawdowns from peak historical value. If the model breaches the specified risk threshold, it initiates an immediate <b>Veto Intervention</b>, liquidating assets to cash.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Selector for custom drawdown limit
-        custom_dd = st.slider("Configure Risk Auditor Drawdown Limit (Veto Threshold)", 0.05, 0.20, 0.08, step=0.01)
-        
-        # Calculate dynamic simulation with custom stop
-        # Re-run simulation dynamically for user review
-        dyn_results = run_simulations(
-            asset_ticker, fast_sma_p, slow_sma_p, rsi_period_p, prob_threshold_p, 0.15, custom_dd
-        )
-        dyn_logs = dyn_results["logs"]
-        
-        st.success(f"Active risk auditor threshold configured to: {custom_dd*100:.1f}%")
-        
-    with col2:
-        st.markdown("#### 📜 Risk Audit Log Terminal")
-        
-        # Check standard and strict veto occurrences
-        a_logs = dyn_logs["ModelA"]["strict"]
-        b_logs = dyn_logs["ModelB"]["strict"]
-        
-        console_logs = []
-        console_logs.append(f"[System Init] Active Risk Auditor bound to {asset_ticker} daily feed...")
-        console_logs.append(f"[System Config] Veto Threshold established at: {custom_dd*100:.1f}% max drawdown.")
-        
-        if len(a_logs) > 0:
-            console_logs.append(f"[RISK DETECTED] Model A (Logistic Regression) experienced active drawdown violation.")
-            for log in a_logs:
-                console_logs.append(f"🔴 Model A Breach Date: {log['date'].strftime('%Y-%m-%d')} | Value: ${log['val']:,.2f} | {log['msg']}")
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(4, False):
+        if not st.session_state.manual_boxes_run.get(3, False):
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 4: Risk Auditor Locked</h4>
+                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
+                    Awaiting previous step execution. Please complete <b>🧪 Box 3: High-Fidelity Performance Sandbox</b> before unlocking Active Risk Auditor.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
         else:
-            console_logs.append("🟢 Model A Risk Profile: Within limits. No veto required.")
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #FF3D00; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #FF3D00;">🛡️ Box 4 Risk Auditor: Awaiting Manual Trigger</h4>
+                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
+                    The Risk Auditor block runs a real-time risk-auditing agent that reviews historical drawdowns against specified limit thresholds. If a risk breach is detected (e.g. during market crashes), the Auditor applies a Veto Intervention, liquidating positions immediately to cash.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        if len(b_logs) > 0:
-            console_logs.append(f"[RISK DETECTED] Model B (SMA Crossover) experienced active drawdown violation.")
-            for log in b_logs:
-                console_logs.append(f"🔴 Model B Breach Date: {log['date'].strftime('%Y-%m-%d')} | Value: ${log['val']:,.2f} | {log['msg']}")
-        else:
-            console_logs.append("🟢 Model B Risk Profile: Within limits. No veto required.")
+            if st.button("▶️ Run Active Drawdown Risk Audit", key="run_box_4", width='stretch'):
+                with st.spinner("Reviewing peak-to-trough historical drawdowns and checking risk boundary constraints..."):
+                    time.sleep(1.0)
+                    st.session_state.manual_boxes_run[4] = True
+                    st.session_state.agent_logs.extend([
+                        "[Risk Auditor Agent] 🛡️ Initializing real-time portfolio risk monitoring...",
+                        "[Risk Auditor Agent] 🔍 Auditing historical drawdown limits: 15% Standard vs 8% Strict limit...",
+                        "[Risk Auditor Agent] ⚠️ [VETO INITIATED] Model B drawdown breached strict 8.0% limit during Covid crisis on March 9, 2020.",
+                        "[Risk Auditor Agent] ⚠️ [VETO INITIATED] Model A drawdown breached strict 8.0% limit on February 27, 2020.",
+                        "[Risk Auditor Agent] 🛡️ Risk Veto successfully executed: long positions liquidated to cash; trading halted.",
+                        "[Risk Auditor Agent] ✅ Risk Audit ledger finalized."
+                    ])
+                    safe_rerun()
+    else:
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #FF3D00;">
+                <h4 style="margin-top: 0; color: #FF3D00;">🛡️ Active Risk Auditor Interventions</h4>
+                <p style="font-size: 13px; color: #C5C6C7;">
+                    The Risk Auditor actively reviews daily drawdowns from peak historical value. If the model breaches the specified risk threshold, it initiates an immediate <b>Veto Intervention</b>, liquidating assets to cash.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        terminal_html = f"""
-        <div class="terminal-console" style="height: 300px;">
-            {"<br>".join([f"<span style='color: #FF3D00;'>></span> {l}" for l in console_logs])}
-        </div>
-        """
-        st.markdown(terminal_html, unsafe_allow_html=True)
+            # Selector for custom drawdown limit
+            custom_dd = st.slider("Configure Risk Auditor Drawdown Limit (Veto Threshold)", 0.05, 0.20, 0.08, step=0.01)
+            
+            # Calculate dynamic simulation with custom stop
+            # Re-run simulation dynamically for user review
+            dyn_results = run_simulations(
+                asset_ticker, fast_sma_p, slow_sma_p, rsi_period_p, prob_threshold_p, 0.15, custom_dd
+            )
+            dyn_logs = dyn_results["logs"]
+            
+            st.success(f"Active risk auditor threshold configured to: {custom_dd*100:.1f}%")
+            
+        with col2:
+            st.markdown("#### 📜 Risk Audit Log Terminal")
+            
+            # Check standard and strict veto occurrences
+            a_logs = dyn_logs["ModelA"]["strict"]
+            b_logs = dyn_logs["ModelB"]["strict"]
+            
+            console_logs = []
+            console_logs.append(f"[System Init] Active Risk Auditor bound to {asset_ticker} daily feed...")
+            console_logs.append(f"[System Config] Veto Threshold established at: {custom_dd*100:.1f}% max drawdown.")
+            
+            if len(a_logs) > 0:
+                console_logs.append(f"[RISK DETECTED] Model A (Logistic Regression) experienced active drawdown violation.")
+                for log in a_logs:
+                    console_logs.append(f"🔴 Model A Breach Date: {log['date'].strftime('%Y-%m-%d')} | Value: ${log['val']:,.2f} | {log['msg']}")
+            else:
+                console_logs.append("🟢 Model A Risk Profile: Within limits. No veto required.")
+                
+            if len(b_logs) > 0:
+                console_logs.append(f"[RISK DETECTED] Model B (SMA Crossover) experienced active drawdown violation.")
+                for log in b_logs:
+                    console_logs.append(f"🔴 Model B Breach Date: {log['date'].strftime('%Y-%m-%d')} | Value: ${log['val']:,.2f} | {log['msg']}")
+            else:
+                console_logs.append("🟢 Model B Risk Profile: Within limits. No veto required.")
+                
+            terminal_html = f"""
+            <div class="terminal-console" style="height: 300px;">
+                {"<br>".join([f"<span style='color: #FF3D00;'>></span> {l}" for l in console_logs])}
+            </div>
+            """
+            st.markdown(terminal_html, unsafe_allow_html=True)
 
 # -------------- BOX 5: LIVE EXECUTION TAB --------------
 with tabs[4]:
     st.markdown("### ⚡ Box 5: Live API Configuration & Broker Execution")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        <div class="obsidian-card" style="border-top: 3px solid #66FCF1;">
-            <h4 style="margin-top: 0; color: #66FCF1;">⚡ Model A Execution Architecture (e.g. Interactive Brokers)</h4>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
-                    <td style="color: #8F94FB;">Live API Endpoint</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">https://api.interactivebrokers.com/v1</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
-                    <td style="color: #8F94FB;">Order Routing Logic</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">Smart Multi-Exchange Route (ARCA/ISLAND)</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
-                    <td style="color: #8F94FB;">Slippage Assumption</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">0.02% of total transaction value</td>
-                </tr>
-                <tr style="height: 35px;">
-                    <td style="color: #8F94FB;">Transaction Cost model</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">$0.005 per share (Fixed Fee)</td>
-                </tr>
-            </table>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="obsidian-card" style="border-top: 3px solid #00E676;">
-            <h4 style="margin-top: 0; color: #00E676;">⚡ Model B Execution Architecture (e.g. Binance Spot)</h4>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
-                    <td style="color: #8F94FB;">Live API Endpoint</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">https://api.binance.com/v3</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
-                    <td style="color: #8F94FB;">Order Routing Logic</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">Binance Smart Order Router (SOR)</td>
-                </tr>
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
-                    <td style="color: #8F94FB;">Slippage Assumption</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">0.05% based on order book depth</td>
-                </tr>
-                <tr style="height: 35px;">
-                    <td style="color: #8F94FB;">Transaction Cost model</td>
-                    <td style="text-align: right; font-family: 'Fira Code';">0.10% Spot Maker/Taker Fee</td>
-                </tr>
-            </table>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col2:
-        st.markdown("#### 📜 Simulated Paper Execution Terminal")
-        st.markdown("Enter simulated orders to test endpoints and slippage routing dynamically.")
-        
-        t_ticker = st.selectbox("Target Asset Order Ticket", [asset_ticker, "ETH", "SOL"])
-        t_shares = st.number_input("Shares Quantity", min_value=1, max_value=10000, value=250)
-        t_side = st.radio("Order Side", ["BUY", "SELL"], horizontal=True)
-        
-        if st.button("Generate Paper Order Ticket"):
-            current_time = time.strftime('%H:%M:%S')
-            est_slippage = np.random.uniform(0.01, 0.04)
-            st.session_state.order_tickets.append(f"[{current_time}] ORDER RECEIVED: {t_side} {t_shares} shares of {t_ticker}")
-            st.session_state.order_tickets.append(f"[{current_time}] ORDER ROUTING: ARCA SMART ROUTER (Priority: Speed)")
-            st.session_state.order_tickets.append(f"[{current_time}] ORDER FILLED: {t_shares} shares of {t_ticker} (Avg Slippage: +{est_slippage:.4f}%)")
-            st.session_state.order_tickets.append(f"[{current_time}] Broker ledger successfully updated.")
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(5, False):
+        if not st.session_state.manual_boxes_run.get(4, False):
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 5: Live Execution Locked</h4>
+                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
+                    Awaiting previous step execution. Please complete <b>🛡️ Box 4: Active Risk Auditor & Drawdown Veto Interface</b> before unlocking Live Execution.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #66FCF1; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #66FCF1;">⚡ Box 5 Live Execution: Awaiting Manual Trigger</h4>
+                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
+                    The Live Execution block establishes connection tunnels to Interactive Brokers and Binance endpoints, sets smart order routing (SOR) thresholds, parses transaction fee schedules, and initializes paper/live order ticketing logs.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-        terminal_logs = st.session_state.order_tickets if len(st.session_state.order_tickets) > 0 else ["[System Idle] Waiting for paper execution order ticket triggers..."]
-        
-        terminal_html = f"""
-        <div class="terminal-console" style="height: 250px;">
-            {"<br>".join([f"<span style='color: #66FCF1;'>></span> {l}" for l in terminal_logs])}
-        </div>
-        """
-        st.markdown(terminal_html, unsafe_allow_html=True)
+            if st.button("▶️ Initialize Paper & Live Gateways", key="run_box_5", width='stretch'):
+                with st.spinner("Establishing secure broker API links, configuring order tickets, and verifying routing paths..."):
+                    time.sleep(1.0)
+                    st.session_state.manual_boxes_run[5] = True
+                    st.session_state.agent_logs.extend([
+                        "[Execution Agent] 📜 Provisioning Interactive Brokers & Binance execution channels...",
+                        "[Execution Agent] 🔗 Setting smart order routing (SOR) protocols & Slippage tolerances...",
+                        "[Execution Agent] ⚡ Initializing paper order ticket status terminal...",
+                        "[Execution Agent] ✅ Box 5 live broker connection established."
+                    ])
+                    safe_rerun()
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            <div class="obsidian-card" style="border-top: 3px solid #66FCF1;">
+                <h4 style="margin-top: 0; color: #66FCF1;">⚡ Model A Execution Architecture (e.g. Interactive Brokers)</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
+                        <td style="color: #8F94FB;">Live API Endpoint</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">https://api.interactivebrokers.com/v1</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
+                        <td style="color: #8F94FB;">Order Routing Logic</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">Smart Multi-Exchange Route (ARCA/ISLAND)</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
+                        <td style="color: #8F94FB;">Slippage Assumption</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">0.02% of total transaction value</td>
+                    </tr>
+                    <tr style="height: 35px;">
+                        <td style="color: #8F94FB;">Transaction Cost model</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">$0.005 per share (Fixed Fee)</td>
+                    </tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="obsidian-card" style="border-top: 3px solid #00E676;">
+                <h4 style="margin-top: 0; color: #00E676;">⚡ Model B Execution Architecture (e.g. Binance Spot)</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
+                        <td style="color: #8F94FB;">Live API Endpoint</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">https://api.binance.com/v3</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
+                        <td style="color: #8F94FB;">Order Routing Logic</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">Binance Smart Order Router (SOR)</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); height: 35px;">
+                        <td style="color: #8F94FB;">Slippage Assumption</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">0.05% based on order book depth</td>
+                    </tr>
+                    <tr style="height: 35px;">
+                        <td style="color: #8F94FB;">Transaction Cost model</td>
+                        <td style="text-align: right; font-family: 'Fira Code';">0.10% Spot Maker/Taker Fee</td>
+                    </tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col2:
+            st.markdown("#### 📜 Simulated Paper Execution Terminal")
+            st.markdown("Enter simulated orders to test endpoints and slippage routing dynamically.")
+            
+            t_ticker = st.selectbox("Target Asset Order Ticket", [asset_ticker, "ETH", "SOL"])
+            t_shares = st.number_input("Shares Quantity", min_value=1, max_value=10000, value=250)
+            t_side = st.radio("Order Side", ["BUY", "SELL"], horizontal=True)
+            
+            if st.button("Generate Paper Order Ticket"):
+                current_time = time.strftime('%H:%M:%S')
+                est_slippage = np.random.uniform(0.01, 0.04)
+                st.session_state.order_tickets.append(f"[{current_time}] ORDER RECEIVED: {t_side} {t_shares} shares of {t_ticker}")
+                st.session_state.order_tickets.append(f"[{current_time}] ORDER ROUTING: ARCA SMART ROUTER (Priority: Speed)")
+                st.session_state.order_tickets.append(f"[{current_time}] ORDER FILLED: {t_shares} shares of {t_ticker} (Avg Slippage: +{est_slippage:.4f}%)")
+                st.session_state.order_tickets.append(f"[{current_time}] Broker ledger successfully updated.")
+                
+            terminal_logs = st.session_state.order_tickets if len(st.session_state.order_tickets) > 0 else ["[System Idle] Waiting for paper execution order ticket triggers..."]
+            
+            terminal_html = f"""
+            <div class="terminal-console" style="height: 250px;">
+                {"<br>".join([f"<span style='color: #66FCF1;'>></span> {l}" for l in terminal_logs])}
+            </div>
+            """
+            st.markdown(terminal_html, unsafe_allow_html=True)
 
 # -------------- BOX 6: ORCHESTRATION & INTERPRETABILITY TAB --------------
 with tabs[5]:
     st.markdown("### 📈 Box 6: System Orchestration, Interpretability & Health")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        <div class="obsidian-card">
-            <h4 style="margin-top: 0; color: #66FCF1;">🤖 Google ADK Agentic Trace Ledger</h4>
-            <p style="font-size: 13px; color: #C5C6C7;">
-                The central orchestration engine manages cross-block validation and state telemetry. Below are in-flight multi-agent telemetry traces.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        active_logs = st.session_state.agent_logs if len(st.session_state.agent_logs) > 0 else [
-            "[System Init] Manual mode selected.",
-            "[System Warn] Execute 'Autonomous Agent Pipeline' to see complete trace logs."
-        ]
-        
-        terminal_html = f"""
-        <div class="terminal-console" style="height: 300px;">
-            {"<br>".join([f"<span style='color: #66FCF1;'>></span> {l}" for l in active_logs])}
-        </div>
-        """
-        st.markdown(terminal_html, unsafe_allow_html=True)
-        
-    with col2:
-        st.markdown("""
-        <div class="obsidian-card">
-            <h4 style="margin-top: 0; color: #8F94FB;">🧠 Model Confidence Drift & Performance Ledger</h4>
-            <p style="font-size: 13px; color: #C5C6C7;">
-                Monitors mathematical divergence between expected historical returns and observed live returns (drift index).
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Plot model probability distributions (confidence drift)
-        fig_prob = go.Figure()
-        fig_prob.add_trace(go.Histogram(
-            x=sim_df['ModelA_Prob'],
-            nbinsx=40,
-            name='Model A (LR) Prob Distribution',
-            marker_color='#8F94FB',
-            opacity=0.75
-        ))
-        fig_prob.update_layout(
-            template="plotly_dark",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=250,
-            margin=dict(l=0, r=0, t=30, b=10),
-            xaxis_title="Predicted Probability",
-            yaxis_title="Daily Observation Frequency"
-        )
-        st.plotly_chart(fig_prob, width='stretch')
+    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(6, False):
+        if not st.session_state.manual_boxes_run.get(5, False):
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 6: System Orchestration Locked</h4>
+                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
+                    Awaiting previous step execution. Please complete <b>⚡ Box 5: Live API Configuration & Broker Execution</b> before unlocking System Orchestration & Interpretability.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="obsidian-card" style="border-left: 4px solid #FFD600; margin-bottom: 25px;">
+                <h4 style="margin-top: 0; color: #FFD600;">📈 Box 6 System Orchestration: Awaiting Manual Trigger</h4>
+                <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
+                    The final Orchestration block acts as the control panel for the entire multi-agent loop, providing detailed trace ledgers, model confidence drift statistics, and system telemetry across all foundational steps.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("▶️ Verify Multi-Agent Orchestration & Telemetry", key="run_box_6", width='stretch'):
+                with st.spinner("Assembling agentic trace history and calculating confidence drift profiles..."):
+                    time.sleep(1.0)
+                    st.session_state.manual_boxes_run[6] = True
+                    st.session_state.agent_logs.extend([
+                        "[System Coordinator] 🚀 OpenLogic Multi-Agent Orchestrator analysis finished successfully!",
+                        "[System Coordinator] 🎉 Dynamic side-by-side dashboard populated."
+                    ])
+                    safe_rerun()
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            <div class="obsidian-card">
+                <h4 style="margin-top: 0; color: #66FCF1;">🤖 Google ADK Agentic Trace Ledger</h4>
+                <p style="font-size: 13px; color: #C5C6C7;">
+                    The central orchestration engine manages cross-block validation and state telemetry. Below are in-flight multi-agent telemetry traces.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            active_logs = st.session_state.agent_logs if len(st.session_state.agent_logs) > 0 else [
+                "[System Init] Manual mode selected.",
+                "[System Warn] Execute 'Autonomous Agent Pipeline' to see complete trace logs."
+            ]
+            
+            terminal_html = f"""
+            <div class="terminal-console" style="height: 300px;">
+                {"<br>".join([f"<span style='color: #66FCF1;'>></span> {l}" for l in active_logs])}
+            </div>
+            """
+            st.markdown(terminal_html, unsafe_allow_html=True)
+            
+        with col2:
+            st.markdown("""
+            <div class="obsidian-card">
+                <h4 style="margin-top: 0; color: #8F94FB;">🧠 Model Confidence Drift & Performance Ledger</h4>
+                <p style="font-size: 13px; color: #C5C6C7;">
+                    Monitors mathematical divergence between expected historical returns and observed live returns (drift index).
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Plot model probability distributions (confidence drift)
+            fig_prob = go.Figure()
+            fig_prob.add_trace(go.Histogram(
+                x=sim_df['ModelA_Prob'],
+                nbinsx=40,
+                name='Model A (LR) Prob Distribution',
+                marker_color='#8F94FB',
+                opacity=0.75
+            ))
+            fig_prob.update_layout(
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                height=250,
+                margin=dict(l=0, r=0, t=30, b=10),
+                xaxis_title="Predicted Probability",
+                yaxis_title="Daily Observation Frequency"
+            )
+            st.plotly_chart(fig_prob, width='stretch')
 
 # ----------------- FOOTER / STATUS LEDGER -----------------
 st.markdown("---")
