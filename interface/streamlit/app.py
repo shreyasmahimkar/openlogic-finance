@@ -823,7 +823,7 @@ if st.session_state.execution_mode == "autonomous" and not st.session_state.pipe
                         ticker=asset_ticker,
                         fast_period=fast_sma_p,
                         slow_period=slow_sma_p,
-                        max_drawdown_pct=1.0, # NO VETO / NO STOP
+                        max_drawdown_pct=0.99, # NO VETO / NO STOP (99% limit)
                         probability_threshold=prob_threshold_p,
                         rsi_period=rsi_period_p
                     )
@@ -849,7 +849,7 @@ if st.session_state.execution_mode == "autonomous" and not st.session_state.pipe
                         ticker=asset_ticker,
                         fast_period=fast_sma_p,
                         slow_period=slow_sma_p,
-                        max_drawdown_pct=1.0 # NO VETO / NO STOP
+                        max_drawdown_pct=0.99 # NO VETO / NO STOP (99% limit)
                     )
                     if res_b.success:
                         current_logs.append(f"[Backtest Agent] 🎉 Model B LEAN Cloud Success! Net Profit: {res_b.total_return_pct}% | Orders: {res_b.total_orders}")
@@ -1296,7 +1296,7 @@ with tabs[2]:
                                 ticker=asset_ticker,
                                 fast_period=fast_sma_p,
                                 slow_period=slow_sma_p,
-                                max_drawdown_pct=1.0, # NO VETO / NO STOP
+                                max_drawdown_pct=0.99, # NO VETO / NO STOP (99% limit)
                                 probability_threshold=prob_threshold_p,
                                 rsi_period=rsi_period_p
                             )
@@ -1324,7 +1324,7 @@ with tabs[2]:
                                 ticker=asset_ticker,
                                 fast_period=fast_sma_p,
                                 slow_period=slow_sma_p,
-                                max_drawdown_pct=1.0 # NO VETO / NO STOP
+                                max_drawdown_pct=0.99 # NO VETO / NO STOP (99% limit)
                             )
                             st.session_state.lean_res_b = res_b
                             if res_b.success:
