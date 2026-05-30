@@ -1,6 +1,6 @@
 # OpenLogic Finance | Institutional Multi-Agent Streamlit Dashboard
 
-Welcome to the institutional B2B enterprise dashboard for OpenLogic Finance. This web-based interface implements a visual, side-by-side comparison of **Model A (Logistic Regression Strategy)** vs. **Model B (SMA Crossover Strategy)** using the standard **OpenLogic Finance 6-Box Architecture**.
+Welcome to the institutional dashboard for OpenLogic Finance. This web-based interface implements a visual, side-by-side comparison of **Model A (Logistic Regression Strategy)** vs. **Model B (SMA Crossover Strategy)** using the standard **OpenLogic Finance 6-Box Architecture**.
 
 ---
 

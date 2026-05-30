@@ -249,6 +249,14 @@ if "simulation_data" not in st.session_state:
     st.session_state.simulation_data = None
 if "current_ticker" not in st.session_state:
     st.session_state.current_ticker = None
+if "current_fast_sma" not in st.session_state:
+    st.session_state.current_fast_sma = None
+if "current_slow_sma" not in st.session_state:
+    st.session_state.current_slow_sma = None
+if "current_rsi_period" not in st.session_state:
+    st.session_state.current_rsi_period = None
+if "current_prob_threshold" not in st.session_state:
+    st.session_state.current_prob_threshold = None
 if "order_tickets" not in st.session_state:
     st.session_state.order_tickets = []
 if "lean_res_a" not in st.session_state:
@@ -640,7 +648,7 @@ def get_metrics_table(sim_results, mode="strict"):
 st.sidebar.markdown("""
 <div style="text-align: center; padding-bottom: 20px;">
     <h2 style="margin: 0; color: #66FCF1; font-size: 24px; font-weight: 800; font-family: 'Outfit';">OPENLOGIC FINANCE</h2>
-    <span style="color: #8F94FB; font-size: 11px; letter-spacing: 0.15em; font-weight: 600; text-transform: uppercase;">6-Box Enterprise Control</span>
+    <span style="color: #8F94FB; font-size: 11px; letter-spacing: 0.15em; font-weight: 600; text-transform: uppercase;">6-Box Control</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -687,27 +695,71 @@ for box_num, label in [
 # Header Layout
 col_logo, col_desc = st.columns([1, 4])
 with col_desc:
-    st.title("OpenLogic Finance B2B Enterprise Dashboard")
+    st.title("OpenLogic Finance Dashboard")
     st.markdown("""
     <p style="font-size: 16px; color: #8F94FB; font-weight: 500; margin-top: -10px;">
         High-Fidelity Quantitative Model Comparison & Real-Time Risk Management Audit Console (6-Box Architecture)
     </p>
     """, unsafe_allow_html=True)
 
-# Run Simulations to store initial state if not available
-if st.session_state.simulation_data is None or st.session_state.current_ticker != asset_ticker:
+# Run Simulations to store initial state if not available, or reset and re-calculate if parameters change
+params_changed = (
+    st.session_state.simulation_data is None
+    or st.session_state.current_ticker != asset_ticker
+    or st.session_state.current_fast_sma != fast_sma_p
+    or st.session_state.current_slow_sma != slow_sma_p
+    or st.session_state.current_rsi_period != rsi_period_p
+    or st.session_state.current_prob_threshold != prob_threshold_p
+)
+
+if params_changed:
     st.session_state.simulation_data = run_simulations(
         asset_ticker, fast_sma_p, slow_sma_p, rsi_period_p, prob_threshold_p, 0.15, 0.08
     )
     st.session_state.current_ticker = asset_ticker
+    st.session_state.current_fast_sma = fast_sma_p
+    st.session_state.current_slow_sma = slow_sma_p
+    st.session_state.current_rsi_period = rsi_period_p
+    st.session_state.current_prob_threshold = prob_threshold_p
+    
+    # ⚠️ CRITICAL: Clear stale remote backtest results as parameters have changed!
+    st.session_state.lean_res_a = None
+    st.session_state.lean_res_b = None
+    st.session_state.pipeline_run = False
+    
+    # Reset subsequent manual blocks to enforce fresh sequential runs
+    st.session_state.manual_boxes_run[3] = False
+    st.session_state.manual_boxes_run[4] = False
+    st.session_state.manual_boxes_run[5] = False
+    st.session_state.manual_boxes_run[6] = False
+
+# Trigger toasts if engaged on previous action
+if st.session_state.get("manual_toast_triggered", False):
+    st.toast("🛠️ Manual Box-by-Box Mode initialized! Progress reset to Box 1.", icon="🛠️")
+    st.session_state.manual_toast_triggered = False
+
+if st.session_state.get("autonomous_toast_triggered", False):
+    st.toast("🤖 Autonomous Multi-Agent mode engaged! Orchestrating pipeline...", icon="🤖")
+    st.session_state.autonomous_toast_triggered = False
 
 # Dual Controls Center Container
-st.markdown("""
+mode_label = "🛠️ Manual Box-by-Box Mode" if st.session_state.execution_mode == "manual" else "🤖 Autonomous Multi-Agent Mode"
+mode_color = "#FFD600" if st.session_state.execution_mode == "manual" else "#66FCF1"
+mode_desc = "Scroll down to 'OpenLogic Finance 6-Box Architectural Comparison' and click '▶️ Execute Data Ingestion & indicator Prep' in Box 1 to begin." if st.session_state.execution_mode == "manual" else "Click the 'Run Autonomous Agent Pipeline' button below to orchestrate the synchronized multi-agent loop."
+
+st.markdown(f"""
 <div class="obsidian-card" style="border-left: 4px solid #66FCF1;">
     <h3 style="margin-top: 0; color: #66FCF1; font-size: 20px;">⚡ Global Execution & Mode Control Center</h3>
     <p style="font-size: 14px; color: #8F94FB; margin-bottom: 20px;">
         Choose the execution strategy for the quantitative pipeline. Trigger autonomous multi-agent analysis or enter manual step-by-step block construction.
     </p>
+    <div style="background-color: rgba(26, 34, 48, 0.6); padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 10px;">
+        <span style="font-size: 12px; color: #8F94FB; text-transform: uppercase; letter-spacing: 0.1em; font-weight: bold;">Current State:</span>
+        <span style="font-size: 14px; color: {mode_color}; font-weight: bold; margin-left: 10px;">{mode_label}</span>
+        <p style="font-size: 12px; color: #C5C6C7; margin: 5px 0 0 0; line-height: 1.4;">
+            {mode_desc}
+        </p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -718,11 +770,14 @@ with btn_col1:
         st.session_state.execution_mode = "autonomous"
         st.session_state.pipeline_run = False
         st.session_state.agent_logs = []
+        st.session_state.autonomous_toast_triggered = True
+        safe_rerun()
 
 with btn_col2:
     if st.button("🛠️ Enter Manual Box-by-Box Mode", width='stretch'):
         st.session_state.execution_mode = "manual"
         st.session_state.manual_boxes_run = {1: False, 2: False, 3: False, 4: False, 5: False, 6: False}
+        st.session_state.manual_toast_triggered = True
         safe_rerun()
 
 
@@ -1250,61 +1305,12 @@ with tabs[2]:
                 st.session_state.manual_boxes_run[3] = True
                 safe_rerun()
                 
-        # Render Interactive Plotly Equity Curves
-        st.markdown("#### 📊 Comparative Equity Growth Curves (Initial Capital: $100,000)")
-        
-        # Determine if we should calibrate the curves to the high-fidelity remote LEAN cloud outcomes
-        res_a = st.session_state.lean_res_a
-        res_b = st.session_state.lean_res_b
-        
-        y_a = sim_df['ModelA_Std_Val'].copy()
-        y_b = sim_df['ModelB_Std_Val'].copy()
-        y_bench = sim_df['Benchmark_Value'].copy()
-        
-        label_a = "Model A: LR (Standard / No Veto)"
-        label_b = "Model B: SMA (Standard / No Veto)"
-        title_chart = "Comparative Equity Growth Curves"
-        
-        if res_a is not None or res_b is not None:
-            title_chart = "High-Fidelity QuantConnect LEAN Comparative Equity Curves"
-            
-            # Calibrate Model A
-            if res_a is not None and res_a.success and res_a.total_return_pct is not None:
-                final_local_a = y_a.iloc[-1]
-                target_final_a = 100000.0 * (1.0 + float(res_a.total_return_pct) / 100.0)
-                scale_a = (target_final_a - 100000.0) / (final_local_a - 100000.0) if (final_local_a - 100000.0) != 0 else 1.0
-                y_a = 100000.0 + (y_a - 100000.0) * scale_a
-                label_a = f"Model A: LR (LEAN Cloud: {res_a.total_return_pct:.3f}%)"
-                
-            # Calibrate Model B
-            if res_b is not None and res_b.success and res_b.total_return_pct is not None:
-                final_local_b = y_b.iloc[-1]
-                target_final_b = 100000.0 * (1.0 + float(res_b.total_return_pct) / 100.0)
-                scale_b = (target_final_b - 100000.0) / (final_local_b - 100000.0) if (final_local_b - 100000.0) != 0 else 1.0
-                y_b = 100000.0 + (y_b - 100000.0) * scale_b
-                label_b = f"Model B: SMA (LEAN Cloud: {res_b.total_return_pct:.3f}%)"
-                
-        fig_eq = go.Figure()
-        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_a, name=label_a, line=dict(color='#8F94FB', width=2)))
-        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_b, name=label_b, line=dict(color='#00E676', width=2)))
-        fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_bench, name='SPY Buy & Hold Benchmark', line=dict(color='#FFD600', width=1.5, dash='dash')))
-        
-        fig_eq.update_layout(
-            title=title_chart,
-            template="plotly_dark",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            height=400,
-            margin=dict(l=0, r=0, t=30, b=10),
-            xaxis_title="Timeline",
-            yaxis_title="Portfolio Growth ($)"
-        )
-        st.plotly_chart(fig_eq, width='stretch')
+
         
         # Comparison & Results Console
         if st.session_state.lean_res_a is not None or st.session_state.lean_res_b is not None:
             st.markdown("---")
-            st.markdown("### 📊 QuantConnect B2B Institutional Comparison Matrix")
+            st.markdown("### 📊 QuantConnect Institutional Comparison Matrix")
             st.markdown("Below is the high-fidelity cloud execution metrics comparison for both strategies running live on the QuantConnect LEAN Engine:")
             
             # Extract metrics
@@ -1334,6 +1340,57 @@ with tabs[2]:
                 
             df_comp = pd.DataFrame(comparison_rows)
             st.table(df_comp)
+            
+            # Render Interactive Plotly Equity Curves
+            st.markdown("#### 📊 Comparative Equity Growth Curves (Initial Capital: $100,000)")
+            
+            # Determine if we should calibrate the curves to the high-fidelity remote LEAN cloud outcomes
+            res_a = st.session_state.lean_res_a
+            res_b = st.session_state.lean_res_b
+            
+            y_a = sim_df['ModelA_Std_Val'].copy()
+            y_b = sim_df['ModelB_Std_Val'].copy()
+            y_bench = sim_df['Benchmark_Value'].copy()
+            
+            label_a = "Model A: LR (Standard / No Veto)"
+            label_b = "Model B: SMA (Standard / No Veto)"
+            title_chart = "Comparative Equity Growth Curves"
+            
+            if res_a is not None or res_b is not None:
+                title_chart = "High-Fidelity QuantConnect LEAN Comparative Equity Curves"
+                
+                # Calibrate Model A
+                if res_a is not None and res_a.success and res_a.total_return_pct is not None:
+                    final_local_a = y_a.iloc[-1]
+                    target_final_a = 100000.0 * (1.0 + float(res_a.total_return_pct) / 100.0)
+                    scale_a = (target_final_a - 100000.0) / (final_local_a - 100000.0) if (final_local_a - 100000.0) != 0 else 1.0
+                    y_a = 100000.0 + (y_a - 100000.0) * scale_a
+                    label_a = f"Model A: LR (LEAN Cloud: {res_a.total_return_pct:.3f}%)"
+                    
+                # Calibrate Model B
+                if res_b is not None and res_b.success and res_b.total_return_pct is not None:
+                    final_local_b = y_b.iloc[-1]
+                    target_final_b = 100000.0 * (1.0 + float(res_b.total_return_pct) / 100.0)
+                    scale_b = (target_final_b - 100000.0) / (final_local_b - 100000.0) if (final_local_b - 100000.0) != 0 else 1.0
+                    y_b = 100000.0 + (y_b - 100000.0) * scale_b
+                    label_b = f"Model B: SMA (LEAN Cloud: {res_b.total_return_pct:.3f}%)"
+                    
+            fig_eq = go.Figure()
+            fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_a, name=label_a, line=dict(color='#8F94FB', width=2)))
+            fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_b, name=label_b, line=dict(color='#00E676', width=2)))
+            fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_bench, name='SPY Buy & Hold Benchmark', line=dict(color='#FFD600', width=1.5, dash='dash')))
+            
+            fig_eq.update_layout(
+                title=title_chart,
+                template="plotly_dark",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                height=400,
+                margin=dict(l=0, r=0, t=30, b=10),
+                xaxis_title="Timeline",
+                yaxis_title="Portfolio Growth ($)"
+            )
+            st.plotly_chart(fig_eq, width='stretch')
             
             # Side-by-Side Detailed Stats Expanders
             st.markdown("#### 📋 Detailed QuantConnect Statistics Tables")
@@ -1665,7 +1722,7 @@ with tabs[5]:
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #5F6368; font-size: 12px; font-family: 'Inter';">
-    OpenLogic Finance Multi-Agent Dashboard is certified under the 6-Box B2B Enterprise Architecture Framework.
+    OpenLogic Finance Multi-Agent Dashboard is certified under the 6-Box Architecture Framework.
     <br>© 2026 OpenLogic Finance Group. All institutional rights reserved.
 </div>
 """, unsafe_allow_html=True)
