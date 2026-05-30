@@ -823,7 +823,7 @@ if st.session_state.execution_mode == "autonomous" and not st.session_state.pipe
                         ticker=asset_ticker,
                         fast_period=fast_sma_p,
                         slow_period=slow_sma_p,
-                        max_drawdown_pct=strict_dd,
+                        max_drawdown_pct=1.0, # NO VETO / NO STOP
                         probability_threshold=prob_threshold_p,
                         rsi_period=rsi_period_p
                     )
@@ -849,7 +849,7 @@ if st.session_state.execution_mode == "autonomous" and not st.session_state.pipe
                         ticker=asset_ticker,
                         fast_period=fast_sma_p,
                         slow_period=slow_sma_p,
-                        max_drawdown_pct=strict_dd
+                        max_drawdown_pct=1.0 # NO VETO / NO STOP
                     )
                     if res_b.success:
                         current_logs.append(f"[Backtest Agent] 🎉 Model B LEAN Cloud Success! Net Profit: {res_b.total_return_pct}% | Orders: {res_b.total_orders}")
@@ -1179,10 +1179,8 @@ with tabs[2]:
                     ])
                     safe_rerun()
     else:
-        # Active configuration selector
-        perf_mode = st.selectbox("Select Backtesting Risk Profile Configuration", ["Audited Portfolio (Strict 8.0% Stop)", "Audited Portfolio (Standard 15.0% Stop)", "Standard Portfolio (No Veto Stop)"])
-        
-        mode_key = "strict" if "Strict" in perf_mode else ("standard" if "Standard 15" in perf_mode else "none")
+        # Active configuration locked to Standard Portfolio (No Veto Stop)
+        mode_key = "none"
         metrics_tbl = get_metrics_table(sim_results, mode_key)
         
         # Render KPI Metric Cards side-by-side
@@ -1269,7 +1267,7 @@ with tabs[2]:
             
         with col_lc2:
             st.markdown("**Active Instrument & Signals Map:**")
-            st.code(f"Primary Ticker: {asset_ticker}\nSMA Fast/Slow Period: {fast_sma_p}/{slow_sma_p}\nDecision probability: {prob_threshold_p}\nDrawdown halt limit: {strict_dd * 100:.1f}%", language="text")
+            st.code(f"Primary Ticker: {asset_ticker}\nSMA Fast/Slow Period: {fast_sma_p}/{slow_sma_p}\nDecision probability: {prob_threshold_p}\nDrawdown halt limit: None (No Veto)", language="text")
             
         # Single Unified Button for Sequential Cloud Runs
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1298,7 +1296,7 @@ with tabs[2]:
                                 ticker=asset_ticker,
                                 fast_period=fast_sma_p,
                                 slow_period=slow_sma_p,
-                                max_drawdown_pct=strict_dd,
+                                max_drawdown_pct=1.0, # NO VETO / NO STOP
                                 probability_threshold=prob_threshold_p,
                                 rsi_period=rsi_period_p
                             )
@@ -1326,7 +1324,7 @@ with tabs[2]:
                                 ticker=asset_ticker,
                                 fast_period=fast_sma_p,
                                 slow_period=slow_sma_p,
-                                max_drawdown_pct=strict_dd
+                                max_drawdown_pct=1.0 # NO VETO / NO STOP
                             )
                             st.session_state.lean_res_b = res_b
                             if res_b.success:
