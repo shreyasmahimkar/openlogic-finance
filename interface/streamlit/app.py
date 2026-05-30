@@ -885,7 +885,7 @@ st.markdown("## 📦 OpenLogic Finance 6-Box Architectural Comparison")
 tabs = st.tabs([
     "📦 Box 1: Data Prep",
     "🔬 Box 2: Model Library",
-    "🧪 Box 3: Strategy Testing",
+    "🧪 Box 3: QuantConnect LEAN Engine Cloud Bridge",
     "🛡️ Box 4: Risk Audit",
     "⚡ Box 5: Live Execution",
     "📈 Box 6: Orchestration & Interpretability"
@@ -1144,7 +1144,7 @@ with tabs[1]:
 
 # -------------- BOX 3: STRATEGY TESTING TAB --------------
 with tabs[2]:
-    st.markdown("### 🧪 Box 3: High-Fidelity Performance Sandbox")
+    st.markdown("### 🧪 Box 3: QuantConnect LEAN Engine Cloud Bridge")
     
     if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(3, False):
         if not st.session_state.manual_boxes_run.get(2, False):
@@ -1190,7 +1190,7 @@ with tabs[2]:
             </div>
             """, unsafe_allow_html=True)
             
-        st.markdown("### 🚀 QuantConnect LEAN Engine Cloud Bridge")
+        st.markdown("### 📡 Cloud Operation Dashboard")
         st.markdown("""
         Push this strategy configuration and Box 2 signal layer to **QuantConnect Cloud** and execute a live, high-fidelity backtest using the institutional-grade LEAN Engine:
         """)
@@ -1208,77 +1208,68 @@ with tabs[2]:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### ⚡ Unified Cloud Operations Control")
         
-        col_run, col_clear = st.columns([3, 1])
-        with col_run:
-            if st.button("🚀 Execute Unified Dual-Model LEAN Cloud Backtest", key="run_unified_lean", use_container_width=True):
-                from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
+        if st.button("🚀 Execute Unified Dual-Model LEAN Cloud Backtest", key="run_unified_lean", width='stretch'):
+            from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
+            
+            # Check installation first
+            bridge_a = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
+            check_installed = bridge_a.check_lean_installed()
+            if not check_installed["installed"]:
+                st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
+            else:
+                # 1. Run Model A
+                status_a = st.status("Executing Model A (Logistic Regression) Live LEAN Cloud Backtest...", expanded=True)
+                with status_a:
+                    st.write("Initializing LEAN cloud workspace project for Model A...")
+                    st.write("Synchronizing local ML signal weights and technical features...")
+                    st.write("Pushing Model A project configurations to QuantConnect Cloud...")
+                    st.write("Executing cloud backtest node...")
+                    try:
+                        res_a = bridge_a.run_backtest(
+                            ticker=asset_ticker,
+                            fast_period=fast_sma_p,
+                            slow_period=slow_sma_p,
+                            max_drawdown_pct=0.99, # NO VETO / NO STOP (99% limit)
+                            probability_threshold=prob_threshold_p,
+                            rsi_period=rsi_period_p
+                        )
+                        st.session_state.lean_res_a = res_a
+                        if res_a.success:
+                            status_a.update(label="✅ Model A Cloud Backtest Completed Successfully!", state="complete")
+                        else:
+                            status_a.update(label="❌ Model A Cloud Backtest Failed!", state="error")
+                            st.error(res_a.stderr or res_a.stdout)
+                    except Exception as e:
+                        st.session_state.lean_res_a = None
+                        status_a.update(label="❌ Model A System Error!", state="error")
+                        st.error(f"System Error interfacing with LEAN Cloud for Model A: {e}")
                 
-                # Check installation first
-                bridge_a = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
-                check_installed = bridge_a.check_lean_installed()
-                if not check_installed["installed"]:
-                    st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
-                else:
-                    # 1. Run Model A
-                    status_a = st.status("Executing Model A (Logistic Regression) Live LEAN Cloud Backtest...", expanded=True)
-                    with status_a:
-                        st.write("Initializing LEAN cloud workspace project for Model A...")
-                        st.write("Synchronizing local ML signal weights and technical features...")
-                        st.write("Pushing Model A project configurations to QuantConnect Cloud...")
-                        st.write("Executing cloud backtest node...")
-                        try:
-                            res_a = bridge_a.run_backtest(
-                                ticker=asset_ticker,
-                                fast_period=fast_sma_p,
-                                slow_period=slow_sma_p,
-                                max_drawdown_pct=0.99, # NO VETO / NO STOP (99% limit)
-                                probability_threshold=prob_threshold_p,
-                                rsi_period=rsi_period_p
-                            )
-                            st.session_state.lean_res_a = res_a
-                            if res_a.success:
-                                status_a.update(label="✅ Model A Cloud Backtest Completed Successfully!", state="complete")
-                            else:
-                                status_a.update(label="❌ Model A Cloud Backtest Failed!", state="error")
-                                st.error(res_a.stderr or res_a.stdout)
-                        except Exception as e:
-                            st.session_state.lean_res_a = None
-                            status_a.update(label="❌ Model A System Error!", state="error")
-                            st.error(f"System Error interfacing with LEAN Cloud for Model A: {e}")
-                    
-                    # 2. Run Model B
-                    status_b = st.status("Executing Model B (SMA Crossover) Live LEAN Cloud Backtest...", expanded=True)
-                    with status_b:
-                        st.write("Initializing LEAN cloud workspace project for Model B...")
-                        st.write("Synchronizing local technical indicators...")
-                        st.write("Pushing Model B project configurations to QuantConnect Cloud...")
-                        st.write("Executing cloud backtest node...")
-                        try:
-                            bridge_b = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
-                            res_b = bridge_b.run_backtest(
-                                ticker=asset_ticker,
-                                fast_period=fast_sma_p,
-                                slow_period=slow_sma_p,
-                                max_drawdown_pct=0.99 # NO VETO / NO STOP (99% limit)
-                            )
-                            st.session_state.lean_res_b = res_b
-                            if res_b.success:
-                                status_b.update(label="✅ Model B Cloud Backtest Completed Successfully!", state="complete")
-                            else:
-                                status_b.update(label="❌ Model B Cloud Backtest Failed!", state="error")
-                                st.error(res_b.stderr or res_b.stdout)
-                        except Exception as e:
-                            st.session_state.lean_res_b = None
-                            status_b.update(label="❌ Model B System Error!", state="error")
-                            st.error(f"System Error interfacing with LEAN Cloud for Model B: {e}")
-                    
-                    safe_rerun()
-                    
-        with col_clear:
-            if st.button("🗑️ Reset Cloud Cache", key="reset_lean_cache", use_container_width=True):
-                st.session_state.lean_res_a = None
-                st.session_state.lean_res_b = None
-                st.info("LEAN Cloud backtest result cache cleared.")
+                # 2. Run Model B
+                status_b = st.status("Executing Model B (SMA Crossover) Live LEAN Cloud Backtest...", expanded=True)
+                with status_b:
+                    st.write("Initializing LEAN cloud workspace project for Model B...")
+                    st.write("Synchronizing local technical indicators...")
+                    st.write("Pushing Model B project configurations to QuantConnect Cloud...")
+                    st.write("Executing cloud backtest node...")
+                    try:
+                        bridge_b = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
+                        res_b = bridge_b.run_backtest(
+                            ticker=asset_ticker,
+                            fast_period=fast_sma_p,
+                            slow_period=slow_sma_p,
+                            max_drawdown_pct=0.99 # NO VETO / NO STOP (99% limit)
+                        )
+                        st.session_state.lean_res_b = res_b
+                        if res_b.success:
+                            status_b.update(label="✅ Model B Cloud Backtest Completed Successfully!", state="complete")
+                        else:
+                            status_b.update(label="❌ Model B Cloud Backtest Failed!", state="error")
+                            st.error(res_b.stderr or res_b.stdout)
+                    except Exception as e:
+                        st.session_state.lean_res_b = None
+                        status_b.update(label="❌ Model B System Error!", state="error")
+                        st.error(f"System Error interfacing with LEAN Cloud for Model B: {e}")
+                
                 safe_rerun()
                 
         # Comparison & Results Console
