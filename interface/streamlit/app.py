@@ -48,6 +48,56 @@ def parse_lean_summary(summary_str: str) -> pd.DataFrame:
                     
     return pd.DataFrame(records)
 
+def extract_qc_metrics(res) -> dict:
+    if res is None:
+        return {}
+    
+    # Defaults
+    metrics = {
+        "Total Return": f"{res.total_return_pct}%" if res.total_return_pct is not None else "N/A",
+        "CAGR": f"{res.cagr_pct}%" if res.cagr_pct is not None else "N/A",
+        "Max Drawdown": f"{res.max_drawdown_pct}%" if res.max_drawdown_pct is not None else "N/A",
+        "Sharpe Ratio": "N/A",
+        "Sortino Ratio": "N/A",
+        "Win Rate": "N/A",
+        "Total Orders": str(res.total_orders) if res.total_orders is not None else "N/A",
+        "Total Fees": "N/A"
+    }
+    
+    df_stats = parse_lean_summary(res.full_summary or res.stdout)
+    if not df_stats.empty:
+        # Create a dict from df_stats for quick lookup
+        stats_dict = dict(zip(df_stats["Metric"].str.strip(), df_stats["Value"].str.strip()))
+        
+        # Override or populate from stats_dict
+        if "Net Profit" in stats_dict:
+            metrics["Total Return"] = stats_dict["Net Profit"]
+        elif "Return" in stats_dict:
+            metrics["Total Return"] = stats_dict["Return"]
+            
+        if "Compounding Annual Return" in stats_dict:
+            metrics["CAGR"] = stats_dict["Compounding Annual Return"]
+            
+        if "Drawdown" in stats_dict:
+            metrics["Max Drawdown"] = stats_dict["Drawdown"]
+            
+        if "Sharpe Ratio" in stats_dict:
+            metrics["Sharpe Ratio"] = stats_dict["Sharpe Ratio"]
+            
+        if "Sortino Ratio" in stats_dict:
+            metrics["Sortino Ratio"] = stats_dict["Sortino Ratio"]
+            
+        if "Win Rate" in stats_dict:
+            metrics["Win Rate"] = stats_dict["Win Rate"]
+            
+        if "Total Orders" in stats_dict:
+            metrics["Total Orders"] = stats_dict["Total Orders"]
+            
+        if "Total Fees" in stats_dict:
+            metrics["Total Fees"] = stats_dict["Total Fees"]
+            
+    return metrics
+
 
 # Set Streamlit Page Configuration
 st.set_page_config(
@@ -201,6 +251,10 @@ if "current_ticker" not in st.session_state:
     st.session_state.current_ticker = None
 if "order_tickets" not in st.session_state:
     st.session_state.order_tickets = []
+if "lean_res_a" not in st.session_state:
+    st.session_state.lean_res_a = None
+if "lean_res_b" not in st.session_state:
+    st.session_state.lean_res_b = None
 
 
 
@@ -1217,22 +1271,30 @@ with tabs[2]:
             st.markdown("**Active Instrument & Signals Map:**")
             st.code(f"Primary Ticker: {asset_ticker}\nSMA Fast/Slow Period: {fast_sma_p}/{slow_sma_p}\nDecision probability: {prob_threshold_p}\nDrawdown halt limit: {strict_dd * 100:.1f}%", language="text")
             
-        # Buttons to run Model A or Model B backtest
-        btn_l_a, btn_l_b = st.columns(2)
+        # Single Unified Button for Sequential Cloud Runs
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### ⚡ Unified Cloud Operations Control")
         
-        with btn_l_a:
-            if st.button("🚀 Execute Model A (Logistic Regression) Live LEAN Cloud Backtest", key="run_lean_a"):
-                with st.spinner("Synchronizing local signal models, patching config, pushing to QuantConnect Cloud, and initiating live backtest... (Takes ~1 to 2 minutes)"):
-                    try:
-                        from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
-                        bridge = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
-                        
-                        check_installed = bridge.check_lean_installed()
-                        if not check_installed["installed"]:
-                            st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
-                        else:
-                            st.info("Pushed files successfully. Initiating LEAN Cloud engine backtest execution...")
-                            res = bridge.run_backtest(
+        col_run, col_clear = st.columns([3, 1])
+        with col_run:
+            if st.button("🚀 Execute Unified Dual-Model LEAN Cloud Backtest", key="run_unified_lean", use_container_width=True):
+                from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
+                
+                # Check installation first
+                bridge_a = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
+                check_installed = bridge_a.check_lean_installed()
+                if not check_installed["installed"]:
+                    st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
+                else:
+                    # 1. Run Model A
+                    status_a = st.status("Executing Model A (Logistic Regression) Live LEAN Cloud Backtest...", expanded=True)
+                    with status_a:
+                        st.write("Initializing LEAN cloud workspace project for Model A...")
+                        st.write("Synchronizing local ML signal weights and technical features...")
+                        st.write("Pushing Model A project configurations to QuantConnect Cloud...")
+                        st.write("Executing cloud backtest node...")
+                        try:
+                            res_a = bridge_a.run_backtest(
                                 ticker=asset_ticker,
                                 fast_period=fast_sma_p,
                                 slow_period=slow_sma_p,
@@ -1240,53 +1302,119 @@ with tabs[2]:
                                 probability_threshold=prob_threshold_p,
                                 rsi_period=rsi_period_p
                             )
-                            if res.success:
-                                st.success("🎉 QuantConnect LEAN Cloud Backtest Completed Successfully!")
-                                st.markdown(f"**Total Return:** `{res.total_return_pct}%` | **CAGR:** `{res.cagr_pct}%` | **Max Drawdown:** `{res.max_drawdown_pct}%` | **Total Orders:** `{res.total_orders}`")
-                                with st.expander("📋 View Complete QuantConnect Statistics Table", expanded=True):
-                                    df_stats = parse_lean_summary(res.full_summary or res.stdout)
-                                    if not df_stats.empty:
-                                        st.dataframe(df_stats, width='stretch')
-                                    else:
-                                        st.text(res.full_summary or res.stdout)
+                            st.session_state.lean_res_a = res_a
+                            if res_a.success:
+                                status_a.update(label="✅ Model A Cloud Backtest Completed Successfully!", state="complete")
                             else:
-                                st.error(f"❌ QuantConnect LEAN Cloud Backtest failed! Error code: {res.return_code}")
-                                st.text(res.stderr or res.stdout)
-                    except Exception as e:
-                        st.error(f"System Error interfacing with LEAN Cloud: {e}")
-                        
-        with btn_l_b:
-            if st.button("🚀 Execute Model B (SMA Crossover) Live LEAN Cloud Backtest", key="run_lean_b"):
-                with st.spinner("Synchronizing local signal models, patching config, pushing to QuantConnect Cloud, and initiating live backtest... (Takes ~1 to 2 minutes)"):
-                    try:
-                        from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
-                        bridge = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
-                        
-                        check_installed = bridge.check_lean_installed()
-                        if not check_installed["installed"]:
-                            st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
-                        else:
-                            st.info("Pushed files successfully. Initiating LEAN Cloud engine backtest execution...")
-                            res = bridge.run_backtest(
+                                status_a.update(label="❌ Model A Cloud Backtest Failed!", state="error")
+                                st.error(res_a.stderr or res_a.stdout)
+                        except Exception as e:
+                            st.session_state.lean_res_a = None
+                            status_a.update(label="❌ Model A System Error!", state="error")
+                            st.error(f"System Error interfacing with LEAN Cloud for Model A: {e}")
+                    
+                    # 2. Run Model B
+                    status_b = st.status("Executing Model B (SMA Crossover) Live LEAN Cloud Backtest...", expanded=True)
+                    with status_b:
+                        st.write("Initializing LEAN cloud workspace project for Model B...")
+                        st.write("Synchronizing local technical indicators...")
+                        st.write("Pushing Model B project configurations to QuantConnect Cloud...")
+                        st.write("Executing cloud backtest node...")
+                        try:
+                            bridge_b = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
+                            res_b = bridge_b.run_backtest(
                                 ticker=asset_ticker,
                                 fast_period=fast_sma_p,
                                 slow_period=slow_sma_p,
                                 max_drawdown_pct=strict_dd
                             )
-                            if res.success:
-                                st.success("🎉 QuantConnect LEAN Cloud Backtest Completed Successfully!")
-                                st.markdown(f"**Total Return:** `{res.total_return_pct}%` | **CAGR:** `{res.cagr_pct}%` | **Max Drawdown:** `{res.max_drawdown_pct}%` | **Total Orders:** `{res.total_orders}`")
-                                with st.expander("📋 View Complete QuantConnect Statistics Table", expanded=True):
-                                    df_stats = parse_lean_summary(res.full_summary or res.stdout)
-                                    if not df_stats.empty:
-                                        st.dataframe(df_stats, width='stretch')
-                                    else:
-                                        st.text(res.full_summary or res.stdout)
+                            st.session_state.lean_res_b = res_b
+                            if res_b.success:
+                                status_b.update(label="✅ Model B Cloud Backtest Completed Successfully!", state="complete")
                             else:
-                                st.error(f"❌ QuantConnect LEAN Cloud Backtest failed! Error code: {res.return_code}")
-                                st.text(res.stderr or res.stdout)
-                    except Exception as e:
-                        st.error(f"System Error interfacing with LEAN Cloud: {e}")
+                                status_b.update(label="❌ Model B Cloud Backtest Failed!", state="error")
+                                st.error(res_b.stderr or res_b.stdout)
+                        except Exception as e:
+                            st.session_state.lean_res_b = None
+                            status_b.update(label="❌ Model B System Error!", state="error")
+                            st.error(f"System Error interfacing with LEAN Cloud for Model B: {e}")
+                    
+                    safe_rerun()
+                    
+        with col_clear:
+            if st.button("🗑️ Reset Cloud Cache", key="reset_lean_cache", use_container_width=True):
+                st.session_state.lean_res_a = None
+                st.session_state.lean_res_b = None
+                st.info("LEAN Cloud backtest result cache cleared.")
+                safe_rerun()
+                
+        # Comparison & Results Console
+        if st.session_state.lean_res_a is not None or st.session_state.lean_res_b is not None:
+            st.markdown("---")
+            st.markdown("### 📊 QuantConnect B2B Institutional Comparison Matrix")
+            st.markdown("Below is the high-fidelity cloud execution metrics comparison for both strategies running live on the QuantConnect LEAN Engine:")
+            
+            # Extract metrics
+            metrics_a = extract_qc_metrics(st.session_state.lean_res_a) if st.session_state.lean_res_a else {}
+            metrics_b = extract_qc_metrics(st.session_state.lean_res_b) if st.session_state.lean_res_b else {}
+            
+            comparison_rows = []
+            metrics_to_compare = [
+                ("Total Return (%)", "Total Return"),
+                ("Compounding Annual Return (CAGR)", "CAGR"),
+                ("Max Drawdown (%)", "Max Drawdown"),
+                ("Sharpe Ratio", "Sharpe Ratio"),
+                ("Sortino Ratio", "Sortino Ratio"),
+                ("Win Rate (%)", "Win Rate"),
+                ("Total Orders", "Total Orders"),
+                ("Total Transaction Fees", "Total Fees")
+            ]
+            
+            for label, key in metrics_to_compare:
+                val_a = metrics_a.get(key, "N/A")
+                val_b = metrics_b.get(key, "N/A")
+                comparison_rows.append({
+                    "Institutional Metric": label,
+                    "Model A: Logistic Regression": val_a,
+                    "Model B: SMA Crossover": val_b
+                })
+                
+            df_comp = pd.DataFrame(comparison_rows)
+            st.table(df_comp)
+            
+            # Side-by-Side Detailed Stats Expanders
+            st.markdown("#### 📋 Detailed QuantConnect Statistics Tables")
+            col_tbl_a, col_tbl_b = st.columns(2)
+            
+            with col_tbl_a:
+                st.markdown("##### 📈 Model A: Logistic Regression Full Stats")
+                if st.session_state.lean_res_a:
+                    res_a = st.session_state.lean_res_a
+                    if res_a.success:
+                        df_stats_a = parse_lean_summary(res_a.full_summary or res_a.stdout)
+                        if not df_stats_a.empty:
+                            st.dataframe(df_stats_a, use_container_width=True, height=400)
+                        else:
+                            st.text_area("Model A Output", res_a.full_summary or res_a.stdout, height=300)
+                    else:
+                        st.error("Model A execution failed.")
+                else:
+                    st.info("Model A backtest has not been executed yet.")
+                    
+            with col_tbl_b:
+                st.markdown("##### 📈 Model B: SMA Crossover Full Stats")
+                if st.session_state.lean_res_b:
+                    res_b = st.session_state.lean_res_b
+                    if res_b.success:
+                        df_stats_b = parse_lean_summary(res_b.full_summary or res_b.stdout)
+                        if not df_stats_b.empty:
+                            st.dataframe(df_stats_b, use_container_width=True, height=400)
+                        else:
+                            st.text_area("Model B Output", res_b.full_summary or res_b.stdout, height=300)
+                    else:
+                        st.error("Model B execution failed.")
+                else:
+                    st.info("Model B backtest has not been executed yet.")
 
 
 # -------------- BOX 4: RISK MANAGEMENT TAB --------------
