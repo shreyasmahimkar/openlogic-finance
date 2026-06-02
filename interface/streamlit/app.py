@@ -99,6 +99,7 @@ def extract_qc_metrics(res) -> dict:
     return metrics
 
 
+
 # Set Streamlit Page Configuration
 st.set_page_config(
     page_title="OpenLogic Finance | Institutional Multi-Agent Dashboard",
@@ -263,6 +264,10 @@ if "lean_res_a" not in st.session_state:
     st.session_state.lean_res_a = None
 if "lean_res_b" not in st.session_state:
     st.session_state.lean_res_b = None
+if "model_a_selected" not in st.session_state:
+    st.session_state.model_a_selected = "Logistic Regression Strategy"
+if "model_b_selected" not in st.session_state:
+    st.session_state.model_b_selected = "SMA Crossover Strategy"
 
 
 
@@ -651,10 +656,6 @@ st.sidebar.markdown("""
     <span style="color: #8F94FB; font-size: 11px; letter-spacing: 0.15em; font-weight: 600; text-transform: uppercase;">6-Box Control</span>
 </div>
 """, unsafe_allow_html=True)
-
-st.sidebar.markdown("### 🎛️ Model Framework Selection")
-model_a = st.sidebar.selectbox("Select Model A Strategy", ["Logistic Regression Strategy"])
-model_b = st.sidebar.selectbox("Select Model B Strategy", ["SMA Crossover Strategy"])
 
 st.sidebar.markdown("### 📡 Global Parameters")
 asset_ticker = st.sidebar.selectbox("Asset Ticker (Primary)", ["SPY", "AAPL", "GOOG", "BTC"])
@@ -1051,22 +1052,79 @@ with tabs[0]:
 with tabs[1]:
     st.markdown("### 🔬 Box 2: Model Mathematical Foundations")
     
-    if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(2, False):
-        if not st.session_state.manual_boxes_run.get(1, False):
-            st.markdown("""
-            <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
-                <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 2: Model Library Locked</h4>
-                <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
-                    Awaiting previous step execution. Please complete <b>📦 Box 1: Data Ingestion & Cleanliness Audit</b> before unlocking Model Mathematical Foundations.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
+    if not st.session_state.manual_boxes_run.get(1, False):
+        st.markdown("""
+        <div class="obsidian-card" style="border-left: 4px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; opacity: 0.7;">
+            <h4 style="margin-top: 0; color: #C5C6C7;">🔒 Box 2: Model Library Locked</h4>
+            <p style="font-size: 13px; color: #8F94FB; line-height: 1.6;">
+                Awaiting previous step execution. Please complete <b>📦 Box 1: Data Ingestion & Cleanliness Audit</b> before unlocking Model Mathematical Foundations.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Model configurator (always visible when unlocked!)
+        st.markdown("""
+        <div class="obsidian-card" style="border-left: 4px solid #8F94FB; margin-bottom: 25px;">
+            <h4 style="margin-top: 0; color: #8F94FB;">🚗 Quantitative Model Comparison Configurator</h4>
+            <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 15px;">
+                Select any 2 models from our pool of <b>N</b> proprietary quantitative models to perform a head-to-head comparative validation study (similar to comparing vehicle specifications).
+                <br><br>
+                <span style="color: #FFD600; font-weight: bold;">⚠️ Heads Up:</span> Currently, only the <b>Logistic Regression Strategy</b> and the <b>SMA Crossover Strategy</b> are completely developed and integrated for live QuantConnect LEAN Cloud testing. Selecting other strategies will display targeted roadmap specifications and research timelines.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Selectboxes side by side
+        pool_cols = st.columns(2)
+        model_pool = [
+            "Logistic Regression Strategy",
+            "SMA Crossover Strategy",
+            "Random Forest Classifier (ML)",
+            "LSTM Neural Network (DL)",
+            "GARCH Volatility Strategy"
+        ]
+        
+        with pool_cols[0]:
+            sel_a = st.selectbox(
+                "Select Model A for Comparison",
+                model_pool,
+                index=model_pool.index(st.session_state.model_a_selected) if st.session_state.model_a_selected in model_pool else 0,
+                key="sel_model_a"
+            )
+        with pool_cols[1]:
+            sel_b = st.selectbox(
+                "Select Model B for Comparison",
+                model_pool,
+                index=model_pool.index(st.session_state.model_b_selected) if st.session_state.model_b_selected in model_pool else 1,
+                key="sel_model_b"
+            )
+            
+        # Detect if models changed in Box 2 and handle state invalidation
+        if sel_a != st.session_state.model_a_selected or sel_b != st.session_state.model_b_selected:
+            st.session_state.model_a_selected = sel_a
+            st.session_state.model_b_selected = sel_b
+            
+            # Clear stale remote backtest results and reset wizard blocks
+            st.session_state.lean_res_a = None
+            st.session_state.lean_res_b = None
+            st.session_state.pipeline_run = False
+            st.session_state.manual_boxes_run[2] = False # re-lock Box 2 itself when selection changes!
+            st.session_state.manual_boxes_run[3] = False
+            st.session_state.manual_boxes_run[4] = False
+            st.session_state.manual_boxes_run[5] = False
+            st.session_state.manual_boxes_run[6] = False
+            st.toast("🔄 Model selection updated! Execute Box 2 to build configurations.", icon="🔄")
+            safe_rerun()
+
+        st.markdown("---")
+        
+        # 2. Execution button block (if Box 2 is not yet completed)
+        if st.session_state.execution_mode == "manual" and not st.session_state.manual_boxes_run.get(2, False):
             st.markdown("""
             <div class="obsidian-card" style="border-left: 4px solid #8F94FB; margin-bottom: 25px;">
                 <h4 style="margin-top: 0; color: #8F94FB;">🔬 Box 2 Model Library: Awaiting Manual Trigger</h4>
                 <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 20px;">
-                    The Model Library block processes the ingested OHLCV data to engineer feature matrices (SMA ratio, normalized RSI, and momentum), loads pre-trained weights, and projects them from scaled space to raw space.
+                    The Model Library block processes the ingested OHLCV data to engineer feature matrices for your selected models, loads weights, and projects them. Configure your selections above and click execute.
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -1077,124 +1135,161 @@ with tabs[1]:
                     st.session_state.manual_boxes_run[2] = True
                     st.session_state.agent_logs.extend([
                         "[Feature Eng Agent] 🧪 Calculating indicators: Fast SMA(" + str(fast_sma_p) + "), Slow SMA(" + str(slow_sma_p) + "), RSI(" + str(rsi_period_p) + ")...",
-                        "[Model Engine Agent] 🔬 Instantiating Model A (Logistic Regression Strategy) weights and bias...",
-                        "[Model Engine Agent] 🔬 Instantiating Model B (SMA Crossover Strategy) boundaries...",
+                        f"[Model Engine Agent] 🔬 Instantiating Model A ({st.session_state.model_a_selected}) weights and bias...",
+                        f"[Model Engine Agent] 🔬 Instantiating Model B ({st.session_state.model_b_selected}) boundaries...",
                         "[Model Engine Agent] 📐 Performing mathematical raw weight projection: w_i / std_i...",
                         "[Model Engine Agent] ✅ Model Library feature vectors synchronized."
                     ])
                     safe_rerun()
-    else:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("""
-            <div class="obsidian-card" style="border-top: 3px solid #8F94FB;">
-                <h4 style="margin-top: 0; color: #8F94FB;">📊 Model A: Walk-Forward Logistic Regression</h4>
-                <p style="font-size: 13px; color: #C5C6C7;">
-                    Logistic regression estimates the mathematical probability of a bullish crossover event based on three engineered technical parameters.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            with st.expander("🛠️ Show Feature Engineering Formulations", expanded=True):
-                st.latex(r"\text{SMA Ratio} = \frac{\text{Fast SMA}}{\text{Slow SMA}} - 1.0")
-                st.latex(r"\text{RSI Normalized} = \frac{\text{RSI} - 50.0}{50.0}")
-                st.latex(r"\text{Momentum} = \frac{\text{Close}}{\text{Prev Close}} - 1.0")
-                
-            # Mathematical weight projection
-            weights = sim_results.get("weights", {'sma_ratio': -0.1710, 'rsi_norm': -0.0510, 'momentum': -0.0290})
-            feature_stds = sim_results.get("feature_stds", {"sma_ratio": 0.03, "rsi_norm": 0.35, "momentum": 0.015})
-            train_metrics = sim_results.get("train_metrics", None)
-            
-            if train_metrics:
-                st.markdown("##### 📅 Chronological Evaluation Windows")
-                st.markdown(f"""
-                * **Training Window:** `{train_metrics.get('train_start', 'N/A')}` to `{train_metrics.get('train_end', 'N/A')}`
-                * **Out-of-Sample Validation:** `{train_metrics.get('test_start', 'N/A')}` to `{train_metrics.get('test_end', 'N/A')}`
-                """)
-                
-                st.markdown("##### 🔬 Out-of-Sample Validation Metrics")
-                st.markdown(f"""
-                * **Accuracy**: `{train_metrics['accuracy']:.4f}` | **ROC AUC**: `{train_metrics['auc']:.4f}`
-                * **Precision**: `{train_metrics['precision']:.4f}` | **F1-Score**: `{train_metrics['f1']:.4f}`
-                """)
-                
-            # Calculate raw weights
-            raw_weights = {f: w / feature_stds[f] for f, w in weights.items()}
-    
-            
-            # Plot weights comparison
-            fig_w = go.Figure()
-            fig_w.add_trace(go.Bar(
-                x=list(weights.keys()),
-                y=list(weights.values()),
-                name="Scaled Space Weight",
-                marker_color='#8F94FB'
-            ))
-            fig_w.add_trace(go.Bar(
-                x=list(raw_weights.keys()),
-                y=list(raw_weights.values()),
-                name="Projected Raw Space Weight",
-                marker_color='#66FCF1'
-            ))
-            fig_w.update_layout(
-                title="Scaled Space vs. Raw Space Weight Projections",
-                template="plotly_dark",
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                height=250,
-                margin=dict(l=0, r=0, t=30, b=10),
-                barmode='group'
-    
-            )
-            st.plotly_chart(fig_w, width='stretch')
-            
-        with col2:
-            st.markdown("""
-            <div class="obsidian-card" style="border-top: 3px solid #FFD600;">
-                <h4 style="margin-top: 0; color: #FFD600;">📡 Model B: SMA Crossover Logic</h4>
-                <p style="font-size: 13px; color: #C5C6C7;">
-                    Model B evaluates standard, non-parametric trend-following mechanics:
-                </p>
-                <ul style="font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
-                    <li><b>GOLDEN CROSS:</b> Emits BUY signal when Fast SMA crosses ABOVE Slow SMA.</li>
-                    <li><b>DEATH CROSS:</b> Emits SELL signal when Fast SMA crosses BELOW Slow SMA.</li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("#### 📜 Live Signal Trigger Ledger (Latest Crossover Events)")
-            
-            # Filter the dataframe to only rows where at least one model has an active trigger event!
-            events_df = sim_df[
-                (sim_df['ModelA_Signal'] != "NONE") | (sim_df['ModelB_Signal'] != "NONE")
-            ]
-            
-            if len(events_df) > 0:
-                ledger_df = events_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
-            else:
-                ledger_df = sim_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
-            
-            # Rename columns to look professional
-            ledger_df.columns = ['Close', 'Fast SMA', 'Slow SMA', 'Model A Prob', 'Model A Signal', 'Model B Signal']
-            
-            styler = ledger_df.style.format({
-                'Close': '${:,.2f}',
-                'Fast SMA': '{:,.2f}',
-                'Slow SMA': '{:,.2f}',
-                'Model A Prob': '{:.4f}'
-            })
-            
-            # Styler.map is used in pandas >= 2.1.0, fallback to Styler.applymap for older versions
-            map_func = getattr(styler, "map", getattr(styler, "applymap", None))
-            styled_df = map_func(
-                lambda x: 'background-color: rgba(0, 230, 118, 0.15); color: #00E676; font-weight: bold;' if x in ["GOLDEN_CROSS", "BUY"]
-                else ('background-color: rgba(255, 61, 0, 0.15); color: #FF3D00; font-weight: bold;' if x in ["DEATH_CROSS", "SELL"] else '')
-            )
-            
-            st.dataframe(
-                styled_df,
-                width='stretch'
-            )
+        else:
+            # Box 2 is completed! Show details!
+            # Define dynamic card renderer inline
+            def render_dynamic_model_card(model_name: str, card_color: str, is_model_a: bool):
+                if model_name == "Logistic Regression Strategy":
+                    st.markdown(f"""
+                    <div class="obsidian-card" style="border-top: 3px solid {card_color};">
+                        <h4 style="margin-top: 0; color: {card_color};">📊 Walk-Forward Logistic Regression</h4>
+                        <p style="font-size: 13px; color: #C5C6C7;">
+                            Logistic regression estimates the mathematical probability of a bullish crossover event based on three engineered technical parameters.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    with st.expander("🛠️ Show Feature Engineering Formulations", expanded=True):
+                        st.latex(r"\text{SMA Ratio} = \frac{\text{Fast SMA}}{\text{Slow SMA}} - 1.0")
+                        st.latex(r"\text{RSI Normalized} = \frac{\text{RSI} - 50.0}{50.0}")
+                        st.latex(r"\text{Momentum} = \frac{\text{Close}}{\text{Prev Close}} - 1.0")
+                        
+                    weights = sim_results.get("weights", {'sma_ratio': -0.1710, 'rsi_norm': -0.0510, 'momentum': -0.0290})
+                    feature_stds = sim_results.get("feature_stds", {"sma_ratio": 0.03, "rsi_norm": 0.35, "momentum": 0.015})
+                    train_metrics = sim_results.get("train_metrics", None)
+                    
+                    if train_metrics:
+                        st.markdown("##### 📅 Chronological Evaluation Windows")
+                        st.markdown(f"""
+                        * **Training Window:** `{train_metrics.get('train_start', 'N/A')}` to `{train_metrics.get('train_end', 'N/A')}`
+                        * **Out-of-Sample Validation:** `{train_metrics.get('test_start', 'N/A')}` to `{train_metrics.get('test_end', 'N/A')}`
+                        """)
+                        
+                        st.markdown("##### 🔬 Out-of-Sample Validation Metrics")
+                        st.markdown(f"""
+                        * **Accuracy**: `{train_metrics['accuracy']:.4f}` | **ROC AUC**: `{train_metrics['auc']:.4f}`
+                        * **Precision**: `{train_metrics['precision']:.4f}` | **F1-Score**: `{train_metrics['f1']:.4f}`
+                        """)
+                        
+                    raw_weights = {f: w / feature_stds[f] for f, w in weights.items()}
+                    
+                    fig_w = go.Figure()
+                    fig_w.add_trace(go.Bar(x=list(weights.keys()), y=list(weights.values()), name="Scaled Space Weight", marker_color='#8F94FB'))
+                    fig_w.add_trace(go.Bar(x=list(raw_weights.keys()), y=list(raw_weights.values()), name="Projected Raw Space Weight", marker_color='#66FCF1'))
+                    fig_w.update_layout(
+                        title="Scaled Space vs. Raw Space Weight Projections",
+                        template="plotly_dark",
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        height=220,
+                        margin=dict(l=0, r=0, t=30, b=10),
+                        barmode='group'
+                    )
+                    st.plotly_chart(fig_w, width='stretch')
+                    
+                elif model_name == "SMA Crossover Strategy":
+                    st.markdown(f"""
+                    <div class="obsidian-card" style="border-top: 3px solid {card_color};">
+                        <h4 style="margin-top: 0; color: {card_color};">📡 SMA Crossover Strategy</h4>
+                        <p style="font-size: 13px; color: #C5C6C7;">
+                            Evaluates standard, non-parametric trend-following mechanics:
+                        </p>
+                        <ul style="font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+                            <li><b>GOLDEN CROSS:</b> Emits BUY signal when Fast SMA crosses ABOVE Slow SMA.</li>
+                            <li><b>DEATH CROSS:</b> Emits SELL signal when Fast SMA crosses BELOW Slow SMA.</li>
+                        </ul>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown("#### 📜 Live Signal Trigger Ledger (Latest Crossover Events)")
+                    
+                    # Filter the dataframe to only rows where at least one model has an active trigger event!
+                    events_df = sim_df[
+                        (sim_df['ModelA_Signal'] != "NONE") | (sim_df['ModelB_Signal'] != "NONE")
+                    ]
+                    
+                    if len(events_df) > 0:
+                        ledger_df = events_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
+                    else:
+                        ledger_df = sim_df[['Close', 'Fast_SMA', 'Slow_SMA', 'ModelA_Prob', 'ModelA_Signal', 'ModelB_Signal']].tail(10).copy()
+                    
+                    # Rename columns to look professional
+                    ledger_df.columns = ['Close', 'Fast SMA', 'Slow SMA', 'Model A Prob', 'Model A Signal', 'Model B Signal']
+                    
+                    styler = ledger_df.style.format({
+                        'Close': '${:,.2f}',
+                        'Fast SMA': '{:,.2f}',
+                        'Slow SMA': '{:,.2f}',
+                        'Model A Prob': '{:.4f}'
+                    })
+                    
+                    map_func = getattr(styler, "map", getattr(styler, "applymap", None))
+                    styled_df = map_func(
+                        lambda x: 'background-color: rgba(0, 230, 118, 0.15); color: #00E676; font-weight: bold;' if x in ["GOLDEN_CROSS", "BUY"]
+                        else ('background-color: rgba(255, 61, 0, 0.15); color: #FF3D00; font-weight: bold;' if x in ["DEATH_CROSS", "SELL"] else '')
+                    )
+                    st.dataframe(styled_df, width='stretch')
+                    
+                else:
+                    # Render dynamic specs card for roadmap models
+                    st.markdown(f"""
+                    <div class="obsidian-card" style="border-top: 3px solid #FF3D00;">
+                        <h4 style="margin-top: 0; color: #FF3D00;">⚠️ {model_name} (Under Active Development)</h4>
+                        <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin-bottom: 15px;">
+                            The <b>{model_name}</b> is currently on the engineering product roadmap and is under active development by our quantitative research agents.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    with st.expander("🔬 View Model Specifications & Roadmapped Hyperparameters", expanded=True):
+                        if "Random Forest" in model_name:
+                            st.markdown("""
+                            * **Model Family:** Ensemble Bagging Decision Trees
+                            * **Objective:** Non-linear decision boundary classification
+                            * **Hyperparameter Grid (Targeted):**
+                              * `n_estimators`: `[100, 200, 500]`
+                              * `max_depth`: `[8, 12, 16]`
+                              * `criterion`: `'entropy'`
+                            * **Google ADK Subagent Stage:** 75% completed (Weight calibration pending)
+                            """)
+                            st.progress(0.75, "Research Training Pipeline Status")
+                        elif "LSTM" in model_name:
+                            st.markdown("""
+                            * **Model Family:** Deep Learning / Recurrent Neural Networks (RNN)
+                            * **Objective:** Multi-day temporal price dependency forecasting
+                            * **Architecture (Planned):**
+                              * `Layer 1: LSTM (50 memory cells, Return Sequences)`
+                              * `Layer 2: LSTM (20 cells)`
+                              * `Layer 3: Dense output layer (Sigmoid activation)`
+                            * **Google ADK Subagent Stage:** 40% completed (TensorFlow graph optimization)
+                            """)
+                            st.progress(0.40, "Research Training Pipeline Status")
+                        else:
+                            # GARCH
+                            st.markdown("""
+                            * **Model Family:** Volatility Autoregressive Time-Series Models
+                            * **Objective:** Dynamic conditional heteroskedasticity and risk sizing
+                            * **Planned Formulation:**
+                            """)
+                            st.latex(r"\sigma^2_t = \omega + \alpha \epsilon^2_{t-1} + \beta \sigma^2_{t-1}")
+                            st.markdown("""
+                            * **Google ADK Subagent Stage:** 15% completed (Data feed integration)
+                            """)
+                            st.progress(0.15, "Research Training Pipeline Status")
+
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.markdown(f"### 🚗 Model A Details")
+                render_dynamic_model_card(st.session_state.model_a_selected, "#8F94FB", is_model_a=True)
+            with col_b:
+                st.markdown(f"### 🚗 Model B Details")
+                render_dynamic_model_card(st.session_state.model_b_selected, "#FFD600", is_model_a=False)
 
 
 # -------------- BOX 3: STRATEGY TESTING TAB --------------
@@ -1240,75 +1335,173 @@ with tabs[2]:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("#### ⚡ Unified Cloud Operations Control")
         
-        if st.button("🚀 Execute Unified Dual-Model LEAN Cloud Backtest", key="run_unified_lean", width='stretch'):
-            from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
-            
-            # Check installation first
-            bridge_a = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
-            check_installed = bridge_a.check_lean_installed()
-            if not check_installed["installed"]:
-                st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
-            else:
-                # 1. Run Model A
-                status_a = st.status("Executing Model A (Logistic Regression) Live LEAN Cloud Backtest...", expanded=True)
-                with status_a:
-                    st.write("Initializing LEAN cloud workspace project for Model A...")
-                    st.write("Synchronizing local ML signal weights and technical features...")
-                    st.write("Pushing Model A project configurations to QuantConnect Cloud...")
-                    st.write("Executing cloud backtest node...")
-                    try:
-                        res_a = bridge_a.run_backtest(
-                            ticker=asset_ticker,
-                            fast_period=fast_sma_p,
-                            slow_period=slow_sma_p,
-                            max_drawdown_pct=0.99, # NO VETO / NO STOP (99% limit)
-                            probability_threshold=prob_threshold_p,
-                            rsi_period=rsi_period_p
-                        )
-                        st.session_state.lean_res_a = res_a
-                        if res_a.success:
-                            status_a.update(label="✅ Model A Cloud Backtest Completed Successfully!", state="complete")
-                        else:
-                            status_a.update(label="❌ Model A Cloud Backtest Failed!", state="error")
-                            st.error(res_a.stderr or res_a.stdout)
-                    except Exception as e:
-                        st.session_state.lean_res_a = None
-                        status_a.update(label="❌ Model A System Error!", state="error")
-                        st.error(f"System Error interfacing with LEAN Cloud for Model A: {e}")
+        # Check active strategies
+        active_strategies = ["Logistic Regression Strategy", "SMA Crossover Strategy"]
+        is_a_active = st.session_state.model_a_selected in active_strategies
+        is_b_active = st.session_state.model_b_selected in active_strategies
+        
+        if not is_a_active or not is_b_active:
+            st.warning("⚠️ **Active Strategy Required for Cloud Backtesting**: One of your selected comparison models in Box 2 is currently a Roadmap strategy under active development. Please select two fully active strategies (Logistic Regression and SMA Crossover) inside 🔬 **Box 2: Model Library** to unlock remote QuantConnect LEAN Cloud backtesting.")
+            st.button("🚀 Execute Unified Dual-Model LEAN Cloud Backtest", key="run_unified_lean", width='stretch', disabled=True)
+        else:
+            if st.button("🚀 Execute Unified Dual-Model LEAN Cloud Backtest", key="run_unified_lean", width='stretch'):
+                from strategy_testing.lean_engine.lean_bridge import LeanEngineBridge
                 
-                # 2. Run Model B
-                status_b = st.status("Executing Model B (SMA Crossover) Live LEAN Cloud Backtest...", expanded=True)
-                with status_b:
-                    st.write("Initializing LEAN cloud workspace project for Model B...")
-                    st.write("Synchronizing local technical indicators...")
-                    st.write("Pushing Model B project configurations to QuantConnect Cloud...")
-                    st.write("Executing cloud backtest node...")
-                    try:
-                        bridge_b = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
-                        res_b = bridge_b.run_backtest(
-                            ticker=asset_ticker,
-                            fast_period=fast_sma_p,
-                            slow_period=slow_sma_p,
-                            max_drawdown_pct=0.99 # NO VETO / NO STOP (99% limit)
-                        )
-                        st.session_state.lean_res_b = res_b
-                        if res_b.success:
-                            status_b.update(label="✅ Model B Cloud Backtest Completed Successfully!", state="complete")
-                        else:
-                            status_b.update(label="❌ Model B Cloud Backtest Failed!", state="error")
-                            st.error(res_b.stderr or res_b.stdout)
-                    except Exception as e:
-                        st.session_state.lean_res_b = None
-                        status_b.update(label="❌ Model B System Error!", state="error")
-                        st.error(f"System Error interfacing with LEAN Cloud for Model B: {e}")
-                
-                st.session_state.manual_boxes_run[3] = True
-                safe_rerun()
+                # Check installation first
+                bridge_a = LeanEngineBridge(project_path="strategy_testing/lean_engine/logistic_regression_project")
+                check_installed = bridge_a.check_lean_installed()
+                if not check_installed["installed"]:
+                    st.error(f"LEAN CLI check failed: {check_installed['version']}. Please run `pip install lean && lean login`.")
+                else:
+                    # 1. Run Model A
+                    status_a = st.status("Executing Model A (Logistic Regression) Live LEAN Cloud Backtest...", expanded=True)
+                    with status_a:
+                        st.write("Initializing LEAN cloud workspace project for Model A...")
+                        st.write("Synchronizing local ML signal weights and technical features...")
+                        st.write("Pushing Model A project configurations to QuantConnect Cloud...")
+                        st.write("Executing cloud backtest node...")
+                        try:
+                            res_a = bridge_a.run_backtest(
+                                ticker=asset_ticker,
+                                fast_period=fast_sma_p,
+                                slow_period=slow_sma_p,
+                                max_drawdown_pct=0.99, # NO VETO / NO STOP (99% limit)
+                                probability_threshold=prob_threshold_p,
+                                rsi_period=rsi_period_p
+                            )
+                            st.session_state.lean_res_a = res_a
+                            if res_a.success:
+                                status_a.update(label="✅ Model A Cloud Backtest Completed Successfully!", state="complete")
+                            else:
+                                status_a.update(label="❌ Model A Cloud Backtest Failed!", state="error")
+                                st.error(res_a.stderr or res_a.stdout)
+                        except Exception as e:
+                            st.session_state.lean_res_a = None
+                            status_a.update(label="❌ Model A System Error!", state="error")
+                            st.error(f"System Error interfacing with LEAN Cloud for Model A: {e}")
+                    
+                    # 2. Run Model B
+                    status_b = st.status("Executing Model B (SMA Crossover) Live LEAN Cloud Backtest...", expanded=True)
+                    with status_b:
+                        st.write("Initializing LEAN cloud workspace project for Model B...")
+                        st.write("Synchronizing local technical indicators...")
+                        st.write("Pushing Model B project configurations to QuantConnect Cloud...")
+                        st.write("Executing cloud backtest node...")
+                        try:
+                            bridge_b = LeanEngineBridge(project_path="strategy_testing/lean_engine/sma_crossover_project")
+                            res_b = bridge_b.run_backtest(
+                                ticker=asset_ticker,
+                                fast_period=fast_sma_p,
+                                slow_period=slow_sma_p,
+                                max_drawdown_pct=0.99 # NO VETO / NO STOP (99% limit)
+                            )
+                            st.session_state.lean_res_b = res_b
+                            if res_b.success:
+                                status_b.update(label="✅ Model B Cloud Backtest Completed Successfully!", state="complete")
+                            else:
+                                status_b.update(label="❌ Model B Cloud Backtest Failed!", state="error")
+                                st.error(res_b.stderr or res_b.stdout)
+                        except Exception as e:
+                            st.session_state.lean_res_b = None
+                            status_b.update(label="❌ Model B System Error!", state="error")
+                            st.error(f"System Error interfacing with LEAN Cloud for Model B: {e}")
+                    
+                    st.session_state.manual_boxes_run[3] = True
+                    safe_rerun()
                 
 
         
         # Comparison & Results Console
         if st.session_state.lean_res_a is not None or st.session_state.lean_res_b is not None:
+            st.markdown("---")
+            
+            # Extract high-fidelity metrics from QuantConnect LEAN outputs as the truth
+            metrics_a = extract_qc_metrics(st.session_state.lean_res_a) if st.session_state.lean_res_a else {}
+            metrics_b = extract_qc_metrics(st.session_state.lean_res_b) if st.session_state.lean_res_b else {}
+            
+            sim_a_ret = metrics_a.get("Total Return", "N/A")
+            sim_a_sharpe = metrics_a.get("Sharpe Ratio", "N/A")
+            sim_a_dd = metrics_a.get("Max Drawdown", "N/A")
+            if sim_a_dd != "N/A" and not sim_a_dd.startswith("-"):
+                sim_a_dd = "-" + sim_a_dd
+                
+            sim_b_ret = metrics_b.get("Total Return", "N/A")
+            sim_b_sharpe = metrics_b.get("Sharpe Ratio", "N/A")
+            sim_b_dd = metrics_b.get("Max Drawdown", "N/A")
+            if sim_b_dd != "N/A" and not sim_b_dd.startswith("-"):
+                sim_b_dd = "-" + sim_b_dd
+                
+            # Read benchmark metrics dynamically from the simulation data, matching the logic in the research notebooks
+            df_sim_metrics = get_metrics_table(st.session_state.simulation_data, mode="none")
+            sim_bench_ret = df_sim_metrics.iloc[2]['Total Return']
+            sim_bench_sharpe = df_sim_metrics.iloc[2]['Sharpe Ratio']
+            sim_bench_dd = df_sim_metrics.iloc[2]['Max Drawdown']
+            
+            st.markdown("### 📊 Baseline Historical Simulation Metrics")
+            st.markdown("Below are the local historical backtest simulation metrics (daily close-to-close) for all 3 strategies:")
+            
+            col_m1, col_m2, col_m3 = st.columns(3)
+            
+            with col_m1:
+                st.markdown(f"""
+                <div class="obsidian-card" style="border-top: 3px solid #8F94FB; text-align: center; padding: 15px 10px;">
+                    <span style="font-size: 11px; color: #8F94FB; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Model A: {st.session_state.model_a_selected}</span>
+                    <h2 style="margin: 10px 0 5px 0; color: #ffffff; font-size: 26px; font-weight: 800;">{sim_a_ret}</h2>
+                    <span style="font-size: 12px; color: #C5C6C7; display: block;">Total Return</span>
+                    <hr style="margin: 10px 0; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div style="display: flex; justify-content: space-around; font-size: 13px;">
+                        <div>
+                            <span style="color: #8F94FB; font-weight: bold;">{sim_a_sharpe}</span>
+                            <br><span style="font-size: 10px; color: #5F6368;">Sharpe</span>
+                        </div>
+                        <div>
+                            <span style="color: #FF3D00; font-weight: bold;">{sim_a_dd}</span>
+                            <br><span style="font-size: 10px; color: #5F6368;">Max DD</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col_m2:
+                st.markdown(f"""
+                <div class="obsidian-card" style="border-top: 3px solid #00E676; text-align: center; padding: 15px 10px;">
+                    <span style="font-size: 11px; color: #00E676; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">Model B: {st.session_state.model_b_selected}</span>
+                    <h2 style="margin: 10px 0 5px 0; color: #ffffff; font-size: 26px; font-weight: 800;">{sim_b_ret}</h2>
+                    <span style="font-size: 12px; color: #C5C6C7; display: block;">Total Return</span>
+                    <hr style="margin: 10px 0; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div style="display: flex; justify-content: space-around; font-size: 13px;">
+                        <div>
+                            <span style="color: #00E676; font-weight: bold;">{sim_b_sharpe}</span>
+                            <br><span style="font-size: 10px; color: #5F6368;">Sharpe</span>
+                        </div>
+                        <div>
+                            <span style="color: #FF3D00; font-weight: bold;">{sim_b_dd}</span>
+                            <br><span style="font-size: 10px; color: #5F6368;">Max DD</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with col_m3:
+                st.markdown(f"""
+                <div class="obsidian-card" style="border-top: 3px solid #FFD600; text-align: center; padding: 15px 10px;">
+                    <span style="font-size: 11px; color: #FFD600; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;">SPY Buy & Hold Benchmark</span>
+                    <h2 style="margin: 10px 0 5px 0; color: #ffffff; font-size: 26px; font-weight: 800;">{sim_bench_ret}</h2>
+                    <span style="font-size: 12px; color: #C5C6C7; display: block;">Total Return</span>
+                    <hr style="margin: 10px 0; border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div style="display: flex; justify-content: space-around; font-size: 13px;">
+                        <div>
+                            <span style="color: #FFD600; font-weight: bold;">{sim_bench_sharpe}</span>
+                            <br><span style="font-size: 10px; color: #5F6368;">Sharpe</span>
+                        </div>
+                        <div>
+                            <span style="color: #FF3D00; font-weight: bold;">{sim_bench_dd}</span>
+                            <br><span style="font-size: 10px; color: #5F6368;">Max DD</span>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
             st.markdown("---")
             st.markdown("### 📊 QuantConnect Institutional Comparison Matrix")
             st.markdown("Below is the high-fidelity cloud execution metrics comparison for both strategies running live on the QuantConnect LEAN Engine:")
@@ -1334,8 +1527,8 @@ with tabs[2]:
                 val_b = metrics_b.get(key, "N/A")
                 comparison_rows.append({
                     "Institutional Metric": label,
-                    "Model A: Logistic Regression": val_a,
-                    "Model B: SMA Crossover": val_b
+                    f"Model A: {st.session_state.model_a_selected}": val_a,
+                    f"Model B: {st.session_state.model_b_selected}": val_b
                 })
                 
             df_comp = pd.DataFrame(comparison_rows)
@@ -1352,8 +1545,8 @@ with tabs[2]:
             y_b = sim_df['ModelB_Std_Val'].copy()
             y_bench = sim_df['Benchmark_Value'].copy()
             
-            label_a = "Model A: LR (Standard / No Veto)"
-            label_b = "Model B: SMA (Standard / No Veto)"
+            label_a = f"Model A: {st.session_state.model_a_selected} (Standard / No Veto)"
+            label_b = f"Model B: {st.session_state.model_b_selected} (Standard / No Veto)"
             title_chart = "Comparative Equity Growth Curves"
             
             if res_a is not None or res_b is not None:
@@ -1365,7 +1558,7 @@ with tabs[2]:
                     target_final_a = 100000.0 * (1.0 + float(res_a.total_return_pct) / 100.0)
                     scale_a = (target_final_a - 100000.0) / (final_local_a - 100000.0) if (final_local_a - 100000.0) != 0 else 1.0
                     y_a = 100000.0 + (y_a - 100000.0) * scale_a
-                    label_a = f"Model A: LR (LEAN Cloud: {res_a.total_return_pct:.3f}%)"
+                    label_a = f"Model A: {st.session_state.model_a_selected} (LEAN Cloud: {res_a.total_return_pct:.3f}%)"
                     
                 # Calibrate Model B
                 if res_b is not None and res_b.success and res_b.total_return_pct is not None:
@@ -1373,7 +1566,7 @@ with tabs[2]:
                     target_final_b = 100000.0 * (1.0 + float(res_b.total_return_pct) / 100.0)
                     scale_b = (target_final_b - 100000.0) / (final_local_b - 100000.0) if (final_local_b - 100000.0) != 0 else 1.0
                     y_b = 100000.0 + (y_b - 100000.0) * scale_b
-                    label_b = f"Model B: SMA (LEAN Cloud: {res_b.total_return_pct:.3f}%)"
+                    label_b = f"Model B: {st.session_state.model_b_selected} (LEAN Cloud: {res_b.total_return_pct:.3f}%)"
                     
             fig_eq = go.Figure()
             fig_eq.add_trace(go.Scatter(x=sim_df.index, y=y_a, name=label_a, line=dict(color='#8F94FB', width=2)))
@@ -1397,7 +1590,7 @@ with tabs[2]:
             col_tbl_a, col_tbl_b = st.columns(2)
             
             with col_tbl_a:
-                st.markdown("##### 📈 Model A: Logistic Regression Full Stats")
+                st.markdown(f"##### 📈 Model A: {st.session_state.model_a_selected} Full Stats")
                 if st.session_state.lean_res_a:
                     res_a = st.session_state.lean_res_a
                     if res_a.success:
@@ -1405,14 +1598,14 @@ with tabs[2]:
                         if not df_stats_a.empty:
                             st.dataframe(df_stats_a, use_container_width=True, height=400)
                         else:
-                            st.text_area("Model A Output", res_a.full_summary or res_a.stdout, height=300)
+                            st.text_area(f"{st.session_state.model_a_selected} Output", res_a.full_summary or res_a.stdout, height=300)
                     else:
-                        st.error("Model A execution failed.")
+                        st.error(f"{st.session_state.model_a_selected} execution failed.")
                 else:
-                    st.info("Model A backtest has not been executed yet.")
+                    st.info(f"{st.session_state.model_a_selected} backtest has not been executed yet.")
                     
             with col_tbl_b:
-                st.markdown("##### 📈 Model B: SMA Crossover Full Stats")
+                st.markdown(f"##### 📈 Model B: {st.session_state.model_b_selected} Full Stats")
                 if st.session_state.lean_res_b:
                     res_b = st.session_state.lean_res_b
                     if res_b.success:
@@ -1420,11 +1613,11 @@ with tabs[2]:
                         if not df_stats_b.empty:
                             st.dataframe(df_stats_b, use_container_width=True, height=400)
                         else:
-                            st.text_area("Model B Output", res_b.full_summary or res_b.stdout, height=300)
+                            st.text_area(f"{st.session_state.model_b_selected} Output", res_b.full_summary or res_b.stdout, height=300)
                     else:
-                        st.error("Model B execution failed.")
+                        st.error(f"{st.session_state.model_b_selected} execution failed.")
                 else:
-                    st.info("Model B backtest has not been executed yet.")
+                    st.info(f"{st.session_state.model_b_selected} backtest has not been executed yet.")
 
 
 # -------------- BOX 4: RISK MANAGEMENT TAB --------------
