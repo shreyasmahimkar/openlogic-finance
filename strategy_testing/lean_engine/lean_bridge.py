@@ -355,15 +355,24 @@ class LeanEngineBridge:
         """
         env = os.environ.copy()
         
-        import sys
+        import importlib.util
         lean_src_dir = None
-        for path in sys.path:
-            if not path:
-                continue
-            candidate = os.path.join(path, "lean")
-            if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "__init__.py")):
-                lean_src_dir = candidate
-                break
+        try:
+            spec = importlib.util.find_spec("lean")
+            if spec and spec.submodule_search_locations:
+                lean_src_dir = spec.submodule_search_locations[0]
+        except Exception:
+            pass
+
+        if not lean_src_dir:
+            import sys
+            for path in sys.path:
+                if not path:
+                    continue
+                candidate = os.path.join(path, "lean")
+                if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "__init__.py")):
+                    lean_src_dir = candidate
+                    break
                 
         if lean_src_dir:
             try:
