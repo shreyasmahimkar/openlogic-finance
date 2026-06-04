@@ -21,7 +21,8 @@ __pycache__/
 # lean_workspace/ is a LEAN CLI runtime root — it contains downloaded market data
 # (can be many GB), Docker layer caches, and synced project copies.
 # Source of truth for strategy code stays in lean_engine/lean_project/.
-strategy_testing/lean_engine/lean_workspace/
+strategy_testing/lean_engine/lean_workspace/*
+!strategy_testing/lean_engine/lean_workspace/lean.json
 
 # Backtest result artefacts (HTML reports, JSON stats) written alongside source
 strategy_testing/lean_engine/backtests/
