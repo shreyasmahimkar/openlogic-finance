@@ -58,16 +58,34 @@ cd /Users/shreyas/gitrepos/OpenSource/openlogic-finance
 source .openlogic-env/bin/activate
 ```
 
-### 2. Verify Dependency Alignment
+### 2. Install Dashboard Dependencies
+Make sure you have all required packages installed. Since the repository recommends `uv`, you can use it, or fall back to standard `pip`:
+```bash
+# Using uv (Recommended)
+uv pip install -r interface/streamlit/requirements.txt
+
+# Or using standard pip
+pip install -r interface/streamlit/requirements.txt
+```
+
+### 3. Verify Dependency Alignment
 Ensure that your packages are compiled and correct:
 ```bash
 python -m py_compile interface/streamlit/app.py
 ```
 
-### 3. Run the Dashboard
-Start the Streamlit application:
+### 4. Run the Dashboard
+You can run the Streamlit application either from the repository root or from within the `interface/streamlit` directory.
+
+#### Option A: Running from the Repository Root (Recommended)
 ```bash
 streamlit run interface/streamlit/app.py
 ```
 
-Streamlit will launch a local server (typically at `http://localhost:8501`) and open the professional dashboard interface in your web browser.
+#### Option B: Running from the Streamlit Directory
+```bash
+cd interface/streamlit
+streamlit run app.py
+```
+
+Streamlit will launch a local development server (typically at `http://localhost:8501`) and automatically open the institutional dashboard in your web browser.

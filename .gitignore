@@ -13,7 +13,6 @@ __pycache__/
 
 # ADK and generated output
 **/.adk/
-assets/
 
 # OS files
 .DS_Store
