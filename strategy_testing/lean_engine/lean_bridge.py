@@ -143,8 +143,9 @@ class LeanEngineBridge:
                 credentials_path = Path.home() / ".lean" / "credentials"
                 if not credentials_path.exists():
                     logger.info("[LeanEngineBridge] LEAN credentials file not found. Attempting automated login...")
+                    env = self._get_subprocess_env()
                     login_cmd = [self.lean_cli, "login", "--user-id", qc_user_id, "--api-token", qc_api_token]
-                    login_proc = subprocess.run(login_cmd, capture_output=True, text=True)
+                    login_proc = subprocess.run(login_cmd, capture_output=True, text=True, env=env)
                     if login_proc.returncode != 0:
                         logger.error(f"[LeanEngineBridge] Automated login failed: {login_proc.stderr.strip()}")
                     else:
@@ -234,12 +235,14 @@ class LeanEngineBridge:
         logger.info(f"[LEAN PUSH] {' '.join(push_cmd)}")
 
         try:
+            env = self._get_subprocess_env()
             push_proc = subprocess.run(
                 push_cmd,
                 capture_output=True,
                 text=True,
                 timeout=120,
                 cwd=str(self.workspace_path),   # lean.json lives here
+                env=env,
             )
             if push_proc.returncode != 0:
                 logger.error(f"[PUSH FAIL] {push_proc.stderr[:500]}")
@@ -251,6 +254,7 @@ class LeanEngineBridge:
                 text=True,
                 timeout=600,
                 cwd=str(self.workspace_path),   # lean.json lives here
+                env=env,
             )
 
             completed_at = datetime.utcnow().isoformat()
@@ -327,11 +331,13 @@ class LeanEngineBridge:
             {"installed": bool, "version": str}
         """
         try:
+            env = self._get_subprocess_env()
             result = subprocess.run(
                 [self.lean_cli, "--version"],
                 capture_output=True,
                 text=True,
                 timeout=10,
+                env=env,
             )
             return {
                 "installed": result.returncode == 0,
@@ -339,6 +345,45 @@ class LeanEngineBridge:
             }
         except FileNotFoundError:
             return {"installed": False, "version": "lean not found"}
+
+    def _get_subprocess_env(self) -> dict:
+        """
+        Prepare environment variables for the subprocess.
+        To support read-only virtualenvs (like Streamlit Cloud), we copy the lean package
+        to a writable directory in home and prepend it to PYTHONPATH so lean can dynamically
+        write its modules-*.json file.
+        """
+        env = os.environ.copy()
+        
+        import sys
+        lean_src_dir = None
+        for path in sys.path:
+            if not path:
+                continue
+            candidate = os.path.join(path, "lean")
+            if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "__init__.py")):
+                lean_src_dir = candidate
+                break
+                
+        if lean_src_dir:
+            try:
+                writable_parent = Path.home() / ".lean_writable_pkg"
+                writable_lean_dir = writable_parent / "lean"
+                if not writable_lean_dir.exists():
+                    writable_parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copytree(lean_src_dir, writable_lean_dir, dirs_exist_ok=True)
+                    logger.info(f"[LeanEngineBridge] Copied lean package to writable path: {writable_lean_dir}")
+                
+                # Prepend the writable parent directory to PYTHONPATH
+                existing_pythonpath = env.get("PYTHONPATH", "")
+                if existing_pythonpath:
+                    env["PYTHONPATH"] = os.path.pathsep.join([str(writable_parent), existing_pythonpath])
+                else:
+                    env["PYTHONPATH"] = str(writable_parent)
+            except Exception as e:
+                logger.error(f"[LeanEngineBridge] Failed to setup writable lean package copy: {e}")
+                
+        return env
 
     # ── Private Helpers ───────────────────────────────────────────────────────
 
