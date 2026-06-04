@@ -135,6 +135,24 @@ class LeanEngineBridge:
             f"| project_name={self.project_name}"
         )
 
+        # Dynamically log in if credentials are provided via environment variables (e.g. Streamlit Secrets)
+        qc_user_id = os.getenv("QC_USER_ID") or os.getenv("QUANTCONNECT_API_ID")
+        qc_api_token = os.getenv("QC_API_TOKEN") or os.getenv("QUANTCONNECT_API_TOKEN")
+        if qc_user_id and qc_api_token:
+            try:
+                credentials_path = Path.home() / ".lean" / "credentials"
+                if not credentials_path.exists():
+                    logger.info("[LeanEngineBridge] LEAN credentials file not found. Attempting automated login...")
+                    login_cmd = [self.lean_cli, "login", "--user-id", qc_user_id, "--api-token", qc_api_token]
+                    login_proc = subprocess.run(login_cmd, capture_output=True, text=True)
+                    if login_proc.returncode != 0:
+                        logger.error(f"[LeanEngineBridge] Automated login failed: {login_proc.stderr.strip()}")
+                    else:
+                        logger.info("[LeanEngineBridge] Automated login successful.")
+            except Exception as e:
+                logger.error(f"[LeanEngineBridge] Error during automated login: {str(e)}")
+
+
     # ── Public API ────────────────────────────────────────────────────────────
 
     def run_backtest(
