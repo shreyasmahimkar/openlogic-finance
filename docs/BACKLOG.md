@@ -15,22 +15,23 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
 | 1 Data Prep | ✅ | ❌ | ❌ | ⚠️ news=MCP; market/global=local | n/a | ❌ |
 | 2 Model Library | ✅ | ✅ | ✅ | ✅ | n/a | ⚠️ template only |
 | 3 Strategy Testing | ✅ | ❌ (`final_test.py` is a script) | ❌ | ✅ | n/a | ❌ |
-| 4 Risk Mgmt | ✅ | ❌ | ❌ | logic exists, **not wired as ADK veto** | ❌ | ❌ |
+| 4 Risk Mgmt | ✅ | ⚠️ guardrail tested | ❌ | logic exists + **ADK veto callback** ✅ | ✅ | ❌ |
 | 5 Live/Paper Exec | ✅ | ❌ | ❌ | deploy ✅ | ❌ human-gate not coded | ❌ |
 | 6 Interface | ✅ | ❌ | n/a | ✅ | n/a | ❌ |
 
 ## Items (prioritized)
 
-1. **Box 4 — make the Risk Auditor veto real.** `AGENTS.md` states it can veto any
-   trade-shaped action, but there are **zero ADK callbacks**; `auditor.py` is a
-   backtest simulator nothing calls in the agent path. Wire it as a
-   `before_tool_callback` / `before_agent_callback` on execution agents. *(Closes a
-   stated hard-rule gap — highest value.)*
+1. ✅ **DONE — Box 4: Risk Auditor veto is real.** `risk_management/portfolio/guardrail.py`
+   `make_risk_veto_callback()` is an ADK `before_tool_callback` that vetoes
+   trade-shaped tool calls on drawdown breach / halt, reusing `drawdown_breached`.
+   Covered by `risk_management/tests/test_guardrail.py` (9 tests). Still TODO:
+   attach it to a real order-placing agent once Box 5 has one.
 
-2. **Tests for Boxes 1, 3, 4** (deterministic, no API keys, fast CI wins).
+2. **Tests for Boxes 1, 3** (deterministic, no API keys, fast CI wins).
    - Box 1: `check_news_cache`, `save_news_to_csv`, `read_market_indicators`.
    - Box 3: convert `final_test.py` to pytest; test the LEAN summary parser + backtest math.
-   - Box 4: `run_audited_simulation` — a known drawdown breach must fire the veto.
+   - ~~Box 4: `run_audited_simulation`~~ — guardrail decision now covered (see #1);
+     still worth a direct `run_audited_simulation` breach test.
 
 3. **Evalsets for the Box 1 connector agents** (market_data / financial_news /
    global_events): right tool called, no hallucination, output contract held.
