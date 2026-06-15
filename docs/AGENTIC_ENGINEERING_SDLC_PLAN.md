@@ -1,12 +1,14 @@
 # From Vibe-Coded to Agentic Engineering: An SDLC Plan for OpenLogic Finance
 
-**Status:** Draft for review (no implementation yet)
+**Status:** In progress — Phases 0–4 implemented; Phase 5 is an ongoing loop
 **Author:** Engineering
 **Date:** 2026-06-15
 **Source framework:** *The New SDLC With Vibe Coding* (Osmani, Saboo, Kartakis — May 2026) — the "factory model", "harness engineering", and "context engineering" mental models.
 **Scope:** Turn `openlogic-finance` from an ad-hoc, partly-ADK codebase into a *purely agentic* repository governed by a deliberate harness, verified by tests + evals, and deployed through Google ADK / Vertex AI Agent Engine.
 
-> **Read this first.** This is a planning document. It proposes *what to build and in what order*. Nothing in here is implemented yet. Each phase below ends with a concrete, reviewable deliverable so we can stop, inspect, and course-correct between milestones.
+> **Read this first.** This document proposes *what to build and in what order*. Each phase ends with a concrete, reviewable deliverable. Progress is tracked in §9.
+>
+> **Progress:** ✅ Phase 0 (recover/clean) · ✅ Phase 1 (harness) · ✅ Phase 2 (tests/evals/CI) · ✅ Phase 3 (consolidate + model registry) · ✅ Phase 4 (Vertex deploy — see `docs/DEPLOY_VERTEX.md`) · 🔁 Phase 5 (quality flywheel — see `docs/QUALITY_FLYWHEEL.md`).
 
 ---
 
