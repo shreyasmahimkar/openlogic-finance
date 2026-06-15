@@ -41,7 +41,7 @@ make lint         # ruff
 
 ```bash
 # Build only (no model calls) — should print the 4-stage pipeline:
-python -c "from model_library.agentic_ai.moe_coordinator import agent as a; \
+uv run python -c "from model_library.agentic_ai.moe_coordinator import agent as a; \
 print(a.root_agent.name, [s.name for s in a.root_agent.sub_agents])"
 ```
 - ✅ Prints `MoEF_Pipeline ['NIFTY_Ingestion_Pipeline', 'ParallelFilterPhase', 'SynthesizerAgent', 'PlottingAgent']`.
@@ -79,7 +79,7 @@ make web-dash     # streamlit run interface/streamlit/app.py
 This is the hard rule "the auditor can veto trades." Verify the decision logic:
 
 ```bash
-python - <<'PY'
+uv run python - <<'PY'
 from risk_management.portfolio.guardrail import make_risk_veto_callback, RiskLimits
 cb = make_risk_veto_callback(RiskLimits(max_drawdown_pct=0.15))
 
@@ -104,9 +104,9 @@ PY
 ## 4. Model registry & "runs on a Google account alone"
 
 ```bash
-python -c "from model_library.agentic_ai.model_registry import get_model; \
+uv run python -c "from model_library.agentic_ai.model_registry import get_model; \
 print(get_model('expert_technical'), get_model('orchestration'))"        # both gemini-2.5-flash
-OPENLOGIC_HETEROGENEOUS_EXPERTS=1 python -c "from model_library.agentic_ai.model_registry import get_model; \
+OPENLOGIC_HETEROGENEOUS_EXPERTS=1 uv run python -c "from model_library.agentic_ai.model_registry import get_model; \
 print(get_model('expert_fundamental'))"                                  # a LiteLlm wrapper / gpt-4o
 ```
 - ✅ Default → Gemini everywhere. Flag set → non-Gemini expert.
@@ -123,7 +123,7 @@ find . -name '*.evalset.json' -not -path './.openlogic-env/*'   # 5 files
 - ✅ All evalsets schema-valid.
 - 🔑 Scored run (optional, needs `GEMINI_API_KEY`):
   ```bash
-  adk eval model_library/agentic_ai/moe_coordinator \
+  uv run adk eval model_library/agentic_ai/moe_coordinator \
       model_library/agentic_ai/moe_coordinator/eval/trajectory.evalset.json \
       --config_file_path model_library/agentic_ai/moe_coordinator/eval/test_config.json
   ```
@@ -135,7 +135,7 @@ find . -name '*.evalset.json' -not -path './.openlogic-env/*'   # 5 files
 ## 6. Local observability
 
 ```bash
-OPENLOGIC_TRACING=1 python -c "
+OPENLOGIC_TRACING=1 uv run python -c "
 from model_library.agentic_ai.moe_coordinator import agent
 from horizontal_foundation.observability import get_tracer
 with get_tracer().start_as_current_span('manual_check'): pass
@@ -151,7 +151,7 @@ print('tracing configured')"
 
 ```bash
 make sync-lean                          # regenerates the LEAN copies
-python scripts/sync_lean_strategies.py --check   # exit 0 = in sync
+uv run python scripts/sync_lean_strategies.py --check   # exit 0 = in sync
 git status --porcelain                  # should be clean after sync
 ```
 - ✅ `--check` exits 0; `make test` includes `test_lean_sync.py`.
@@ -166,7 +166,7 @@ git status --porcelain                  # should be clean after sync
 - 👀 Read [docs/DEPLOY_VERTEX.md](docs/DEPLOY_VERTEX.md). Confirm the steps are
   coherent and `deploy_vertex.py` is **env-driven** (no hard-coded project/bucket):
   ```bash
-  python live_paper_execution/cloud_deploy/deploy_vertex.py   # should exit asking for GOOGLE_CLOUD_PROJECT/STAGING_BUCKET
+  uv run python live_paper_execution/cloud_deploy/deploy_vertex.py   # should exit asking for GOOGLE_CLOUD_PROJECT/STAGING_BUCKET
   ```
 - 🔑 Only attempt a real deploy if you have a billing-enabled GCP project (it costs money).
 
@@ -186,7 +186,7 @@ git status --porcelain                  # should be clean after sync
    `parents[3]` resolves *above* the repo, creating a stray `../assets/` with a
    duplicate CSV. Verify:
    ```bash
-   python -c "from horizontal_foundation.config.system_config import SystemConfig as S; print(S.DEFAULT_ASSET_DIR)"
+   uv run python -c "from horizontal_foundation.config.system_config import SystemConfig as S; print(S.DEFAULT_ASSET_DIR)"
    ```
    👀 Should point **inside** the repo but currently doesn't. Needs a focused fix
    + audit of all `SystemConfig` consumers.
