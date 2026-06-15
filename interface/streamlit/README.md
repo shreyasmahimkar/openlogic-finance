@@ -15,7 +15,7 @@ The dashboard supports two core modes of execution:
 ## 📦 6-Box Architectural Layout
 
 ### 📦 Box 1: Data Prep
-- **Ingestion & Data Health Audit**: Tracks historical boundary validation, data cleanliness scores (100%), and observations ingested (2,516 rows). 
+- **Ingestion & Data Health Audit**: Tracks historical boundary validation, data cleanliness scores (100%), and observations ingested (2,516 rows).
 - **Timezone Safety**: Localizes Est/UTC daily boundaries to avoid slicing alignment errors.
 - **Visual Pricing Trajectory**: An interactive Plotly chart superimposing Close Prices with technical indicator overlays (Fast SMA, Slow SMA) and an independent Relative Strength Index (RSI) subplot.
 - **Explanation Narratives**: Integrates the `ExplanationEngine` to generate multi-fidelity descriptions, from *Beginner Friendly (Teddy Bear)* to *Academic Quantitative (Jim Simons Level)*.

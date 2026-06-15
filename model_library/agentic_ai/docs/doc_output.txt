@@ -133,7 +133,7 @@ import scipy.linalg as la
 # Configure Yahoo Finance MCP toolset to fetch 10-years SPY data
 yfinance_mcp_tools = MCPToolset(
     connection_params=StdioServerParameters(
-        command="uvx", 
+        command="uvx",
         args=["yahoo-finance-mcp"]
     ),
     tool_filter=["get_historical_stock_prices", "get_yahoo_finance_news"]
@@ -167,26 +167,26 @@ def stochastic_filter_update(agent_id, prediction, ground_truth, state):
     """
     pi = state.get(f"pi_{agent_id}")
     Q = state.get("global_Q_matrix")
-    
+
     # delta_f approximates the time-derivative of the expert's prediction
     delta_f = prediction - state.get(f"prev_pred_{agent_id}")
-    
-    # Calculate SDE components based on Helper Functions 
-    A_t = compute_input_sensitivity_gradient(prediction, ground_truth, delta_f) 
+
+    # Calculate SDE components based on Helper Functions
+    A_t = compute_input_sensitivity_gradient(prediction, ground_truth, delta_f)
     B_t = compute_target_sensitivity_gradient(prediction)
     A_bar_t = np.dot(A_t, pi)
-    
+
     # Innovations process formulation
     delta_loss = calculate_loss(prediction, ground_truth) - state.get(f"prev_loss_{agent_id}")
     delta_W = (delta_loss - A_bar_t) / B_t
-    
+
     # Update Belief State via Drift and Diffusion
     drift = np.dot(Q.T, pi)
     diffusion = pi * (A_t - A_bar_t) / B_t
-    
+
     new_pi = pi + drift + (diffusion * delta_W)
     new_pi = new_pi / np.sum(new_pi) # Enforce simplex constraint
-    
+
     # Persist state back to ADK SessionState
     state.set(f"pi_{agent_id}", new_pi)
     state.set(f"score_{agent_id}", calculate_loss(prediction, ground_truth))
@@ -240,25 +240,25 @@ def robust_gibbs_aggregation(state):
     """
     scores = [state.get("score_llama"), state.get("score_gpt"), state.get("score_mixtral")]
     lambda_param = state.get("lambda_hyperparam")
-    
+
     # PAC-Bayes Softmin aggregation
     exp_scores = np.exp(-lambda_param * np.array(scores))
     pi_bar = exp_scores / np.sum(exp_scores)
-    
+
     # Final robust ensemble prediction
     predictions = [state.get("pred_llama"), state.get("pred_gpt"), state.get("pred_mixtral")]
     final_y = np.dot(pi_bar, predictions)
-    
+
     # Bi-level robust Q-Matrix Update with Regularization Perturbation
     alpha = 0.05
     P = np.tile(pi_bar, (len(scores), 1))
     P_reg = (1 - alpha) * P + alpha * np.eye(len(scores))
-    
+
     # Principal Matrix Logarithm to yield valid transition matrix intensity
     Q_new = np.maximum(0, la.logm(P_reg).real)
     np.fill_diagonal(Q_new, 0)
     Q_new = Q_new - np.diag(np.sum(Q_new, axis=1))
-    
+
     state.set("global_Q_matrix", Q_new)
     return final_y
 

@@ -1,6 +1,6 @@
 # Google ADK Usage Guide: MoE-F Coordinator
 
-Welcome to the native Google Agent Development Kit (ADK) integration of the **Mixture of Experts - Filter (MoE-F) Coordinator**! 
+Welcome to the native Google Agent Development Kit (ADK) integration of the **Mixture of Experts - Filter (MoE-F) Coordinator**!
 
 Because this application relies on a sophisticated Level 3 Multi-Agent architecture consisting of Sequential Pipelines and Parallel Fan-Out swarms, managing state and evaluating pathways requires explicit tooling. This guide details how you can trace the algorithmic flow, mathematically test trajectory outputs, and seamlessly transition into production on the cloud.
 
@@ -32,7 +32,7 @@ Open your browser to the local port specified (usually `http://localhost:8000`).
 
 > [!WARNING]
 > **Local Web UI Execution Error (`ValueError: Model ... not found`)**
-> If you trigger a full end-to-end execution through the Web UI without Vertex integration, it will crash when it hits the parallel layer because models like `llama-3-8b` and `mixtral-8x7b` are not natively registered in ADK's open-source local LLM registry (which defaults to Gemini). 
+> If you trigger a full end-to-end execution through the Web UI without Vertex integration, it will crash when it hits the parallel layer because models like `llama-3-8b` and `mixtral-8x7b` are not natively registered in ADK's open-source local LLM registry (which defaults to Gemini).
 > **To fix this for local UI testing:** Temporarily change the model parameters in `experts.py` to `gemini-2.5-flash`, OR stick to running `python final_test.py` which isolates the logic and safely stubs these LLM calls entirely.
 
 ---

@@ -16,7 +16,7 @@ This agent follows the simplest ADK blueprint. It is given a single, explicit go
 
 ### C. The Path to Production (Day 5)
 *   **Dependency Speed**: Using `uv` within the `Dockerfile` reduces image build times from minutes to seconds, which is crucial for modern CI/CD agent deployments.
-*   **Stateless Scaling**: The agent logic uses the runtime directory `/app/assets` explicitly, separating logic from data outputs. 
+*   **Stateless Scaling**: The agent logic uses the runtime directory `/app/assets` explicitly, separating logic from data outputs.
 
 ---
 

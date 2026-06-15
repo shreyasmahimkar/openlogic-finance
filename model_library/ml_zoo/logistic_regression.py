@@ -16,6 +16,7 @@ class LRSignalType(Enum):
     """
     Signals emitted by the Logistic Regression strategy.
     """
+
     BUY = "BUY"
     SELL = "SELL"
     NONE = "NONE"
@@ -26,6 +27,7 @@ class LogisticStrategyConfig:
     """
     Configuration parameters for the Logistic Regression trading strategy.
     """
+
     ticker: str = "SPY"
     fast_period: int = 50
     slow_period: int = 200
@@ -40,13 +42,9 @@ class LogisticStrategyConfig:
                 f"fast_period ({self.fast_period}) must be < slow_period ({self.slow_period})"
             )
         if not 0.0 < self.position_size <= 1.0:
-            raise ValueError(
-                f"position_size ({self.position_size}) must be in (0.0, 1.0]"
-            )
+            raise ValueError(f"position_size ({self.position_size}) must be in (0.0, 1.0]")
         if not 0.0 < self.max_drawdown_pct < 1.0:
-            raise ValueError(
-                f"max_drawdown_pct ({self.max_drawdown_pct}) must be in (0.0, 1.0)"
-            )
+            raise ValueError(f"max_drawdown_pct ({self.max_drawdown_pct}) must be in (0.0, 1.0)")
         if not 0.0 < self.probability_threshold < 1.0:
             raise ValueError(
                 f"probability_threshold ({self.probability_threshold}) must be in (0.0, 1.0)"
@@ -61,6 +59,7 @@ class LogisticModelPayload:
     Standardized payload for a pre-trained Logistic Regression model.
     Contains weights, intercept, and feature scaling statistics (means and standard deviations).
     """
+
     weights: dict[str, float]
     intercept: float
     feature_means: dict[str, float]
@@ -153,7 +152,7 @@ def predict_probability(features: dict[str, float], payload: LogisticModelPayloa
         val = features.get(feature, 0.0)
         mean = payload.feature_means[feature]
         std = payload.feature_stds[feature]
-        
+
         # Standardize the feature value
         scaled_val = (val - mean) / std
         z += weight * scaled_val
@@ -201,7 +200,7 @@ def evaluate_signal(
 def project_weights(payload: LogisticModelPayload) -> tuple[dict[str, float], float]:
     """
     Map scaled weights back to the raw feature data space parameters.
-    
+
     Mathematical proof of raw weights projection:
         Let x_scaled_i = (x_raw_i - mean_i) / std_i.
         Then the logit z is:
@@ -226,7 +225,7 @@ def project_weights(payload: LogisticModelPayload) -> tuple[dict[str, float], fl
     for feature, weight in payload.weights.items():
         mean = payload.feature_means[feature]
         std = payload.feature_stds[feature]
-        
+
         # Compute raw feature space parameters
         raw_weights[feature] = weight / std
         raw_intercept -= weight * mean / std

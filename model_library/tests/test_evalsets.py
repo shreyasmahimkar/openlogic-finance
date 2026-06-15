@@ -10,9 +10,7 @@ import json
 import pytest
 from google.adk.evaluation.eval_set import EvalSet
 
-EVALSETS = sorted(
-    glob.glob("model_library/agentic_ai/moe_coordinator/eval/*.evalset.json")
-)
+EVALSETS = sorted(glob.glob("model_library/agentic_ai/moe_coordinator/eval/*.evalset.json"))
 
 
 def test_evalsets_exist():

@@ -1,6 +1,6 @@
 # Local Development Guide
 
-Welcome to the `openlogic-finance` local development guide! This repository employs a multi-agent microservice architecture utilizing the Google Agent Development Kit (ADK). 
+Welcome to the `openlogic-finance` local development guide! This repository employs a multi-agent microservice architecture utilizing the Google Agent Development Kit (ADK).
 
 To ensure a smooth developer experience, we utilize a **Hybrid Environment Approach**:
 * **One unified virtual environment locally** for seamless IDE integration, easy debugging, and frictionless cross-module imports.

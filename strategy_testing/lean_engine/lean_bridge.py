@@ -27,9 +27,9 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 # ── Default project root relative to this file ───────────────────────────────
-_DEFAULT_PROJECT    = Path(__file__).parent / "logistic_regression_project"
-_DEFAULT_WORKSPACE  = Path(__file__).parent / "lean_workspace"
-_VENV_LEAN          = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "lean"
+_DEFAULT_PROJECT = Path(__file__).parent / "logistic_regression_project"
+_DEFAULT_WORKSPACE = Path(__file__).parent / "lean_workspace"
+_VENV_LEAN = Path(__file__).parents[2] / ".openlogic-env" / "bin" / "lean"
 
 # ── model_library signal files to sync into lean_project before every push ───
 # key   = source path relative to repo root (model_library)
@@ -45,39 +45,39 @@ _SIGNAL_SYNC_MAP: dict[str, str] = {
 class BacktestResult:
     """Structured result returned after a LEAN backtest run."""
 
-    strategy_name:   str
-    ticker:          str
-    fast_period:     int
-    slow_period:     int
-    success:         bool
-    return_code:     int
-    stdout:          str
-    stderr:          str
-    output_dir:      Optional[str]    = None
-    started_at:      str              = field(default_factory=lambda: datetime.utcnow().isoformat())
-    completed_at:    Optional[str]    = None
-    total_return_pct: Optional[float] = None   # parsed from LEAN logs when available
-    cagr_pct:        Optional[float] = None
+    strategy_name: str
+    ticker: str
+    fast_period: int
+    slow_period: int
+    success: bool
+    return_code: int
+    stdout: str
+    stderr: str
+    output_dir: Optional[str] = None
+    started_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    completed_at: Optional[str] = None
+    total_return_pct: Optional[float] = None  # parsed from LEAN logs when available
+    cagr_pct: Optional[float] = None
     max_drawdown_pct: Optional[float] = None
-    total_orders:    Optional[int]   = None
-    full_summary:    Optional[str]    = None   # full stats table from lean cloud backtest
+    total_orders: Optional[int] = None
+    full_summary: Optional[str] = None  # full stats table from lean cloud backtest
 
     def to_dict(self) -> dict:
         return {
-            "strategy_name":    self.strategy_name,
-            "ticker":           self.ticker,
-            "fast_period":      self.fast_period,
-            "slow_period":      self.slow_period,
-            "success":          self.success,
-            "return_code":      self.return_code,
+            "strategy_name": self.strategy_name,
+            "ticker": self.ticker,
+            "fast_period": self.fast_period,
+            "slow_period": self.slow_period,
+            "success": self.success,
+            "return_code": self.return_code,
             "total_return_pct": self.total_return_pct,
-            "cagr_pct":         self.cagr_pct,
+            "cagr_pct": self.cagr_pct,
             "max_drawdown_pct": self.max_drawdown_pct,
-            "total_orders":     self.total_orders,
-            "output_dir":       self.output_dir,
-            "started_at":       self.started_at,
-            "completed_at":     self.completed_at,
-            "full_summary":     self.full_summary,
+            "total_orders": self.total_orders,
+            "output_dir": self.output_dir,
+            "started_at": self.started_at,
+            "completed_at": self.completed_at,
+            "full_summary": self.full_summary,
         }
 
 
@@ -101,7 +101,7 @@ class LeanEngineBridge:
     def __init__(
         self,
         project_path: Optional[str] = None,
-        lean_cli:     Optional[str] = None,
+        lean_cli: Optional[str] = None,
     ):
         if project_path:
             p = Path(project_path)
@@ -142,30 +142,40 @@ class LeanEngineBridge:
             try:
                 credentials_path = Path.home() / ".lean" / "credentials"
                 if not credentials_path.exists():
-                    logger.info("[LeanEngineBridge] LEAN credentials file not found. Attempting automated login...")
+                    logger.info(
+                        "[LeanEngineBridge] LEAN credentials file not found. Attempting automated login..."
+                    )
                     env = self._get_subprocess_env()
-                    login_cmd = [self.lean_cli, "login", "--user-id", qc_user_id, "--api-token", qc_api_token]
+                    login_cmd = [
+                        self.lean_cli,
+                        "login",
+                        "--user-id",
+                        qc_user_id,
+                        "--api-token",
+                        qc_api_token,
+                    ]
                     login_proc = subprocess.run(login_cmd, capture_output=True, text=True, env=env)
                     if login_proc.returncode != 0:
-                        logger.error(f"[LeanEngineBridge] Automated login failed: {login_proc.stderr.strip()}")
+                        logger.error(
+                            f"[LeanEngineBridge] Automated login failed: {login_proc.stderr.strip()}"
+                        )
                     else:
                         logger.info("[LeanEngineBridge] Automated login successful.")
             except Exception as e:
                 logger.error(f"[LeanEngineBridge] Error during automated login: {str(e)}")
 
-
     # ── Public API ────────────────────────────────────────────────────────────
 
     def run_backtest(
         self,
-        ticker:        str = "SPY",
-        fast_period:   int = 50,
-        slow_period:   int = 200,
+        ticker: str = "SPY",
+        fast_period: int = 50,
+        slow_period: int = 200,
         position_size: float = 1.0,
         max_drawdown_pct: float = 0.15,
         probability_threshold: float = 0.5,
-        rsi_period:    int = 14,
-        output_dir:    Optional[str] = None,
+        rsi_period: int = 14,
+        output_dir: Optional[str] = None,
     ) -> BacktestResult:
         """
         Trigger a local LEAN backtest for the SMA Golden Cross strategy.
@@ -182,7 +192,7 @@ class LeanEngineBridge:
             BacktestResult dataclass with success flag and parsed metrics.
         """
         strategy_name = f"SMA{fast_period}_SMA{slow_period}_{ticker}"
-        started_at    = datetime.utcnow().isoformat()
+        started_at = datetime.utcnow().isoformat()
 
         logger.info(f"[BACKTEST START] {strategy_name}")
 
@@ -201,11 +211,20 @@ class LeanEngineBridge:
         # Patch both the source project and the workspace copy
         for cfg_dir in [self.project_path, dest_project_dir]:
             config_path = cfg_dir / "config.json"
-            self._patch_config(config_path, ticker, fast_period, slow_period, position_size, max_drawdown_pct, probability_threshold, rsi_period)
+            self._patch_config(
+                config_path,
+                ticker,
+                fast_period,
+                slow_period,
+                position_size,
+                max_drawdown_pct,
+                probability_threshold,
+                rsi_period,
+            )
 
         # ── Sync strategy files to workspace ────────────────────────────
         # 1. Always sync main.py
-        src_main  = self.project_path / "main.py"
+        src_main = self.project_path / "main.py"
         dest_main = dest_project_dir / "main.py"
         if src_main.exists():
             shutil.copy2(src_main, dest_main)
@@ -214,9 +233,9 @@ class LeanEngineBridge:
         # 2. Sync model_library signal files (source of truth → project_dir → workspace)
         #    This ensures LEAN cloud always runs the latest signal logic from Box 2.
         for rel_src, dest_name in _SIGNAL_SYNC_MAP.items():
-            src_signal  = _REPO_ROOT / rel_src
-            dest_local  = self.project_path / dest_name                   # project_dir/ (tracked)
-            dest_ws     = dest_project_dir / dest_name                    # lean_workspace/project_name/ (cloud push)
+            src_signal = _REPO_ROOT / rel_src
+            dest_local = self.project_path / dest_name  # project_dir/ (tracked)
+            dest_ws = dest_project_dir / dest_name  # lean_workspace/project_name/ (cloud push)
 
             if not src_signal.exists():
                 logger.warning(f"[SYNC SKIP] Signal source not found: {src_signal}")
@@ -230,7 +249,7 @@ class LeanEngineBridge:
 
         # ── Cloud push then cloud backtest (no Docker required) ───────────────
         push_cmd = [self.lean_cli, "cloud", "push", "--project", self.project_name]
-        bt_cmd   = [self.lean_cli, "cloud", "backtest", self.project_name]
+        bt_cmd = [self.lean_cli, "cloud", "backtest", self.project_name]
 
         logger.info(f"[LEAN PUSH] {' '.join(push_cmd)}")
 
@@ -241,7 +260,7 @@ class LeanEngineBridge:
                 capture_output=True,
                 text=True,
                 timeout=120,
-                cwd=str(self.workspace_path),   # lean.json lives here
+                cwd=str(self.workspace_path),  # lean.json lives here
                 env=env,
             )
             if push_proc.returncode != 0:
@@ -253,12 +272,12 @@ class LeanEngineBridge:
                 capture_output=True,
                 text=True,
                 timeout=600,
-                cwd=str(self.workspace_path),   # lean.json lives here
+                cwd=str(self.workspace_path),  # lean.json lives here
                 env=env,
             )
 
             completed_at = datetime.utcnow().isoformat()
-            success      = proc.returncode == 0
+            success = proc.returncode == 0
             combined_out = proc.stdout + "\n" + push_proc.stdout
 
             if success:
@@ -274,22 +293,22 @@ class LeanEngineBridge:
             full_summary = self._extract_summary_table(combined_out)
 
             return BacktestResult(
-                strategy_name    = strategy_name,
-                ticker           = ticker,
-                fast_period      = fast_period,
-                slow_period      = slow_period,
-                success          = success,
-                return_code      = proc.returncode,
-                stdout           = combined_out,
-                stderr           = proc.stderr,
-                output_dir       = output_dir,
-                started_at       = started_at,
-                completed_at     = completed_at,
-                total_return_pct = total_return,
-                cagr_pct         = cagr,
-                max_drawdown_pct = drawdown,
-                total_orders     = orders,
-                full_summary     = full_summary,
+                strategy_name=strategy_name,
+                ticker=ticker,
+                fast_period=fast_period,
+                slow_period=slow_period,
+                success=success,
+                return_code=proc.returncode,
+                stdout=combined_out,
+                stderr=proc.stderr,
+                output_dir=output_dir,
+                started_at=started_at,
+                completed_at=completed_at,
+                total_return_pct=total_return,
+                cagr_pct=cagr,
+                max_drawdown_pct=drawdown,
+                total_orders=orders,
+                full_summary=full_summary,
             )
 
         except FileNotFoundError:
@@ -341,7 +360,7 @@ class LeanEngineBridge:
             )
             return {
                 "installed": result.returncode == 0,
-                "version":   result.stdout.strip() or result.stderr.strip(),
+                "version": result.stdout.strip() or result.stderr.strip(),
             }
         except FileNotFoundError:
             return {"installed": False, "version": "lean not found"}
@@ -354,8 +373,9 @@ class LeanEngineBridge:
         write its modules-*.json file.
         """
         env = os.environ.copy()
-        
+
         import importlib.util
+
         lean_src_dir = None
         try:
             spec = importlib.util.find_spec("lean")
@@ -366,14 +386,17 @@ class LeanEngineBridge:
 
         if not lean_src_dir:
             import sys
+
             for path in sys.path:
                 if not path:
                     continue
                 candidate = os.path.join(path, "lean")
-                if os.path.isdir(candidate) and os.path.exists(os.path.join(candidate, "__init__.py")):
+                if os.path.isdir(candidate) and os.path.exists(
+                    os.path.join(candidate, "__init__.py")
+                ):
                     lean_src_dir = candidate
                     break
-                
+
         if lean_src_dir:
             try:
                 writable_parent = Path.home() / ".lean_writable_pkg"
@@ -381,31 +404,35 @@ class LeanEngineBridge:
                 if not writable_lean_dir.exists():
                     writable_parent.mkdir(parents=True, exist_ok=True)
                     shutil.copytree(lean_src_dir, writable_lean_dir, dirs_exist_ok=True)
-                    logger.info(f"[LeanEngineBridge] Copied lean package to writable path: {writable_lean_dir}")
-                
+                    logger.info(
+                        f"[LeanEngineBridge] Copied lean package to writable path: {writable_lean_dir}"
+                    )
+
                 # Prepend the writable parent directory to PYTHONPATH
                 existing_pythonpath = env.get("PYTHONPATH", "")
                 if existing_pythonpath:
-                    env["PYTHONPATH"] = os.path.pathsep.join([str(writable_parent), existing_pythonpath])
+                    env["PYTHONPATH"] = os.path.pathsep.join(
+                        [str(writable_parent), existing_pythonpath]
+                    )
                 else:
                     env["PYTHONPATH"] = str(writable_parent)
             except Exception as e:
                 logger.error(f"[LeanEngineBridge] Failed to setup writable lean package copy: {e}")
-                
+
         return env
 
     # ── Private Helpers ───────────────────────────────────────────────────────
 
     def _patch_config(
         self,
-        config_path:   Path,
-        ticker:        str,
-        fast_period:   int,
-        slow_period:   int,
+        config_path: Path,
+        ticker: str,
+        fast_period: int,
+        slow_period: int,
         position_size: float,
         max_drawdown_pct: float = 0.15,
         probability_threshold: float = 0.5,
-        rsi_period:    int = 14,
+        rsi_period: int = 14,
     ) -> None:
         """Overwrite config.json parameters without touching other settings."""
         if not config_path.exists():
@@ -417,20 +444,22 @@ class LeanEngineBridge:
 
         config.setdefault("parameters", {}).update(
             {
-                "fast-period":    str(fast_period),
-                "slow-period":    str(slow_period),
-                "ticker":         ticker,
-                "position-size":  str(position_size),
+                "fast-period": str(fast_period),
+                "slow-period": str(slow_period),
+                "ticker": ticker,
+                "position-size": str(position_size),
                 "max-drawdown-pct": str(max_drawdown_pct),
                 "probability-threshold": str(probability_threshold),
-                "rsi-period":     str(rsi_period),
+                "rsi-period": str(rsi_period),
             }
         )
 
         with open(config_path, "w") as f:
             json.dump(config, f, indent=4)
 
-        logger.debug(f"[CONFIG PATCH] {config_path} updated with {ticker} SMA{fast_period}/{slow_period}")
+        logger.debug(
+            f"[CONFIG PATCH] {config_path} updated with {ticker} SMA{fast_period}/{slow_period}"
+        )
 
     @staticmethod
     def _parse_return(stdout: str) -> Optional[float]:
@@ -440,6 +469,7 @@ class LeanEngineBridge:
         and plain log lines like: Total Return  -3.74%
         """
         import re
+
         # Cloud table format: │ Net Profit │ -3.738% │
         for line in stdout.splitlines():
             if "Net Profit" in line:
@@ -462,6 +492,7 @@ class LeanEngineBridge:
     @staticmethod
     def _parse_cagr(stdout: str) -> Optional[float]:
         import re
+
         for line in stdout.splitlines():
             # │ Compounding Annual  │ 8.072%         │
             if "Compounding Annual" in line:
@@ -473,6 +504,7 @@ class LeanEngineBridge:
     @staticmethod
     def _parse_drawdown(stdout: str) -> Optional[float]:
         import re
+
         for line in stdout.splitlines():
             # │ Drawdown           │ 19.900%          │
             if "Drawdown" in line and "Recovery" not in line:
@@ -484,6 +516,7 @@ class LeanEngineBridge:
     @staticmethod
     def _parse_orders(stdout: str) -> Optional[int]:
         import re
+
         for line in stdout.splitlines():
             # │ Total Orders       │ 7                │
             if "Total Orders" in line:
@@ -508,7 +541,9 @@ class LeanEngineBridge:
                 table_lines.append(line)
             if "\u2514" in line and in_table:  # └ = closing border
                 break
-        return "\n".join(table_lines) if table_lines else stdout[-3000:]  # fallback: last 3000 chars
+        return (
+            "\n".join(table_lines) if table_lines else stdout[-3000:]
+        )  # fallback: last 3000 chars
 
 
 # ── Standalone entry-point ────────────────────────────────────────────────────
@@ -523,9 +558,9 @@ if __name__ == "__main__":
 
     if check["installed"]:
         result = bridge.run_backtest(
-            ticker      = "SPY",
-            fast_period = 50,
-            slow_period = 200,
+            ticker="SPY",
+            fast_period=50,
+            slow_period=200,
         )
         print(json.dumps(result.to_dict(), indent=2))
     else:

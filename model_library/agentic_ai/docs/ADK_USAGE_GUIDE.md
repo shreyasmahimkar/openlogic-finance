@@ -1,6 +1,6 @@
 # Google ADK Usage Guide: MoE-F Coordinator
 
-Welcome to the native Google Agent Development Kit (ADK) integration of the **Mixture of Experts - Filter (MoE-F) Coordinator**! 
+Welcome to the native Google Agent Development Kit (ADK) integration of the **Mixture of Experts - Filter (MoE-F) Coordinator**!
 
 Because this application relies on a sophisticated Level 3 Multi-Agent architecture consisting of Sequential Pipelines and Parallel Fan-Out swarms, managing state and evaluating pathways requires explicit tooling. This guide details how you can trace the algorithmic flow, mathematically test trajectory outputs, and seamlessly transition into production on the cloud.
 

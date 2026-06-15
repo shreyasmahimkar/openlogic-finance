@@ -1,6 +1,6 @@
 # MoE-F Coordinator (Level 3 Multi-Agent Ecosystem)
 
-The mathematical brain of the OpenLogic ecosystem! Designed with the **Google Agent Development Kit (ADK)**, this package implements the **Mixture-of-Experts Filter (MoE-F)** using a sophisticated **Level 3 Multi-Agent Collaborative Architecture**. 
+The mathematical brain of the OpenLogic ecosystem! Designed with the **Google Agent Development Kit (ADK)**, this package implements the **Mixture-of-Experts Filter (MoE-F)** using a sophisticated **Level 3 Multi-Agent Collaborative Architecture**.
 
 It transcends static ML routing, leveraging continuous-time Hidden Markov Models (the Wohman-Shiryaev Filter) to evaluate an ensemble of foundational LLMs iteratively. At each time step, it dynamically adjusts expert trust weights ($\pi_n$) based on previous realized performance against the true market via soft-min Gibbs aggregation.
 
@@ -24,7 +24,7 @@ Rather than a simplistic script, the MoE-F Coordinator orchestrates a massive 5-
 
 ---
 
-## 🚀 Native Agent Operations 
+## 🚀 Native Agent Operations
 
 Because the `moe_coordinator` acts as an entirely independent distributed multi-agent system, it requires its own isolated virtual ecosystem to accurately execute tools and dependencies untouched by peripheral apps.
 

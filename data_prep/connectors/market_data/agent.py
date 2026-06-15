@@ -2,15 +2,18 @@ from google.adk.agents import Agent
 from .tools import fetch_asset_data
 from horizontal_foundation.interpretability.explain_engine import ExplanationEngine
 
-def fetch_and_explain(ticker: str = "SPY", period: str = "10y", explanation_level: str = "beginner") -> dict:
+
+def fetch_and_explain(
+    ticker: str = "SPY", period: str = "10y", explanation_level: str = "beginner"
+) -> dict:
     """
     Fetches historical asset data and generates a detailed human-readable explanation at the requested level.
-    
+
     Args:
         ticker: The stock or crypto ticker (default SPY).
         period: Lookback period (default 10y).
         explanation_level: The user target audience level ('beginner' or 'academic').
-        
+
     Returns:
         Metadata dict containing 'explanation' and other dataset stats.
     """
@@ -18,6 +21,7 @@ def fetch_and_explain(ticker: str = "SPY", period: str = "10y", explanation_leve
     explanation = ExplanationEngine.explain_data_prep(result, level=explanation_level)
     result["explanation"] = explanation
     return result
+
 
 # Define the Level 1 root agent.
 root_agent = Agent(
@@ -36,5 +40,5 @@ Constraints:
 - DO NOT reject cryptocurrencies. They are fully supported.
 """,
     description="A foundational Agent responsible for ingesting historical data streams and explaining them at different user expertise levels.",
-    tools=[fetch_and_explain]
+    tools=[fetch_and_explain],
 )

@@ -1,6 +1,8 @@
 # OpenLogic Finance — common entrypoints. Run `make help` for the list.
 # Standardizes on uv (`.venv` from uv.lock). See AGENTS.md.
 
+export PYTHONPATH := .
+
 .DEFAULT_GOAL := help
 .PHONY: help setup lock test lint fmt run web web-dash hooks deploy
 

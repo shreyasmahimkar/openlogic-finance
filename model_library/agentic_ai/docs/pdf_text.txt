@@ -254,8 +254,8 @@ computable due to closed-form expressions.
 Expert N
 Expert 1
 Input Signal Step 1 - Optimal Parallel Filtering
-Mixture 
-Mechanism 
+Mixture
+Mechanism
 Step 2 - Robust Aggregation
 Update Q Matrix with Performance
 Feedback
@@ -1115,7 +1115,7 @@ R t
 0 σs Ws has a Gaussian distribution, then note, by standard Gaussian concentration
 inequalities, we have that
 P
-
+
 Z t
 0
 σs Ws
@@ -2118,7 +2118,7 @@ NX
 j=1
 πj − πα,i
 j
-
+
 
 − log(pmin)
 1/pmin − 1 − log((1 − α) pmin)
@@ -2128,7 +2128,7 @@ j
 NX
 j=1
 απj + αIj=i
-
+
 
 − log(pmin)
 1/pmin − 1 − log((1 − α) pmin)

@@ -10,9 +10,13 @@ for the research-faithful Llama/GPT/Mixtral mix (needs LiteLLM + provider keys).
 """
 
 from google.adk.agents import LlmAgent, ParallelAgent
+from google.adk.tools import FunctionTool
 
 from model_library.agentic_ai.model_registry import get_model
 from model_library.ml_zoo.filters import stochastic_filter_update_tool
+from model_library.technical.indicators import read_market_indicators
+
+read_market_indicators_tool = FunctionTool(func=read_market_indicators)
 
 _FLOAT_CONTRACT = (
     "Output your prediction EXACTLY as a single float between 0.0 and 1.0, where "
@@ -27,11 +31,12 @@ def build_experts() -> list[LlmAgent]:
         model=get_model("expert_technical"),
         instruction=(
             "You are a Technical Analyst Expert evaluating SPY.\n"
-            "Given standard OHLCV prices and moving averages for the past 10 days in "
-            "the context, predict if the price will Rise, Fall, or remain Neutral tomorrow.\n"
-            "Use {enriched_market_data} and {filtered_news_context} for context.\n" + _FLOAT_CONTRACT
+            "First, use the read_market_indicators tool on {enriched_market_data} to load "
+            "the latest 10 days of prices and moving averages. Then, predict if the price "
+            "will Rise, Fall, or remain Neutral tomorrow using the market indicators and "
+            "the news context in {filtered_news_context}.\n" + _FLOAT_CONTRACT
         ),
-        tools=[stochastic_filter_update_tool],
+        tools=[stochastic_filter_update_tool, read_market_indicators_tool],
         output_key="pred_llama",
     )
     expert_fundamental = LlmAgent(
@@ -40,11 +45,13 @@ def build_experts() -> list[LlmAgent]:
         instruction=(
             "You are a Fundamental Macroeconomic Analyst Expert evaluating the broader "
             "stock market (SPY).\n"
-            "Predict a macro-level Rise, Fall, or Neutral move tomorrow. Ignore short-term "
-            "technical noise; focus on structural gravity and long-horizon price memory.\n"
-            "Use {enriched_market_data} and {filtered_news_context} for context.\n" + _FLOAT_CONTRACT
+            "First, use the read_market_indicators tool on {enriched_market_data} to load "
+            "the latest 10 days of prices. Then predict a macro-level Rise, Fall, or Neutral "
+            "move tomorrow. Ignore short-term technical noise; focus on structural gravity and "
+            "long-horizon price memory using the market indicators and {filtered_news_context} "
+            "for context.\n" + _FLOAT_CONTRACT
         ),
-        tools=[stochastic_filter_update_tool],
+        tools=[stochastic_filter_update_tool, read_market_indicators_tool],
         output_key="pred_gpt",
     )
     expert_contrarian = LlmAgent(
@@ -52,11 +59,13 @@ def build_experts() -> list[LlmAgent]:
         model=get_model("expert_contrarian"),
         instruction=(
             "You are a High-Frequency Mean-Reverting Analyst Expert.\n"
-            "Look at the past 10 days of price context. If it rallied hard, bet that it "
-            "Falls. If it dumped, bet that it Rises. You believe markets are rubber bands.\n"
-            "Use {enriched_market_data} and {filtered_news_context} for context.\n" + _FLOAT_CONTRACT
+            "First, use the read_market_indicators tool on {enriched_market_data} to load "
+            "the latest 10 days of prices. Look at the past 10 days of price context. If it "
+            "rallied hard, bet that it Falls. If it dumped, bet that it Rises. You believe "
+            "markets are rubber bands. Use the market indicators and {filtered_news_context} "
+            "for context.\n" + _FLOAT_CONTRACT
         ),
-        tools=[stochastic_filter_update_tool],
+        tools=[stochastic_filter_update_tool, read_market_indicators_tool],
         output_key="pred_mixtral",
     )
     return [expert_technical, expert_fundamental, expert_contrarian]

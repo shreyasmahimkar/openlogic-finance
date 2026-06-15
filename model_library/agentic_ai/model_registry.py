@@ -19,10 +19,10 @@ import os
 
 # Logical roles used across the agentic_ai package.
 ROLES = (
-    "orchestration",       # ingestion / synthesis / plotting glue
-    "expert_technical",    # momentum / technical expert
+    "orchestration",  # ingestion / synthesis / plotting glue
+    "expert_technical",  # momentum / technical expert
     "expert_fundamental",  # macro / fundamental expert
-    "expert_contrarian",   # mean-reversion / contrarian expert
+    "expert_contrarian",  # mean-reversion / contrarian expert
 )
 
 # Runs on a Google account with no extra provider keys.

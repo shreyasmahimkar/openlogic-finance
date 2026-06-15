@@ -45,13 +45,13 @@ class LogisticRegressionStrategy(QCAlgorithm):
     def initialize(self):
         # ── Build LogisticStrategyConfig from LEAN parameters ─────────────────
         self._cfg = LogisticStrategyConfig(
-            ticker           = self.get_parameter("ticker", "SPY") or "SPY",
-            fast_period      = int(self.get_parameter("fast-period", 50)),
-            slow_period      = int(self.get_parameter("slow-period", 200)),
-            rsi_period       = int(self.get_parameter("rsi-period", 14)),
-            probability_threshold = float(self.get_parameter("probability-threshold", 0.5)),
-            position_size    = float(self.get_parameter("position-size", 1.0)),
-            max_drawdown_pct = float(self.get_parameter("max-drawdown-pct", 0.15)),
+            ticker=self.get_parameter("ticker", "SPY") or "SPY",
+            fast_period=int(self.get_parameter("fast-period", 50)),
+            slow_period=int(self.get_parameter("slow-period", 200)),
+            rsi_period=int(self.get_parameter("rsi-period", 14)),
+            probability_threshold=float(self.get_parameter("probability-threshold", 0.5)),
+            position_size=float(self.get_parameter("position-size", 1.0)),
+            max_drawdown_pct=float(self.get_parameter("max-drawdown-pct", 0.15)),
         )
 
         # ── Date Range ────────────────────────────────────────────────────────
@@ -67,7 +67,9 @@ class LogisticRegressionStrategy(QCAlgorithm):
         # ── LEAN Indicators ───────────────────────────────────────────────────
         self.fast_sma = self.sma(self.symbol, self._cfg.fast_period, Resolution.DAILY)
         self.slow_sma = self.sma(self.symbol, self._cfg.slow_period, Resolution.DAILY)
-        self.rsi = self.rsi(self.symbol, self._cfg.rsi_period, MovingAverageType.WILDERS, Resolution.DAILY)
+        self.rsi = self.rsi(
+            self.symbol, self._cfg.rsi_period, MovingAverageType.WILDERS, Resolution.DAILY
+        )
 
         # Previous bar state variables
         self._prev_close: Optional[float] = None
@@ -82,22 +84,10 @@ class LogisticRegressionStrategy(QCAlgorithm):
 
         # ── Pre-Trained Model Coefficients (Default) ──────────────────────────
         self._model = LogisticModelPayload(
-            weights={
-                "sma_ratio": 2.5,
-                "rsi_norm": 0.5,
-                "momentum": 1.0
-            },
+            weights={"sma_ratio": 2.5, "rsi_norm": 0.5, "momentum": 1.0},
             intercept=0.1,
-            feature_means={
-                "sma_ratio": 0.005,
-                "rsi_norm": 0.02,
-                "momentum": 0.0003
-            },
-            feature_stds={
-                "sma_ratio": 0.03,
-                "rsi_norm": 0.35,
-                "momentum": 0.015
-            }
+            feature_means={"sma_ratio": 0.005, "rsi_norm": 0.02, "momentum": 0.0003},
+            feature_stds={"sma_ratio": 0.03, "rsi_norm": 0.35, "momentum": 0.015},
         )
 
         # ── Charts ────────────────────────────────────────────────────────────
@@ -136,8 +126,8 @@ class LogisticRegressionStrategy(QCAlgorithm):
 
         # ── Extract raw values ────────────────────────────────────────────────
         price: float = data[self.symbol].close
-        fast:  float = self.fast_sma.current.value
-        slow:  float = self.slow_sma.current.value
+        fast: float = self.fast_sma.current.value
+        slow: float = self.slow_sma.current.value
         rsi_val: float = self.rsi.current.value
 
         # ── Feature Engineering ───────────────────────────────────────────────
@@ -146,7 +136,7 @@ class LogisticRegressionStrategy(QCAlgorithm):
             "fast_sma": fast,
             "slow_sma": slow,
             "rsi": rsi_val,
-            "prev_close": self._prev_close if self._prev_close is not None else price
+            "prev_close": self._prev_close if self._prev_close is not None else price,
         }
         features = engineer_features(raw_data)
 
@@ -164,7 +154,9 @@ class LogisticRegressionStrategy(QCAlgorithm):
             self._peak_value = current_value
 
         # ── Drawdown Guard — decision delegated to model_library ──────────────
-        if self.portfolio[self.symbol].is_long and drawdown_breached(current_value, self._peak_value, self._cfg.max_drawdown_pct):
+        if self.portfolio[self.symbol].is_long and drawdown_breached(
+            current_value, self._peak_value, self._cfg.max_drawdown_pct
+        ):
             self.liquidate(self.symbol, tag="MAX_DRAWDOWN_STOP")
             self.log(
                 f"[DRAWDOWN STOP] Liquidated @ ${price:.2f} | "
@@ -173,12 +165,16 @@ class LogisticRegressionStrategy(QCAlgorithm):
             self._peak_value = self.portfolio.total_portfolio_value  # Reset peak to cash balance
 
         # ── Evaluate Signal ───────────────────────────────────────────────────
-        signal: LRSignalType = evaluate_signal(prob, self._prev_prob, self._cfg.probability_threshold)
+        signal: LRSignalType = evaluate_signal(
+            prob, self._prev_prob, self._cfg.probability_threshold
+        )
 
         if signal == LRSignalType.BUY:
             if not self.portfolio[self.symbol].is_long:
                 self.set_holdings(self.symbol, self._cfg.position_size)
-                self._peak_value = self.portfolio.total_portfolio_value  # Reset peak value on trade entry
+                self._peak_value = (
+                    self.portfolio.total_portfolio_value
+                )  # Reset peak value on trade entry
                 self._buys += 1
                 self.log(
                     f"[BUY #{self._buys}] BUY {self._cfg.ticker} @ ${price:.2f} | "
@@ -208,7 +204,7 @@ class LogisticRegressionStrategy(QCAlgorithm):
 
     # ──────────────────────────────────────────────────────────────────────────
     def on_end_of_algorithm(self):
-        final_value  = self.portfolio.total_portfolio_value
+        final_value = self.portfolio.total_portfolio_value
         total_return = ((final_value - 100_000) / 100_000) * 100
 
         self.log("=" * 60)

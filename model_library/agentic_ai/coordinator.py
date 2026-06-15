@@ -25,7 +25,7 @@ from google.adk.tools import FunctionTool
 from model_library.agentic_ai.experts import build_moe_parallel_swarm
 from model_library.agentic_ai.model_registry import get_model
 from model_library.ml_zoo.filters import robust_gibbs_aggregation_tool
-from model_library.technical.indicators import enrich_ohlcv_data
+from model_library.technical.indicators import enrich_ohlcv_data, apply_semantic_news_filter
 
 DEFAULT_ARTIFACT_DIR = os.path.dirname(__file__)
 
@@ -39,7 +39,19 @@ def render_moe_trajectories(state, artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> 
     Reproduces the paper's Figure 1: true market trajectory (black) vs. the
     MoE-F filtered trajectory (green dashed, 7-day rolling mean).
     """
-    y_final = state.get("final_prediction", 0.5)
+    if isinstance(state, (int, float)):
+        y_final = float(state)
+        y_true = 0.5
+    elif hasattr(state, "get"):
+        y_final = state.get("final_prediction", 0.5)
+        y_true = state.get("current_ground_truth", 0.5)
+    else:
+        try:
+            y_final = float(state)
+        except (ValueError, TypeError):
+            y_final = 0.5
+        y_true = 0.5
+
     history_file = os.path.join(artifact_dir, "moe_history.csv")
 
     try:
@@ -51,7 +63,7 @@ def render_moe_trajectories(state, artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> 
         turn_index = len(df_hist)
         new_row = {
             "Turn": turn_index,
-            "y_true": state.get("current_ground_truth", 0.5),
+            "y_true": y_true,
             "moef_prediction": y_final,
         }
         df_hist = pd.concat([df_hist, pd.DataFrame([new_row])], ignore_index=True)
@@ -64,12 +76,19 @@ def render_moe_trajectories(state, artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> 
 
         plt.figure(figsize=(12, 6))
         plt.plot(
-            df_hist["Turn"], df_hist["y_true"],
-            color="black", label="True Market Trajectory (Ground Truth)", linewidth=2,
+            df_hist["Turn"],
+            df_hist["y_true"],
+            color="black",
+            label="True Market Trajectory (Ground Truth)",
+            linewidth=2,
         )
         plt.plot(
-            df_hist["Turn"], df_hist["rolling_moe"],
-            color="green", linestyle="--", label="MoE-F Filtered Trajectory (7-Day)", linewidth=2,
+            df_hist["Turn"],
+            df_hist["rolling_moe"],
+            color="green",
+            linestyle="--",
+            label="MoE-F Filtered Trajectory (7-Day)",
+            linewidth=2,
         )
         plt.yticks([0.0, 0.5, 1.0], ["Bearish (0.0)", "Neutral (0.5)", "Bullish (1.0)"])
         plt.xlabel("Trading Days")
@@ -125,9 +144,11 @@ def build_moef_level_3_system(artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> Seque
         name="SBERT_SemanticFilter",
         model=glue,
         instruction=(
-            "Apply semantic similarity to the news for {enriched_market_data}. "
-            "Discard noise below the 0.2 threshold; output high-signal news chunks."
+            "Apply semantic similarity to the news for {enriched_market_data} by "
+            "calling the apply_semantic_news_filter tool. Discard noise below the 0.2 "
+            "threshold; output the high-signal news chunks returned by the tool."
         ),
+        tools=[FunctionTool(func=apply_semantic_news_filter)],
         output_key="filtered_news_context",
     )
     market_data_pipeline = SequentialAgent(
