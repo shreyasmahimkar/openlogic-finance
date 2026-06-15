@@ -4,7 +4,7 @@
 export PYTHONPATH := .
 
 .DEFAULT_GOAL := help
-.PHONY: help setup lock test lint fmt run web web-dash hooks deploy
+.PHONY: help setup lock test lint fmt run web web-dash hooks deploy sync-lean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -40,3 +40,6 @@ hooks: ## Run all pre-commit hooks against the whole tree
 
 deploy: ## Deploy the MoE-F agent to Vertex AI Agent Engine (see docs/DEPLOY_VERTEX.md)
 	uv run python live_paper_execution/cloud_deploy/deploy_vertex.py
+
+sync-lean: ## Regenerate the LEAN project strategy copies from model_library
+	uv run python scripts/sync_lean_strategies.py

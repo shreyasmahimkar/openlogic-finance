@@ -105,13 +105,37 @@ def render_moe_trajectories(state, artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> 
         return f"Plotting failed: {e}"
 
 
-def data_ingestion_stub() -> str:
-    """Return the OHLCV CSV path the pipeline operates on.
+def resolve_ingestion_csv() -> str:
+    """Resolve the OHLCV CSV the pipeline operates on (config-driven, no longer a stub).
 
-    [STUB] Phase 3 still stubs ingestion; wiring the live Yahoo Finance MCP
-    (`data_prep/connectors/market_data`) replaces this.
+    Resolution order:
+      1. `OPENLOGIC_INGEST_CSV` env override (explicit path).
+      2. If `OPENLOGIC_LIVE_INGEST=1`, refresh via the Box 1 market-data fetch
+         (yfinance; see docs/memory/0005-mcp-policy.md) before returning.
+      3. The cached `SystemConfig` asset CSV — the offline default that keeps
+         tests/CI deterministic.
     """
-    return "assets/SPY_10y.csv"
+    from horizontal_foundation.config.system_config import SystemConfig
+
+    override = os.environ.get("OPENLOGIC_INGEST_CSV")
+    if override:
+        return override
+
+    ticker, period = SystemConfig.DEFAULT_TICKER, SystemConfig.DEFAULT_PERIOD
+    # Resolve assets relative to the repo root (model_library/agentic_ai/coordinator.py
+    # → up 3). NB: SystemConfig.WORKSPACE_ROOT currently resolves above the repo
+    # (parents[3] bug, tracked in docs/BACKLOG.md), so we don't use it here.
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    cached = os.path.join(repo_root, "assets", f"{ticker}_{period}.csv")
+
+    if os.environ.get("OPENLOGIC_LIVE_INGEST") == "1":
+        try:  # best-effort live refresh; fall back to cache on any failure
+            from data_prep.connectors.market_data.tools import fetch_asset_data
+
+            fetch_asset_data(ticker, period)
+        except Exception:
+            pass
+    return cached
 
 
 def build_moef_level_3_system(artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> SequentialAgent:
@@ -123,10 +147,10 @@ def build_moef_level_3_system(artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> Seque
         name="MarketDataExtractor",
         model=glue,
         instruction=(
-            "Use the data_ingestion_stub tool to extract 10 years of OHLCV "
+            "Use the resolve_ingestion_csv tool to locate 10 years of OHLCV "
             "historical data and news for the SPY ticker. Emit the CSV path."
         ),
-        tools=[FunctionTool(func=data_ingestion_stub)],
+        tools=[FunctionTool(func=resolve_ingestion_csv)],
         output_key="structured_market_data",
     )
     quantitative_feature_agent = LlmAgent(

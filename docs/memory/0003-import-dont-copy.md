@@ -19,7 +19,9 @@ canonical ones. Duplication is how this codebase lost working code.
   `model_library/agentic_ai/coordinator.py`; `moe_coordinator/agent.py` and
   `interface/cli/agent.py` are thin importers. The expert swarm is built via a
   factory (`experts.build_moe_parallel_swarm`) so each pipeline gets fresh agents.
-- ⏳ Remaining: LEAN strategy projects copy `logistic_regression.py` /
-  `sma_crossover_signal.py` — consolidate, don't extend.
+- ✅ Resolved (Backlog #6): the LEAN projects must vendor their strategy modules
+  (LEAN runs each project self-contained), so the copies are now **generated** from
+  `model_library` via `scripts/sync_lean_strategies.py` (`make sync-lean`).
+  `model_library` is the single source; `test_lean_sync.py` guards against drift.
 
 See [[0001-six-box-architecture]].

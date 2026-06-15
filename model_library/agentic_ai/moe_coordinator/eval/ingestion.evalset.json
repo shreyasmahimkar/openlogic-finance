@@ -1,7 +1,7 @@
 {
   "eval_set_id": "moef_ingestion",
   "name": "Ingestion phase",
-  "description": "Phase-1 ingestion must fetch then enrich with indicators.",
+  "description": "Phase-1 ingestion must locate then enrich with indicators.",
   "eval_cases": [
     {
       "eval_id": "spy_ingest",
@@ -28,7 +28,7 @@
             "tool_uses": [
               {
                 "args": {},
-                "name": "data_ingestion_stub"
+                "name": "resolve_ingestion_csv"
               },
               {
                 "args": {

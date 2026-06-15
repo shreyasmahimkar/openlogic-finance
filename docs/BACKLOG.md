@@ -12,7 +12,7 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
 
 | Box | AGENTS.md | Unit tests | Evals | Tools/MCP | Runtime guardrail | Spec |
 |---|---|---|---|---|---|---|
-| 1 Data Prep | ✅ | ⚠️ tool tests | ✅ 3 agents | ✅ policy set (see 0005) | n/a | ❌ |
+| 1 Data Prep | ✅ | ⚠️ tool tests | ✅ 3 agents | ✅ policy set (see 0005) | n/a | ✅ 0001–0003 |
 | 2 Model Library | ✅ | ✅ | ✅ | ✅ | n/a | ⚠️ template only |
 | 3 Strategy Testing | ✅ | ✅ parsers + MoE-F loop | ❌ | ✅ | n/a | ❌ |
 | 4 Risk Mgmt | ✅ | ⚠️ guardrail tested | ❌ | logic exists + **ADK veto callback** ✅ | ✅ | ❌ |
@@ -55,13 +55,22 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
    ADK trajectory spans. Interpretability engine documented as the human-readable
    layer on top. Tests in `horizontal_foundation/tests/test_observability.py`.
 
-6. **Housekeeping.**
-   - Write real specs in `docs/specs/` for the Box 1/3/4/5 agents (each spec's
-     success criteria seeds its eval rubric).
-   - Fill or remove empty `__init__`-only dirs: `data_prep/features`,
-     `data_prep/pipelines`, `risk_management/agents`, `risk_management/enterprise`,
-     `live_paper_execution/paper_accounts`.
-   - De-duplicate the LEAN projects' copies of `logistic_regression.py` /
-     `sma_crossover_signal.py` (see `docs/memory/0003-import-dont-copy.md`).
-   - Replace the ingestion stub (`coordinator.data_ingestion_stub`) with the live
-     Yahoo Finance MCP.
+6. ✅ **DONE — Housekeeping.**
+   - ✅ Specs for the Box 1 agents (`docs/specs/0001..0003`); Box 3/4/5 agent
+     specs remain TODO.
+   - ✅ Documented the skeleton dirs (`data_prep/features`, `data_prep/pipelines`,
+     `risk_management/agents`, `risk_management/enterprise`,
+     `live_paper_execution/paper_accounts`) with intent READMEs instead of leaving
+     dead scaffolding.
+   - ✅ LEAN copies are now generated from `model_library` via
+     `scripts/sync_lean_strategies.py` (`make sync-lean`), guarded by
+     `test_lean_sync.py`.
+   - ✅ Replaced `data_ingestion_stub` with config-driven `resolve_ingestion_csv`
+     (env override / optional live yfinance refresh / cached default).
+
+## Newly found (not yet fixed)
+
+- **`SystemConfig.WORKSPACE_ROOT` is off by one** (`parents[3]` resolves *above*
+  the repo → a stray `../assets/` with a duplicate CSV). Should be `parents[2]`.
+  Left untouched here because other code may depend on the current behavior;
+  needs a focused fix + check of all `SystemConfig` consumers.

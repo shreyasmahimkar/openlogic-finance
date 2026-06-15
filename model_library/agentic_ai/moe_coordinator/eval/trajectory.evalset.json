@@ -28,7 +28,7 @@
             "tool_uses": [
               {
                 "args": {},
-                "name": "data_ingestion_stub"
+                "name": "resolve_ingestion_csv"
               },
               {
                 "args": {

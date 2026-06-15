@@ -17,6 +17,11 @@ agents — write it **before** generating code (root `AGENTS.md`, workflow step 
 | Spec | Status | Implementation |
 |---|---|---|
 | MoE-F Level-3 Coordinator | Implemented (Phase 0 reconstruction) | [`model_library/agentic_ai/docs/moef_agents_plan.md`](../../model_library/agentic_ai/docs/moef_agents_plan.md) → `model_library/agentic_ai/moe_coordinator/` |
+| [0001 — Market Data Agent](0001-market-data-agent.md) | Implemented | `data_prep/connectors/market_data/` |
+| [0002 — Financial News Agent](0002-financial-news-agent.md) | Implemented | `data_prep/connectors/financial_news/` |
+| [0003 — Global Events Agent](0003-global-events-agent.md) | Implemented (1 stub tool) | `data_prep/connectors/global_events/` |
+
+> Box 3/4/5 agent specs are still TODO (see `docs/BACKLOG.md`).
 
 > The MoE-F design spec currently lives next to the agent
 > (`model_library/agentic_ai/docs/moef_agents_plan.md`). New specs start here in

@@ -16,5 +16,9 @@ QuantConnect **LEAN** backtest engine.
 
 - LEAN is heavy (Docker + multi-GB market data). Install on demand: `uv sync --extra lean`.
 - `lean_workspace/`, `backtests/`, and `.lean/` are runtime/output — gitignored. **Source of truth for strategy code is the project folders under `lean_engine/`.**
-- Strategy logic (signals, models) is **imported from `model_library`** — the LEAN project copies (`logistic_regression.py`, `sma_crossover_signal.py`) are a known duplication slated for consolidation; don't deepen it.
+- Strategy logic (signals, models) lives once in **`model_library`**. LEAN runs
+  each project self-contained in a container, so the project copies of
+  `logistic_regression.py` / `sma_crossover_signal.py` are **generated** from
+  `model_library` — regenerate with `make sync-lean`, never hand-edit them.
+  `test_lean_sync.py` fails CI if they drift.
 - `final_test.py` imports the plotter from the shared `model_library/agentic_ai/coordinator.py` (Phase 3 moved it off `interface/cli`).
