@@ -25,9 +25,19 @@ def chunk_text(text: str, max_chars: int = 400, overlap: int = 50) -> list[str]:
 
 
 def build_index(
-    corpus: list[dict], embedder: EmbeddingProvider | None = None
-) -> tuple[InMemoryVectorStore, EmbeddingProvider]:
-    """Chunk + embed + index a corpus of {id, source, text} records."""
+    corpus: list[dict],
+    embedder: EmbeddingProvider | None = None,
+    backend: str = "memory",
+    **store_kwargs,
+):
+    """Chunk + embed + index a corpus of {id, source, text} records.
+
+    Args:
+        backend: "memory" (default, offline-safe) or "chroma" (real vector DB).
+        store_kwargs: passed to the store (e.g. persist_dir / collection_name for chroma).
+
+    Returns: (store, embedder).
+    """
     embedder = embedder or EmbeddingProvider()
     docs: list[Document] = []
     for record in corpus:
@@ -39,6 +49,13 @@ def build_index(
                     metadata={"source": record.get("source", record["id"])},
                 )
             )
-    store = InMemoryVectorStore()
+
+    if backend == "chroma":
+        from .chroma_store import ChromaVectorStore
+
+        store = ChromaVectorStore(**store_kwargs)
+    else:
+        store = InMemoryVectorStore()
+
     store.add(docs, embedder.embed_texts([d.text for d in docs]))
     return store, embedder
