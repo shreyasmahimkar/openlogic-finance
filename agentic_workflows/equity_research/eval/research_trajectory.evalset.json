@@ -1,0 +1,53 @@
+{
+  "eval_set_id": "equity_research_trajectory",
+  "name": "Equity research agent — research call",
+  "description": "Agent retrieves transcript context AND the model regime, then synthesizes a cited thesis.",
+  "eval_cases": [
+    {
+      "eval_id": "spy_research_call",
+      "conversation": [
+        {
+          "invocation_id": "r1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Give me a research call on SPY using the latest earnings call and the model signal."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Thesis with management guidance [1] and the model regime, with a rating."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "query": "SPY guidance margins outlook"
+                },
+                "name": "retrieve_context"
+              },
+              {
+                "args": {
+                  "ticker": "SPY"
+                },
+                "name": "predict_regime"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}

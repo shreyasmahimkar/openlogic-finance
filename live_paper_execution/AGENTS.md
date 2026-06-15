@@ -11,6 +11,8 @@ Trading connectivity, Docker simulator environments, and GCP/Vertex deploy rigs.
 - `simulators/docker-compose.yml` — isolated Docker execution environments.
 - `cloud_deploy/deploy_vertex.py` — package the ADK app to **Vertex AI Agent Engine**.
 - `cloud_deploy/Dockerfile` — container build.
+- `serving/predict.py` — load a promoted model + score (Vertex/SageMaker endpoint in prod) — the *deploy* half of the MDLC.
+- `monitoring/drift.py` — the *monitor* half: data/prediction drift (PSI), performance decay, and a retrain trigger. See `docs/EQUITY_RESEARCH.md`.
 
 ## Rules
 

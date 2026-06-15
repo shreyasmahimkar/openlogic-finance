@@ -9,12 +9,14 @@ home for prediction math and the expert agents** — other boxes import from her
 
 - `ml_zoo/filters.py` — `stochastic_filter_update` (Wonham-Shiryaev), `robust_gibbs_aggregation` (PAC-Bayes Softmin) + their `FunctionTool` wrappers. **Canonical.**
 - `ml_zoo/logistic_regression.py` — LR model.
+- `ml_zoo/return_regime.py` — return/regime model (features + labels + sklearn pipeline; `predict_regime`; save/load) for the Equity Research Assistant MDLC. See `docs/EQUITY_RESEARCH.md`.
 - `technical/indicators.py` — `enrich_ohlcv_data` (MACD, Bollinger, RSI, CCI, DX, SMAs). **Canonical.**
 - `technical/signals/` — e.g. `sma_crossover_signal`.
 - `agentic_ai/experts.py` — `build_experts()` / `build_moe_parallel_swarm()` factories. **Canonical experts** (factories, so each pipeline gets fresh agents — ADK agents have one parent).
 - `agentic_ai/model_registry.py` — `get_model(role)`: central model routing (Gemini default; env overrides). **Don't hard-code models in agents.**
 - `agentic_ai/coordinator.py` — `build_moef_level_3_system(artifact_dir)`: the **single** MoE-F pipeline builder.
 - `agentic_ai/moe_coordinator/` — flagship ADK app, a thin wrapper over the builder (`adk run model_library/agentic_ai/moe_coordinator`).
+- `retrieval/retriever.py` — RAG retriever (query embedding + vector search + cited context) for the Equity Research Assistant. *(P2: the return/regime model lands here too.)*
 - `tests/` — deterministic unit tests for the math above.
 
 ## Rules

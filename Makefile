@@ -4,7 +4,7 @@
 export PYTHONPATH := .
 
 .DEFAULT_GOAL := help
-.PHONY: help setup lock test lint fmt run web web-dash hooks deploy sync-lean
+.PHONY: help setup lock test lint fmt run web web-dash research-console hooks deploy sync-lean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -34,6 +34,9 @@ web: ## Launch the ADK web UI, then pick "moe_coordinator"
 
 web-dash: ## Launch the Streamlit monitoring dashboard
 	uv run streamlit run interface/streamlit/app.py
+
+research-console: ## Launch the Equity Research Assistant Streamlit console
+	uv run streamlit run interface/streamlit/equity_research_app.py
 
 hooks: ## Run all pre-commit hooks against the whole tree
 	uv run pre-commit run --all-files

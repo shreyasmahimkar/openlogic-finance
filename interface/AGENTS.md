@@ -10,7 +10,8 @@ dashboards, and Jupyter research templates.
 - `cli/agent.py` — CLI orchestration. A **thin importer** over the shared
   builder `model_library/agentic_ai/coordinator.py` (Phase 3 consolidated the old
   duplicate). Keep it thin; don't re-inline pipeline logic here.
-- `streamlit/app.py` — monitoring dashboard (`make web-dash` / `streamlit run interface/streamlit/app.py`).
+- `streamlit/app.py` — MoE-F monitoring dashboard (`make web-dash`).
+- `streamlit/equity_research_app.py` — the Equity Research Assistant console (RAG evidence + model regime + HITL approval + audit trail; `make research-console`). See `docs/EQUITY_RESEARCH.md`.
 - `notebooks/` — research templates (`research_template.ipynb`, etc.).
 
 ## Rules
