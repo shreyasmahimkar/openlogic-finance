@@ -12,9 +12,9 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
 
 | Box | AGENTS.md | Unit tests | Evals | Tools/MCP | Runtime guardrail | Spec |
 |---|---|---|---|---|---|---|
-| 1 Data Prep | ✅ | ❌ | ❌ | ⚠️ news=MCP; market/global=local | n/a | ❌ |
+| 1 Data Prep | ✅ | ⚠️ tool tests | ❌ | ⚠️ news=MCP; market/global=local | n/a | ❌ |
 | 2 Model Library | ✅ | ✅ | ✅ | ✅ | n/a | ⚠️ template only |
-| 3 Strategy Testing | ✅ | ❌ (`final_test.py` is a script) | ❌ | ✅ | n/a | ❌ |
+| 3 Strategy Testing | ✅ | ✅ parsers + MoE-F loop | ❌ | ✅ | n/a | ❌ |
 | 4 Risk Mgmt | ✅ | ⚠️ guardrail tested | ❌ | logic exists + **ADK veto callback** ✅ | ✅ | ❌ |
 | 5 Live/Paper Exec | ✅ | ❌ | ❌ | deploy ✅ | ❌ human-gate not coded | ❌ |
 | 6 Interface | ✅ | ❌ | n/a | ✅ | n/a | ❌ |
@@ -27,11 +27,14 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
    Covered by `risk_management/tests/test_guardrail.py` (9 tests). Still TODO:
    attach it to a real order-placing agent once Box 5 has one.
 
-2. **Tests for Boxes 1, 3** (deterministic, no API keys, fast CI wins).
-   - Box 1: `check_news_cache`, `save_news_to_csv`, `read_market_indicators`.
-   - Box 3: convert `final_test.py` to pytest; test the LEAN summary parser + backtest math.
-   - ~~Box 4: `run_audited_simulation`~~ — guardrail decision now covered (see #1);
-     still worth a direct `run_audited_simulation` breach test.
+2. ✅ **DONE — Tests for Boxes 1 & 3** (deterministic, no API keys).
+   - Box 1: `check_news_cache` / `save_news_to_csv` (`data_prep/tests/`),
+     `read_market_indicators` + `enrich_ohlcv_data` (`model_library/tests/test_indicators.py`).
+   - Box 3: LEAN stdout parsers + `extract_summary_table` and the MoE-F filter/Gibbs
+     loop (`strategy_testing/tests/`); `final_test.py` refactored into a testable
+     `run_simulation()`.
+   - Remaining: a direct `run_audited_simulation` breach test (Box 4 decision is
+     already covered by #1), and evals for the agents themselves (see #3).
 
 3. **Evalsets for the Box 1 connector agents** (market_data / financial_news /
    global_events): right tool called, no hallucination, output contract held.
