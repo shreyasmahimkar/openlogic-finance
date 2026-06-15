@@ -10,7 +10,12 @@ original was lost to orphaned bytecode) and the full pipeline description.
 
 import os
 
+from horizontal_foundation.observability import setup_from_env
 from model_library.agentic_ai.coordinator import build_moef_level_3_system
+
+# Enable local OTel tracing when OPENLOGIC_TRACING=1 (no-op otherwise). ADK then
+# emits spans for the agent's trajectory; see horizontal_foundation/observability.py.
+setup_from_env()
 
 # Artifacts (moe_history.csv / moe_regimes.png) land next to this package.
 moef_level_3_system = build_moef_level_3_system(artifact_dir=os.path.dirname(__file__))

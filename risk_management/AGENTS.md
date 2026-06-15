@@ -7,14 +7,20 @@ trades**. This box is a guardrail, not advisory.
 
 ## Public surface
 
-- `portfolio/auditor.py` — the Risk Auditor (VaR limits, drawdown checks, trade veto).
+- `portfolio/guardrail.py` — **`make_risk_veto_callback()`**: the Risk Auditor as
+  an ADK `before_tool_callback`. Detects trade-shaped tool calls and vetoes them
+  (short-circuits the tool) when the drawdown limit is breached or risk is halted.
+  Attach it to any agent that can place orders.
+- `portfolio/auditor.py` — `run_audited_simulation`: the backtest-time drawdown
+  auditor (shares the `drawdown_breached` math with the guardrail).
 - `agents/` — risk-focused ADK agents.
 - `enterprise/` — enterprise-level / aggregate risk.
 
 ## Rules
 
-- The auditor is a **hard guardrail**: in Phase 3 it becomes an ADK
-  `before_model` / `before_tool` callback that can block any trade-shaped action.
-  Its veto is not optional and not overridable by another agent.
+- The auditor is a **hard guardrail**, now live as an ADK `before_tool_callback`
+  (`guardrail.make_risk_veto_callback`). Wire it onto every order-placing agent;
+  returning a dict from the callback blocks the tool. Its veto is not optional and
+  not overridable by another agent.
 - Risk thresholds are **config**, sourced from `horizontal_foundation`/env — never magic numbers buried in logic.
 - Any change that could weaken a veto path must be called out explicitly in review and covered by a test.

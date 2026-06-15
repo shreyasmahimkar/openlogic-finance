@@ -1,17 +1,17 @@
 {
-  "eval_set_id": "moef_ingestion",
-  "name": "Ingestion phase",
-  "description": "Phase-1 ingestion must locate then enrich with indicators.",
+  "eval_set_id": "global_events_context",
+  "name": "Global events agent",
+  "description": "Retrieves macro/global-event context for an asset.",
   "eval_cases": [
     {
-      "eval_id": "spy_ingest",
+      "eval_id": "events_spy",
       "conversation": [
         {
-          "invocation_id": "i1",
+          "invocation_id": "g1",
           "user_content": {
             "parts": [
               {
-                "text": "Ingest and enrich 10y of SPY."
+                "text": "What global events moved SPY over the last decade?"
               }
             ],
             "role": "user"
@@ -19,7 +19,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Enriched SPY data with MACD/RSI/Bollinger/SMAs."
+                "text": "Listed major global events affecting SPY."
               }
             ],
             "role": "model"
@@ -27,14 +27,10 @@
           "intermediate_data": {
             "tool_uses": [
               {
-                "args": {},
-                "name": "resolve_ingestion_csv"
-              },
-              {
                 "args": {
-                  "csv_path": "assets/SPY_10y.csv"
+                  "ticker": "SPY"
                 },
-                "name": "enrich_ohlcv_data"
+                "name": "get_global_events"
               }
             ],
             "tool_responses": [],

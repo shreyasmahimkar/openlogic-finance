@@ -52,6 +52,9 @@ testpaths = [
     "model_library/tests",
     "model_library/technical/signals/tests",
     "horizontal_foundation/tests",
+    "risk_management/tests",
+    "data_prep/tests",
+    "strategy_testing/tests",
 ]
 python_files = ["test_*.py"]
 

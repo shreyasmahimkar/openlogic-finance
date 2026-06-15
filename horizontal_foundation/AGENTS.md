@@ -10,7 +10,8 @@ dependencies on any box** — the dependency arrow only points *into* here.
 - `config/system_config.py` — `SystemConfig`: workspace paths, default ticker/period, cache TTL. The single source of paths.
 - `utils/logging_helpers.py` — logging setup helpers.
 - `core/base_connector.py` — base class for data connectors.
-- `interpretability/explain_engine.py` — `ExplanationEngine`: multi-tier human-readable explanations (beginner → academic). This is the observability/explainability surface other boxes wrap.
+- `observability.py` — `setup_tracing()` / `setup_from_env()`: local OpenTelemetry tracing for agent runs (`OPENLOGIC_TRACING=1` enables it; the Vertex deploy traces in the cloud). ADK emits spans once the provider is set.
+- `interpretability/explain_engine.py` — `ExplanationEngine`: multi-tier human-readable explanations (beginner → academic). The human-readable layer on top of the machine traces.
 
 ## Rules
 

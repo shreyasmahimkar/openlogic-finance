@@ -1,17 +1,17 @@
 {
-  "eval_set_id": "moef_ingestion",
-  "name": "Ingestion phase",
-  "description": "Phase-1 ingestion must locate then enrich with indicators.",
+  "eval_set_id": "market_data_ingestion",
+  "name": "Market data agent",
+  "description": "Fetches + explains historical OHLCV via fetch_and_explain.",
   "eval_cases": [
     {
-      "eval_id": "spy_ingest",
+      "eval_id": "ingest_spy",
       "conversation": [
         {
-          "invocation_id": "i1",
+          "invocation_id": "m1",
           "user_content": {
             "parts": [
               {
-                "text": "Ingest and enrich 10y of SPY."
+                "text": "Ingest 10 years of SPY and explain it for a beginner."
               }
             ],
             "role": "user"
@@ -19,7 +19,7 @@
           "final_response": {
             "parts": [
               {
-                "text": "Enriched SPY data with MACD/RSI/Bollinger/SMAs."
+                "text": "Fetched 10y of SPY and produced a beginner explanation."
               }
             ],
             "role": "model"
@@ -27,14 +27,12 @@
           "intermediate_data": {
             "tool_uses": [
               {
-                "args": {},
-                "name": "resolve_ingestion_csv"
-              },
-              {
                 "args": {
-                  "csv_path": "assets/SPY_10y.csv"
+                  "ticker": "SPY",
+                  "period": "10y",
+                  "explanation_level": "beginner"
                 },
-                "name": "enrich_ohlcv_data"
+                "name": "fetch_and_explain"
               }
             ],
             "tool_responses": [],
