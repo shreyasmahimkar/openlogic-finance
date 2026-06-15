@@ -12,7 +12,7 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
 
 | Box | AGENTS.md | Unit tests | Evals | Tools/MCP | Runtime guardrail | Spec |
 |---|---|---|---|---|---|---|
-| 1 Data Prep | ✅ | ⚠️ tool tests | ❌ | ⚠️ news=MCP; market/global=local | n/a | ❌ |
+| 1 Data Prep | ✅ | ⚠️ tool tests | ✅ 3 agents | ⚠️ news=MCP; market/global=local | n/a | ❌ |
 | 2 Model Library | ✅ | ✅ | ✅ | ✅ | n/a | ⚠️ template only |
 | 3 Strategy Testing | ✅ | ✅ parsers + MoE-F loop | ❌ | ✅ | n/a | ❌ |
 | 4 Risk Mgmt | ✅ | ⚠️ guardrail tested | ❌ | logic exists + **ADK veto callback** ✅ | ✅ | ❌ |
@@ -36,8 +36,11 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
    - Remaining: a direct `run_audited_simulation` breach test (Box 4 decision is
      already covered by #1), and evals for the agents themselves (see #3).
 
-3. **Evalsets for the Box 1 connector agents** (market_data / financial_news /
-   global_events): right tool called, no hallucination, output contract held.
+3. ✅ **DONE — Evalsets for the Box 1 connector agents.** Schema-valid ADK evalsets
+   + `test_config.json` for `market_data`, `financial_news`, `global_events`
+   (expected tool trajectories). `test_evalsets.py` now scans **all** `eval/` dirs
+   repo-wide, so they're guarded in CI without keys. See
+   `data_prep/connectors/README_EVALS.md`. Scored runs need `GEMINI_API_KEY`.
 
 4. **Finish MCP in Box 1.** `financial_news` uses real MCP (`StdioServerParameters`);
    `market_data` and `global_events` use local FunctionTools and `mcp_client.py` is a

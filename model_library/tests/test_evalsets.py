@@ -10,7 +10,10 @@ import json
 import pytest
 from google.adk.evaluation.eval_set import EvalSet
 
-EVALSETS = sorted(glob.glob("model_library/agentic_ai/moe_coordinator/eval/*.evalset.json"))
+# All evalsets across the repo (flagship agent + per-box connector agents).
+EVALSETS = sorted(
+    p for p in glob.glob("**/eval/*.evalset.json", recursive=True) if ".openlogic-env" not in p
+)
 
 
 def test_evalsets_exist():

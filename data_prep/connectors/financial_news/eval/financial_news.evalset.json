@@ -1,0 +1,63 @@
+{
+  "eval_set_id": "financial_news_ingestion",
+  "name": "Financial news agent",
+  "description": "Cache-miss path: check cache -> search -> persist.",
+  "eval_cases": [
+    {
+      "eval_id": "news_cache_miss",
+      "conversation": [
+        {
+          "invocation_id": "n1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Get financial news from 2026-01-01 to 2026-01-31."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Fetched and saved financial news for the requested window."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "begin_date": "20260101",
+                  "end_date": "20260131"
+                },
+                "name": "check_news_cache"
+              },
+              {
+                "args": {
+                  "query": "financial news",
+                  "begin_date": "20260101",
+                  "end_date": "20260131"
+                },
+                "name": "search_articles"
+              },
+              {
+                "args": {
+                  "begin_date": "20260101",
+                  "end_date": "20260131"
+                },
+                "name": "save_news_to_csv"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}

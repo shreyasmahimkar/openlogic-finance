@@ -1,0 +1,47 @@
+{
+  "eval_set_id": "global_events_context",
+  "name": "Global events agent",
+  "description": "Retrieves macro/global-event context for an asset.",
+  "eval_cases": [
+    {
+      "eval_id": "events_spy",
+      "conversation": [
+        {
+          "invocation_id": "g1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "What global events moved SPY over the last decade?"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Listed major global events affecting SPY."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {
+                  "ticker": "SPY"
+                },
+                "name": "get_global_events"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}
