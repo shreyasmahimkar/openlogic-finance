@@ -2,7 +2,7 @@
 # Standardizes on uv (`.venv` from uv.lock). See AGENTS.md.
 
 .DEFAULT_GOAL := help
-.PHONY: help setup lock test lint fmt run web web-dash hooks
+.PHONY: help setup lock test lint fmt run web web-dash hooks deploy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -35,3 +35,6 @@ web-dash: ## Launch the Streamlit monitoring dashboard
 
 hooks: ## Run all pre-commit hooks against the whole tree
 	uv run pre-commit run --all-files
+
+deploy: ## Deploy the MoE-F agent to Vertex AI Agent Engine (see docs/DEPLOY_VERTEX.md)
+	uv run python live_paper_execution/cloud_deploy/deploy_vertex.py
