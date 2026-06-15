@@ -17,6 +17,13 @@ __pycache__/
 # OS files
 .DS_Store
 
+# Local exploration / debug residue — not part of the production import path
+scratch/
+
+# MoE-F coordinator runtime artefacts (regenerated on each run)
+model_library/agentic_ai/moe_coordinator/moe_history.csv
+model_library/agentic_ai/moe_coordinator/moe_regimes.png
+
 # ── QuantConnect LEAN Engine ──────────────────────────────────────────────────
 # lean_workspace/ is a LEAN CLI runtime root — it contains downloaded market data
 # (can be many GB), Docker layer caches, and synced project copies.
