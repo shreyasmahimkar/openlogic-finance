@@ -33,8 +33,6 @@ a one-time deliverable.
 
 ## Known remaining work (tracked, post-Phase-5)
 
-- Risk Auditor as an ADK `before_tool` veto callback (today it's a deterministic
-  backtest simulator in `risk_management/portfolio/auditor.py`).
-- MCP tool manifest + A2A wiring between boxes (`docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` §6).
-- De-duplicate the LEAN strategy-project copies of `logistic_regression.py` / `sma_crossover_signal.py`.
-- Replace the ingestion stub with the live Yahoo Finance MCP.
+The per-box SDLC gaps (risk-veto callback, per-box tests/evals, MCP completion,
+local observability, specs, skeleton cleanup, LEAN de-dup) are catalogued and
+prioritized in **[`docs/BACKLOG.md`](BACKLOG.md)** — deferred to a later iteration.
