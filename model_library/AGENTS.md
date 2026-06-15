@@ -9,6 +9,7 @@ home for prediction math and the expert agents** — other boxes import from her
 
 - `ml_zoo/filters.py` — `stochastic_filter_update` (Wonham-Shiryaev), `robust_gibbs_aggregation` (PAC-Bayes Softmin) + their `FunctionTool` wrappers. **Canonical.**
 - `ml_zoo/logistic_regression.py` — LR model.
+- `ml_zoo/return_regime.py` — return/regime model (features + labels + sklearn pipeline; `predict_regime`; save/load) for the Equity Research Assistant MDLC. See `docs/EQUITY_RESEARCH.md`.
 - `technical/indicators.py` — `enrich_ohlcv_data` (MACD, Bollinger, RSI, CCI, DX, SMAs). **Canonical.**
 - `technical/signals/` — e.g. `sma_crossover_signal`.
 - `agentic_ai/experts.py` — `build_experts()` / `build_moe_parallel_swarm()` factories. **Canonical experts** (factories, so each pipeline gets fresh agents — ADK agents have one parent).

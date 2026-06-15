@@ -10,6 +10,7 @@ QuantConnect **LEAN** backtest engine.
 - `backtesting/simulator.py` — lightweight in-process simulator.
 - `backtesting/final_test.py` — MoE-F end-to-end backtest harness.
 - `backtesting/data/generate_mock_data.py` — deterministic mock data for tests.
+- `validation/report.py` — the *validate* half of the MDLC: `validate()` → `ValidationReport` (AUC/Brier/KS/CV/PSI) + a `passes_gate()` sign-off. See `docs/EQUITY_RESEARCH.md`.
 - `lean_engine/` — LEAN CLI bridge (`agent.py`, `lean_bridge.py`, `lean_tool.py`) + strategy projects.
 
 ## Rules
