@@ -43,7 +43,7 @@ with st.sidebar:
         "Question", "What did management guide for next year, and what is the model signal?"
     )
     if st.button("Run research", type="primary"):
-        st.session_state.context = tools.retrieve_context(question)
+        st.session_state.context = tools.retrieve_context(question, ticker=ticker)
         st.session_state.audit.record("retrieval", ticker, f"q={question[:60]}")
         st.session_state.regime = tools.predict_regime(ticker)
         st.session_state.audit.record("prediction", ticker, st.session_state.regime[:80])

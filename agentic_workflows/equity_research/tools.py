@@ -21,24 +21,52 @@ from model_library.retrieval.retriever import Retriever
 
 from .corpus import SAMPLE_TRANSCRIPTS
 
-# Build the transcript index + retriever once.
-_store, _embedder = build_index(SAMPLE_TRANSCRIPTS)
-_retriever = Retriever(_store, _embedder)
+from collections import defaultdict
+
+# Group transcripts by ticker to build ticker-specific indices.
+_by_ticker = defaultdict(list)
+for record in SAMPLE_TRANSCRIPTS:
+    _by_ticker[record.get("ticker", "NMBS")].append(record)
+
+# Build a base index first to get the embedder.
+_default_store, _embedder = build_index(SAMPLE_TRANSCRIPTS)
+
+# Build a retriever for each ticker.
+_retrievers = {}
+for t, records in _by_ticker.items():
+    store, _ = build_index(records, _embedder)
+    _retrievers[t] = Retriever(store, _embedder)
+_retrievers["GLOBAL"] = Retriever(_default_store, _embedder)
 
 # repo root = up 3 from agentic_workflows/equity_research/tools.py
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
-def retrieve_context(query: str) -> str:
+def retrieve_context(query: str, ticker: str = "") -> str:
     """Retrieve the most relevant cited earnings-call passages for a question.
 
     Args:
         query: the analyst's natural-language question about the company.
+        ticker: the optional asset symbol (e.g. SPY, AAPL, GOOG, BTC, NMBS).
 
     Returns:
         A numbered, source-cited context block (or NO_CONTEXT_FOUND).
     """
-    return _retriever.retrieve(query, k=4).answer_context
+    # Normalize ticker
+    t = (ticker or "").upper().strip()
+
+    # If no ticker is passed, try to detect it from the query text
+    if not t:
+        for possible_t in _retrievers.keys():
+            if possible_t != "GLOBAL" and possible_t in query.upper():
+                t = possible_t
+                break
+
+    # Fallback to NMBS if the ticker is empty or not in our retrievers
+    if not t or t not in _retrievers:
+        t = "NMBS"
+
+    return _retrievers[t].retrieve(query, k=4).answer_context
 
 
 def predict_regime(ticker: str = "SPY") -> str:

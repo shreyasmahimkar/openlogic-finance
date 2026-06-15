@@ -33,6 +33,16 @@ def test_retrieve_context_still_grounded():
     assert "[1]" in ctx
 
 
+def test_retrieve_context_ticker_specific():
+    ctx_aapl = tools.retrieve_context("revenue guidance", ticker="AAPL")
+    assert "Apple" in ctx_aapl
+    assert "Nimbus" not in ctx_aapl
+
+    ctx_goog = tools.retrieve_context("revenue guidance", ticker="GOOG")
+    assert "Alphabet" in ctx_goog
+    assert "Apple" not in ctx_goog
+
+
 # ── HITL approval gate ────────────────────────────────────────────────────────
 def test_publish_blocked_without_approval():
     cb = make_research_approval_callback()

@@ -13,7 +13,7 @@ import pandas as pd
 
 class FeatureStore:
     def __init__(self, db_path: str = ":memory:"):
-        self.conn = sqlite3.connect(db_path)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
 
     def write_features(self, df: pd.DataFrame, table: str = "features") -> int:
         """Persist a feature frame (its index becomes the `date` key)."""

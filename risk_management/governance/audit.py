@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 class AuditLog:
     def __init__(self, db_path: str = ":memory:"):
-        self.conn = sqlite3.connect(db_path)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.conn.execute(
             """
             CREATE TABLE IF NOT EXISTS audit (
