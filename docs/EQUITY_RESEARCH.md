@@ -7,10 +7,11 @@ governance. It's a second **vertical slice** through OpenLogic's 6-box
 architecture (the first being the MoE-F market forecaster), and it's directly
 on-mission: *research → ML → AI agents for transparent market foresight.*
 
-> **Status:** Phases 1–3 implemented and tested offline — transcript RAG (P1), the
-> return/regime model with a full validate → deploy → monitor MDLC (P2), and the
-> agent orchestrating RAG ⇄ the model with a human-in-the-loop approval gate +
-> agent evals (P3). Data platforms and the Streamlit console are phased below.
+> **Status:** Phases 1–5 complete, tested offline — transcript RAG (P1), the
+> return/regime model with a full validate → deploy → monitor MDLC (P2), the agent
+> orchestrating RAG ⇄ the model with a human-in-the-loop approval gate + agent
+> evals (P3), data platforms (Snowflake/Databricks/AWS/SQL, P4), and a Streamlit
+> research console + case study (P5).
 
 ## What was done (Phase 1)
 
@@ -141,11 +142,24 @@ breakdown: [`docs/DATA_PLATFORMS.md`](DATA_PLATFORMS.md).
 | **S3 / GCS** (transcripts + model artifacts) | `horizontal_foundation/storage.py` | local FS → boto3 / google-cloud-storage |
 | **Databricks** (feature job) | `data_prep/pipelines/feature_pipeline.py` | pandas → Spark/Delta |
 
-## Roadmap (next phase)
+## Phase 5 — Streamlit research console + case study ✅
 
-| Phase | Adds | Boxes |
-|---|---|---|
-| **P5** | a **Streamlit** research console (ask → retrieve → predict → explain → approve) + case study | `interface` |
+`interface/streamlit/equity_research_app.py` — a stakeholder console that ties
+P1–P4 together: ask → **retrieve** cited evidence → **model regime** → draft a
+rated note → **human approval (HITL)** → publish, with a live **governance audit
+trail**. Runs offline.
+
+```bash
+make research-console        # streamlit run interface/streamlit/equity_research_app.py
+```
+
+Business framing for non-technical stakeholders:
+[`docs/EQUITY_RESEARCH_CASE_STUDY.md`](EQUITY_RESEARCH_CASE_STUDY.md).
+
+**All phases (P1–P5) complete.** The slice demonstrates RAG · vector DBs ·
+embeddings · prompt orchestration · classical ML + validate→deploy→monitor MDLC ·
+agentic AI · governance · HITL · evals · AWS/GCP + Snowflake/Databricks/SQL ·
+Streamlit — one reusable 6-box architecture on Google ADK.
 
 ## Skills demonstrated (for reference)
 
