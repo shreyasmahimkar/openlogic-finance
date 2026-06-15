@@ -1,0 +1,73 @@
+[project]
+name = "openlogic-finance"
+version = "0.1.0"
+description = "Open-source, multi-agent financial engineering on Google ADK — replacing black-box models with transparent agentic workflows."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"  # pandas 3.x requires >=3.11; matches the project env
+
+# Core runtime dependencies, derived from the actual imports across the repo.
+# Lower bounds match the versions validated in the project environment.
+dependencies = [
+    "google-adk>=1.31.0",
+    "google-cloud-aiplatform>=1.71.0",  # Vertex AI Agent Engine deploy (live_paper_execution/cloud_deploy)
+    "mcp>=1.0.0",                         # Model Context Protocol tool access
+    "pandas>=3.0.0",
+    "numpy>=2.0.0",
+    "scipy>=1.13.0",
+    "scikit-learn>=1.5.0",
+    "matplotlib>=3.9.0",
+    "plotly>=6.0.0",
+    "yfinance>=1.3.0",
+    "python-dotenv>=1.0.0",
+    "tenacity>=8.0.0",
+]
+
+[project.optional-dependencies]
+# QuantConnect LEAN engine — heavy CLI + Docker tooling, only needed for
+# strategy_testing/lean_engine. Installed on demand: `uv sync --extra lean`.
+lean = ["lean>=1.0.225"]
+
+# Interface layer (Streamlit dashboards).
+interface = ["streamlit>=1.57.0"]
+
+# Development + verification tooling (expanded in Phase 1/2 of the SDLC plan).
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.6.0",
+    "pre-commit>=3.8.0",
+]
+
+[tool.uv]
+# This repo is a multi-package workspace (data_prep, model_library, ...), not a
+# single distributable wheel. Have uv manage the environment and lockfile
+# without trying to build/install the project itself.
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+testpaths = [
+    "model_library/tests",
+    "model_library/technical/signals/tests",
+    "horizontal_foundation/tests",
+]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = [".openlogic-env", ".adk", "scratch", "assets"]
+
+[tool.ruff.lint]
+# Start narrow on an existing codebase: pyflakes (F) catches real errors
+# (unused imports, undefined names, bad f-strings) without stylistic churn.
+# Widen to E/I once the tree is clean.
+select = ["F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package __init__.py files import names purely to re-export them.
+"**/__init__.py" = ["F401"]
+# QuantConnect LEAN strategies require `from AlgorithmImports import *`.
+"strategy_testing/lean_engine/**" = ["F403", "F405"]

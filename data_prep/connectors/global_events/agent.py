@@ -16,5 +16,5 @@ When requested to generate a plot:
 Remember: "One plot is worth a 1000 words"! Ensure your textual explanation perfectly complements the generated visual asset.
 """,
     description="A specialized Agent for rendering high-fidelity charts overlaid with dynamic macroeconomic regimes.",
-    tools=[plot_asset_data, get_global_events, search_recent_events]
+    tools=[plot_asset_data, get_global_events, search_recent_events],
 )

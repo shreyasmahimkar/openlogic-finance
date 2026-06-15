@@ -1,17 +1,18 @@
 from typing import Dict, Any
 
+
 class ExplanationEngine:
     """Generates human-readable, multi-tier explanations of complex financial operations."""
-    
+
     @staticmethod
     def explain_data_prep(metadata: Dict[str, Any], level: str = "beginner") -> str:
         """
         Translates a data prep summary into a human-readable explanation.
-        
+
         Args:
             metadata: Dict containing ticker, rows_fetched, start_date, end_date, latest_close_price.
             level: "beginner" or "academic"
-            
+
         Returns:
             A formatted string explanation.
         """
@@ -20,7 +21,7 @@ class ExplanationEngine:
         start = metadata.get("start_date", "N/A")
         end = metadata.get("end_date", "N/A")
         price = metadata.get("latest_close_price", 0.0)
-        
+
         if level == "beginner":
             return (
                 f"### 🧸 Beginner Explanation (Age 11+)\n"

@@ -1,48 +1,76 @@
+"""The MoE-F expert swarm.
+
+Exposed as **factories** rather than module-level singletons: an ADK agent can
+only have one parent, so the coordinator builder must be able to assemble a fresh,
+independent swarm per pipeline instance (e.g. the ADK app and the CLI twin).
+
+Models come from the central registry (`model_registry.py`): Gemini by default so
+the swarm runs on a Google account alone; set `OPENLOGIC_HETEROGENEOUS_EXPERTS=1`
+for the research-faithful Llama/GPT/Mixtral mix (needs LiteLLM + provider keys).
+"""
+
 from google.adk.agents import LlmAgent, ParallelAgent
+from google.adk.tools import FunctionTool
+
+from model_library.agentic_ai.model_registry import get_model
 from model_library.ml_zoo.filters import stochastic_filter_update_tool
+from model_library.technical.indicators import read_market_indicators
 
-# Expert 1: Llama (The Technician / Momentum)
-expert_llama = LlmAgent(
-    name="Llama_Expert",
-    model="llama-3-8b",
-    instruction="""You are a Technical Analyst Expert evaluating SPY.
-Given standard OHLCV prices and moving averages for the past 10 days provided in the context, predict if the price will Rise, Fall, or remain Neutral tomorrow.
-Use {enriched_market_data} and {filtered_news_context} for context.
-Output your prediction EXACTLY as a single float between 0.0 and 1.0, where 1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall. 
-No text, no preamble, just the float value.""",
-    tools=[stochastic_filter_update_tool],
-    output_key="pred_llama"
+read_market_indicators_tool = FunctionTool(func=read_market_indicators)
+
+_FLOAT_CONTRACT = (
+    "Output your prediction EXACTLY as a single float between 0.0 and 1.0, where "
+    "1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall. No text, no preamble, just the float value."
 )
 
-# Expert 2: GPT4o (The Fundamentalist / Macro)
-expert_gpt = LlmAgent(
-    name="GPT4o_Expert",
-    model="gpt-4o",
-    instruction="""You are a Fundamental Macroeconomic Analyst Expert evaluating the broader stock market (SPY).
-Given the market context provided, predict if the asset will experience a macro-level Rise, Fall, or Neutral move tomorrow. 
-Ignore short-term technical noise, focus on structural gravity and long-horizon price memory.
-Use {enriched_market_data} and {filtered_news_context} for context.
-Output your prediction EXACTLY as a single float between 0.0 and 1.0, where 1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall.
-No text, no preamble, just the float value.""",
-    tools=[stochastic_filter_update_tool],
-    output_key="pred_gpt"
-)
 
-# Expert 3: Mixtral (The Contrarian / Mean-Reversion)
-expert_mixtral = LlmAgent(
-    name="Mixtral_Expert",
-    model="mixtral-8x7b",
-    instruction="""You are a High-Frequency Mean-Reverting Analyst Expert.
-Look at the past 10 days of price context. If it rallied hard, bet that it Falls. If it dumped, bet that it Rises. You believe markets are rubber bands.
-Use {enriched_market_data} and {filtered_news_context} for context.
-Output your prediction EXACTLY as a single float between 0.0 and 1.0, where 1.0=Strong Rise, 0.5=Neutral, 0.0=Strong Fall.
-No text, no preamble, just the float value.""",
-    tools=[stochastic_filter_update_tool],
-    output_key="pred_mixtral"
-)
+def build_experts() -> list[LlmAgent]:
+    """Build the three fresh expert agents (technical / fundamental / contrarian)."""
+    expert_technical = LlmAgent(
+        name="Llama_Expert",
+        model=get_model("expert_technical"),
+        instruction=(
+            "You are a Technical Analyst Expert evaluating SPY.\n"
+            "First, use the read_market_indicators tool on {enriched_market_data} to load "
+            "the latest 10 days of prices and moving averages. Then, predict if the price "
+            "will Rise, Fall, or remain Neutral tomorrow using the market indicators and "
+            "the news context in {filtered_news_context}.\n" + _FLOAT_CONTRACT
+        ),
+        tools=[stochastic_filter_update_tool, read_market_indicators_tool],
+        output_key="pred_llama",
+    )
+    expert_fundamental = LlmAgent(
+        name="GPT4o_Expert",
+        model=get_model("expert_fundamental"),
+        instruction=(
+            "You are a Fundamental Macroeconomic Analyst Expert evaluating the broader "
+            "stock market (SPY).\n"
+            "First, use the read_market_indicators tool on {enriched_market_data} to load "
+            "the latest 10 days of prices. Then predict a macro-level Rise, Fall, or Neutral "
+            "move tomorrow. Ignore short-term technical noise; focus on structural gravity and "
+            "long-horizon price memory using the market indicators and {filtered_news_context} "
+            "for context.\n" + _FLOAT_CONTRACT
+        ),
+        tools=[stochastic_filter_update_tool, read_market_indicators_tool],
+        output_key="pred_gpt",
+    )
+    expert_contrarian = LlmAgent(
+        name="Mixtral_Expert",
+        model=get_model("expert_contrarian"),
+        instruction=(
+            "You are a High-Frequency Mean-Reverting Analyst Expert.\n"
+            "First, use the read_market_indicators tool on {enriched_market_data} to load "
+            "the latest 10 days of prices. Look at the past 10 days of price context. If it "
+            "rallied hard, bet that it Falls. If it dumped, bet that it Rises. You believe "
+            "markets are rubber bands. Use the market indicators and {filtered_news_context} "
+            "for context.\n" + _FLOAT_CONTRACT
+        ),
+        tools=[stochastic_filter_update_tool, read_market_indicators_tool],
+        output_key="pred_mixtral",
+    )
+    return [expert_technical, expert_fundamental, expert_contrarian]
 
-# Group them into a Parallel Swarm for Fan-Out execution
-moe_parallel_swarm = ParallelAgent(
-    name="ParallelFilterPhase",
-    sub_agents=[expert_llama, expert_gpt, expert_mixtral]
-)
+
+def build_moe_parallel_swarm() -> ParallelAgent:
+    """Build a fresh parallel fan-out swarm of the three experts."""
+    return ParallelAgent(name="ParallelFilterPhase", sub_agents=build_experts())

@@ -24,6 +24,7 @@ from typing import Optional
 
 # ── Signal Types ──────────────────────────────────────────────────────────────
 
+
 class SignalType(Enum):
     """
     Crossover signal emitted by detect_crossover() on each bar.
@@ -32,12 +33,14 @@ class SignalType(Enum):
     DEATH_CROSS  : Fast SMA just crossed BELOW slow SMA → exit long
     NONE         : No crossover event on this bar
     """
+
     GOLDEN_CROSS = "GOLDEN_CROSS"
-    DEATH_CROSS  = "DEATH_CROSS"
-    NONE         = "NONE"
+    DEATH_CROSS = "DEATH_CROSS"
+    NONE = "NONE"
 
 
 # ── Strategy Configuration ────────────────────────────────────────────────────
+
 
 @dataclass
 class StrategyConfig:
@@ -55,11 +58,12 @@ class StrategyConfig:
         max_drawdown_pct: Liquidate if portfolio falls this far from peak (default 0.15 = 15%).
         ticker:           Asset ticker symbol (default "SPY").
     """
-    fast_period:      int   = 50
-    slow_period:      int   = 200
-    position_size:    float = 1.0
+
+    fast_period: int = 50
+    slow_period: int = 200
+    position_size: float = 1.0
     max_drawdown_pct: float = 0.15
-    ticker:           str   = "SPY"
+    ticker: str = "SPY"
 
     def __post_init__(self):
         if self.fast_period >= self.slow_period:
@@ -67,20 +71,17 @@ class StrategyConfig:
                 f"fast_period ({self.fast_period}) must be < slow_period ({self.slow_period})"
             )
         if not 0.0 < self.position_size <= 1.0:
-            raise ValueError(
-                f"position_size ({self.position_size}) must be in (0.0, 1.0]"
-            )
+            raise ValueError(f"position_size ({self.position_size}) must be in (0.0, 1.0]")
         if not 0.0 < self.max_drawdown_pct < 1.0:
-            raise ValueError(
-                f"max_drawdown_pct ({self.max_drawdown_pct}) must be in (0.0, 1.0)"
-            )
+            raise ValueError(f"max_drawdown_pct ({self.max_drawdown_pct}) must be in (0.0, 1.0)")
 
 
 # ── Signal Functions ──────────────────────────────────────────────────────────
 
+
 def detect_crossover(
-    fast:      float,
-    slow:      float,
+    fast: float,
+    slow: float,
     prev_fast: Optional[float],
     prev_slow: Optional[float],
 ) -> SignalType:
@@ -132,8 +133,8 @@ def detect_crossover(
 
 def drawdown_breached(
     current_value: float,
-    peak_value:    float,
-    threshold:     float = 0.15,
+    peak_value: float,
+    threshold: float = 0.15,
 ) -> bool:
     """
     Determine whether the portfolio has dropped beyond the maximum allowed drawdown.
@@ -174,18 +175,19 @@ def generate_crossover_signals(df, config: StrategyConfig):
     Enriches a price DataFrame with Fast SMA, Slow SMA, and raw crossover signals.
     """
     import pandas as pd
+
     df = df.copy()
     df["Fast_SMA"] = df["Close"].rolling(window=config.fast_period).mean()
     df["Slow_SMA"] = df["Close"].rolling(window=config.slow_period).mean()
-    
+
     signals = []
     prev_fast = None
     prev_slow = None
-    
+
     for idx, row in df.iterrows():
         fast = row["Fast_SMA"]
         slow = row["Slow_SMA"]
-        
+
         if pd.isna(fast) or pd.isna(slow):
             signals.append(SignalType.NONE)
         else:
@@ -193,7 +195,6 @@ def generate_crossover_signals(df, config: StrategyConfig):
             signals.append(sig)
             prev_fast = fast
             prev_slow = slow
-            
+
     df["Signal"] = [s.value for s in signals]
     return df
-

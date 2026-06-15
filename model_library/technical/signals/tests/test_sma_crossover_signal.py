@@ -23,8 +23,8 @@ from model_library.technical.signals.sma_crossover_signal import (
 # detect_crossover tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestDetectCrossover:
 
+class TestDetectCrossover:
     # ── Golden Cross ──────────────────────────────────────────────────────────
 
     def test_golden_cross_exact_crossover(self):
@@ -105,8 +105,8 @@ class TestDetectCrossover:
 # drawdown_breached tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestDrawdownBreached:
 
+class TestDrawdownBreached:
     def test_breach_at_exactly_threshold(self):
         """Drawdown == threshold is a breach (>=)."""
         assert drawdown_breached(85_000, 100_000, threshold=0.15) is True
@@ -149,8 +149,8 @@ class TestDrawdownBreached:
 # StrategyConfig validation tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestStrategyConfig:
 
+class TestStrategyConfig:
     def test_default_construction(self):
         """Default config builds without error."""
         cfg = StrategyConfig()
@@ -202,6 +202,7 @@ class TestStrategyConfig:
 # End-to-end simulation test (no LEAN required)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestEndToEndSimulation:
     """
     Simulates a sequence of bars to verify the crossover logic produces
@@ -218,13 +219,13 @@ class TestEndToEndSimulation:
         """
         bars = [
             # (fast, slow)
-            (195.0, 200.0),   # bar 1 — below
-            (197.0, 200.0),   # bar 2 — still below
-            (199.0, 200.0),   # bar 3 — still below
-            (202.0, 200.0),   # bar 4 — GOLDEN CROSS
-            (204.0, 200.0),   # bar 5 — above, no cross
-            (206.0, 200.0),   # bar 6 — above, no cross
-            (198.0, 200.0),   # bar 7 — DEATH CROSS
+            (195.0, 200.0),  # bar 1 — below
+            (197.0, 200.0),  # bar 2 — still below
+            (199.0, 200.0),  # bar 3 — still below
+            (202.0, 200.0),  # bar 4 — GOLDEN CROSS
+            (204.0, 200.0),  # bar 5 — above, no cross
+            (206.0, 200.0),  # bar 6 — above, no cross
+            (198.0, 200.0),  # bar 7 — DEATH CROSS
         ]
 
         signals = []
@@ -235,10 +236,10 @@ class TestEndToEndSimulation:
             signals.append(signal)
             prev_fast, prev_slow = fast, slow
 
-        assert signals[0] == SignalType.NONE          # bar 1: first bar
-        assert signals[1] == SignalType.NONE          # bar 2: already below
-        assert signals[2] == SignalType.NONE          # bar 3: still below
+        assert signals[0] == SignalType.NONE  # bar 1: first bar
+        assert signals[1] == SignalType.NONE  # bar 2: already below
+        assert signals[2] == SignalType.NONE  # bar 3: still below
         assert signals[3] == SignalType.GOLDEN_CROSS  # bar 4: crossover UP
-        assert signals[4] == SignalType.NONE          # bar 5: holding
-        assert signals[5] == SignalType.NONE          # bar 6: holding
-        assert signals[6] == SignalType.DEATH_CROSS   # bar 7: crossover DOWN
+        assert signals[4] == SignalType.NONE  # bar 5: holding
+        assert signals[5] == SignalType.NONE  # bar 6: holding
+        assert signals[6] == SignalType.DEATH_CROSS  # bar 7: crossover DOWN

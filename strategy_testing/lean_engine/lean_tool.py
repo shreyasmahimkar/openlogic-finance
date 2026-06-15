@@ -21,9 +21,9 @@ _bridge = LeanEngineBridge()
 
 
 def run_sma_backtest(
-    ticker:        str   = "SPY",
-    fast_period:   int   = 50,
-    slow_period:   int   = 200,
+    ticker: str = "SPY",
+    fast_period: int = 50,
+    slow_period: int = 200,
     position_size: float = 1.0,
 ) -> dict:
     """
@@ -63,17 +63,17 @@ def run_sma_backtest(
     )
 
     result = _bridge.run_backtest(
-        ticker        = ticker,
-        fast_period   = fast_period,
-        slow_period   = slow_period,
-        position_size = position_size,
+        ticker=ticker,
+        fast_period=fast_period,
+        slow_period=slow_period,
+        position_size=position_size,
     )
 
     d = result.to_dict()
 
     # Build a human-readable summary the ADK agent can show directly
     status = "✅ SUCCESS" if d["success"] else "❌ FAILED"
-    ret    = f"{d['total_return_pct']:.2f}%" if d["total_return_pct"] is not None else "N/A"
+    ret = f"{d['total_return_pct']:.2f}%" if d["total_return_pct"] is not None else "N/A"
 
     summary_lines = [
         f"## LEAN Backtest Result — {d['strategy_name']}",

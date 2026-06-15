@@ -1,0 +1,51 @@
+{
+  "eval_set_id": "moef_ingestion",
+  "name": "Ingestion phase",
+  "description": "Phase-1 ingestion must fetch then enrich with indicators.",
+  "eval_cases": [
+    {
+      "eval_id": "spy_ingest",
+      "conversation": [
+        {
+          "invocation_id": "i1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Ingest and enrich 10y of SPY."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Enriched SPY data with MACD/RSI/Bollinger/SMAs."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {},
+                "name": "data_ingestion_stub"
+              },
+              {
+                "args": {
+                  "csv_path": "assets/SPY_10y.csv"
+                },
+                "name": "enrich_ohlcv_data"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}

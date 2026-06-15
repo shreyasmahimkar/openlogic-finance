@@ -1,6 +1,6 @@
 # Local Development Guide
 
-Welcome to the `openlogic-finance` local development guide! This repository employs a multi-agent microservice architecture utilizing the Google Agent Development Kit (ADK). 
+Welcome to the `openlogic-finance` local development guide! This repository employs a multi-agent microservice architecture utilizing the Google Agent Development Kit (ADK).
 
 To ensure a smooth developer experience, we utilize a **Hybrid Environment Approach**:
 * **One unified virtual environment locally** for seamless IDE integration, easy debugging, and frictionless cross-module imports.
@@ -39,7 +39,7 @@ Because our agents are developed independently but run together, we aggregate th
 
 ```bash
 uv pip install -r utility_agents/market_data/requirements.txt
-uv pip install -r research_papers_to_agents/moe_coordinator/requirements.txt
+uv pip install -r model_library/agentic_ai/moe_coordinator/requirements.txt
 ```
 
 ---
@@ -56,14 +56,14 @@ You can fire up the local development UI or run evaluation cases against specifi
 ```bash
 # or run a specific agent
 adk web utility_agents
-adk web research_papers_to_agents
+adk web model_library/agentic_ai
 ```
 
 **Testing MoE-F Coordinator:**
 ```bash
-adk web research_papers_to_agents/moe_coordinator
+adk web model_library/agentic_ai/moe_coordinator
 # or run evaluations:
-adk eval research_papers_to_agents/moe_coordinator research_papers_to_agents/moe_coordinator/eval/moef_eval.test.json
+adk eval model_library/agentic_ai/moe_coordinator model_library/agentic_ai/moe_coordinator/eval/moef_eval.test.json
 ```
 
 ---

@@ -23,8 +23,8 @@ from model_library.ml_zoo.logistic_regression import (
 # LogisticStrategyConfig validation tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestLogisticStrategyConfig:
 
+class TestLogisticStrategyConfig:
     def test_default_construction(self):
         """Default config builds without error."""
         cfg = LogisticStrategyConfig()
@@ -91,8 +91,8 @@ class TestLogisticStrategyConfig:
 # LogisticModelPayload validation tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestLogisticModelPayload:
 
+class TestLogisticModelPayload:
     def test_valid_payload(self):
         """Valid payload constructed without error."""
         payload = LogisticModelPayload(
@@ -146,8 +146,8 @@ class TestLogisticModelPayload:
 # engineer_features tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestEngineerFeatures:
 
+class TestEngineerFeatures:
     def test_standard_feature_engineering(self):
         """Features engineered correctly with normal values."""
         raw = {
@@ -194,8 +194,8 @@ class TestEngineerFeatures:
 # predict_probability tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestPredictProbability:
 
+class TestPredictProbability:
     def test_predict_probability_exact(self):
         """Verify the exact math of standardization and sigmoid."""
         # Simple setup:
@@ -211,7 +211,7 @@ class TestPredictProbability:
         )
         features = {"f1": 12.0}
         prob = predict_probability(features, payload)
-        
+
         expected_z = 1.0
         expected_p = 1.0 / (1.0 + math.exp(-expected_z))
         assert abs(prob - expected_p) < 1e-9
@@ -247,8 +247,8 @@ class TestPredictProbability:
 # evaluate_signal tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestEvaluateSignal:
 
+class TestEvaluateSignal:
     def test_buy_signal_crossover_above(self):
         """BUY triggered when probability crosses ABOVE threshold."""
         # Previous is at or below threshold (0.5), current is above (0.55)
@@ -289,8 +289,8 @@ class TestEvaluateSignal:
 # project_weights tests
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestProjectWeights:
 
+class TestProjectWeights:
     def test_projection_equivalence(self):
         """Verify raw-space projection yields IDENTICAL logits z as scaled-space computation."""
         payload = LogisticModelPayload(
@@ -299,30 +299,30 @@ class TestProjectWeights:
             feature_means={"sma_ratio": 0.005, "rsi_norm": 0.1, "momentum": 0.002},
             feature_stds={"sma_ratio": 0.03, "rsi_norm": 0.35, "momentum": 0.012},
         )
-        
+
         # 1. Project weights to raw space
         raw_weights, raw_intercept = project_weights(payload)
-        
+
         # 2. Random raw feature values
         raw_features = {"sma_ratio": 0.02, "rsi_norm": -0.15, "momentum": 0.005}
-        
+
         # 3. Calculate z using scaled space
         z_scaled = payload.intercept
         for f, w in payload.weights.items():
             x_scaled = (raw_features[f] - payload.feature_means[f]) / payload.feature_stds[f]
             z_scaled += w * x_scaled
-            
+
         # 4. Calculate z using raw space
         z_raw = raw_intercept
         for f, w_raw in raw_weights.items():
             z_raw += w_raw * raw_features[f]
-            
+
         # 5. Assert equivalence (within float rounding limits)
         assert abs(z_scaled - z_raw) < 1e-12
-        
+
         # Verify both predict identical probabilities
         prob_scaled = predict_probability(raw_features, payload)
-        
+
         # Evaluate sigmoid directly with z_raw
         prob_raw = 1.0 / (1.0 + math.exp(-z_raw))
         assert abs(prob_scaled - prob_raw) < 1e-12

@@ -1,6 +1,6 @@
 # Google ADK Usage Guide: MoE-F Coordinator
 
-Welcome to the native Google Agent Development Kit (ADK) integration of the **Mixture of Experts - Filter (MoE-F) Coordinator**! 
+Welcome to the native Google Agent Development Kit (ADK) integration of the **Mixture of Experts - Filter (MoE-F) Coordinator**!
 
 Because this application relies on a sophisticated Level 3 Multi-Agent architecture consisting of Sequential Pipelines and Parallel Fan-Out swarms, managing state and evaluating pathways requires explicit tooling. This guide details how you can trace the algorithmic flow, mathematically test trajectory outputs, and seamlessly transition into production on the cloud.
 
@@ -20,10 +20,10 @@ To trigger the interface, you must execute it from the **root of the `openlogic-
 source .openlogic-env/bin/activate
 
 # Execute the local web harness for the full package space
-PYTHONPATH=. adk web research_papers_to_agents
+PYTHONPATH=. adk web model_library/agentic_ai
 ```
 
-Alternatively, if you are already inside the `research_papers_to_agents/` folder, you must explicitly set the `PYTHONPATH` to include the root directory:
+Alternatively, if you are already inside the `model_library/agentic_ai/` folder, you must explicitly set the `PYTHONPATH` to include the root directory:
 ```bash
 PYTHONPATH=.. adk web .
 ```
@@ -32,7 +32,7 @@ Open your browser to the local port specified (usually `http://localhost:8000`).
 
 > [!WARNING]
 > **Local Web UI Execution Error (`ValueError: Model ... not found`)**
-> If you trigger a full end-to-end execution through the Web UI without Vertex integration, it will crash when it hits the parallel layer because models like `llama-3-8b` and `mixtral-8x7b` are not natively registered in ADK's open-source local LLM registry (which defaults to Gemini). 
+> If you trigger a full end-to-end execution through the Web UI without Vertex integration, it will crash when it hits the parallel layer because models like `llama-3-8b` and `mixtral-8x7b` are not natively registered in ADK's open-source local LLM registry (which defaults to Gemini).
 > **To fix this for local UI testing:** Temporarily change the model parameters in `experts.py` to `gemini-2.5-flash`, OR stick to running `python final_test.py` which isolates the logic and safely stubs these LLM calls entirely.
 
 ---
@@ -46,19 +46,19 @@ Execute these commands to test the swarm before any deployments:
 ### Test Component Integrity (Phase 1 Ingestion)
 Ensures the YFinance MCP and SBERT semantic tools trigger without hallucination.
 ```bash
-adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/ingestion.test.json
+adk eval moe_coordinator model_library/agentic_ai/moe_coordinator/eval/ingestion.test.json
 ```
 
 ### Test Parallel Constraints (Phase 2 Swarm)
 Tests the strict constraints placed horizontally across Llama/GPT/Mixtral LLMs guaranteeing discrete float output generation.
 ```bash
-adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/swarm.test.json
+adk eval moe_coordinator model_library/agentic_ai/moe_coordinator/eval/swarm.test.json
 ```
 
 ### Test Full Orchestration Handoffs
 Uses the `trajectory_exact_match` metric to score 1 if the master ADK pipeline moves flawlessly from Extractor -> Swarm -> Gibbs Synthesis -> Plotter.
 ```bash
-adk eval moe_coordinator research_papers_to_agents/moe_coordinator/eval/trajectory.test.json
+adk eval moe_coordinator model_library/agentic_ai/moe_coordinator/eval/trajectory.test.json
 ```
 
 ---
@@ -81,7 +81,7 @@ Ensure your IAM identities are correct and you invoke the application with suffi
 ### Execution
 Run the deployment packaging tool:
 ```bash
-python3 research_papers_to_agents/moe_coordinator/deploy_vertex.py
+python3 model_library/agentic_ai/moe_coordinator/deploy_vertex.py
 ```
 
 This encapsulates your `SequentialAgent` logic into an `AdkApp` and spins it up natively within the **Vertex AI Agent Engine**. Once deployed, your Swarm gains out-of-the-box infrastructure scaling and deep OpenTelemetry support to monitor HMM mathematical state health in the Cloud!
@@ -95,6 +95,6 @@ Since live LLM inference endpoints inside `agent.py` and `experts.py` are stubbe
 2. Execute the test loop:
    ```bash
    # From the root of your repository
-   PYTHONPATH=. python -m research_papers_to_agents.moe_coordinator.final_test
+   PYTHONPATH=. python -m model_library.agentic_ai.moe_coordinator.final_test
    ```
 This loop sequentially applies the Llama/GPT/Mixtral mocked responses mapped against ground truth, integrates belief states incrementally via the Wonham-Shiryaev filter, normalizes with the Gibbs aggregator, and graphs the finalized rolling-trajectory locally in `moe_regimes.png` showcasing Bullish (1.0), Neutral (0.5), Bearish (0.0) market signals across the simulated 252 days.

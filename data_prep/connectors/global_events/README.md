@@ -2,9 +2,9 @@
 > "One plot is worth a 1000 words."
 
 ## Architecture Rationale
-In multi-agent systems, data ingestion and data visualization often become tightly coupled. However, the fundamental role of ingesting high-throughput numerical market streams requires low latency and strict isolation, whereas generating rich, contextual visualizations demands a deep, qualitative reasoning capability. 
+In multi-agent systems, data ingestion and data visualization often become tightly coupled. However, the fundamental role of ingesting high-throughput numerical market streams requires low latency and strict isolation, whereas generating rich, contextual visualizations demands a deep, qualitative reasoning capability.
 
-The `global_events_agent` embraces **Separation of Concerns**. By decoupling the plotting logic out of the `market_data` agent, we allow the visualization process to evaluate a broader temporal and semantic context. 
+The `global_events_agent` embraces **Separation of Concerns**. By decoupling the plotting logic out of the `market_data` agent, we allow the visualization process to evaluate a broader temporal and semantic context.
 
 ## Features
 - **Global Context Infusion**: Natively reads `global_events.csv` to overlay socio-economic regimes onto raw candlestick lines.

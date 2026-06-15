@@ -35,11 +35,11 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
         # StrategyConfig is defined in model_library — this is the only place
         # LEAN parameters are mapped to the shared config object.
         self._cfg = StrategyConfig(
-            fast_period      = int(self.get_parameter("fast-period",      50)),
-            slow_period      = int(self.get_parameter("slow-period",     200)),
-            position_size    = float(self.get_parameter("position-size",  1.0)),
-            max_drawdown_pct = float(self.get_parameter("max-drawdown-pct", 0.15)),
-            ticker           = self.get_parameter("ticker", "SPY") or "SPY",
+            fast_period=int(self.get_parameter("fast-period", 50)),
+            slow_period=int(self.get_parameter("slow-period", 200)),
+            position_size=float(self.get_parameter("position-size", 1.0)),
+            max_drawdown_pct=float(self.get_parameter("max-drawdown-pct", 0.15)),
+            ticker=self.get_parameter("ticker", "SPY") or "SPY",
         )
 
         # ── Date Range ────────────────────────────────────────────────────────
@@ -70,14 +70,14 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
 
         # ── Charts ────────────────────────────────────────────────────────────
         sma_chart = Chart("SMA Crossover")
-        sma_chart.add_series(Series("Price",                         SeriesType.LINE,    0, "$"))
-        sma_chart.add_series(Series(f"SMA{self._cfg.fast_period}",   SeriesType.LINE,    0, "$"))
-        sma_chart.add_series(Series(f"SMA{self._cfg.slow_period}",   SeriesType.LINE,    0, "$"))
+        sma_chart.add_series(Series("Price", SeriesType.LINE, 0, "$"))
+        sma_chart.add_series(Series(f"SMA{self._cfg.fast_period}", SeriesType.LINE, 0, "$"))
+        sma_chart.add_series(Series(f"SMA{self._cfg.slow_period}", SeriesType.LINE, 0, "$"))
         self.add_chart(sma_chart)
 
         signal_chart = Chart("Trade Signals")
         signal_chart.add_series(Series("Golden Cross", SeriesType.SCATTER, 0, "$"))
-        signal_chart.add_series(Series("Death Cross",  SeriesType.SCATTER, 0, "$"))
+        signal_chart.add_series(Series("Death Cross", SeriesType.SCATTER, 0, "$"))
         self.add_chart(signal_chart)
 
         portfolio_chart = Chart("Portfolio Value")
@@ -86,7 +86,7 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
 
         # ── Counters ──────────────────────────────────────────────────────────
         self._golden_crosses: int = 0
-        self._death_crosses:  int = 0
+        self._death_crosses: int = 0
 
         self.log(
             f"[INIT] {self._cfg.ticker} | "
@@ -107,12 +107,12 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
             return
 
         # ── Extract raw indicator values (LEAN's responsibility ends here) ────
-        fast:  float = self.fast_sma.current.value
-        slow:  float = self.slow_sma.current.value
+        fast: float = self.fast_sma.current.value
+        slow: float = self.slow_sma.current.value
         price: float = data[self.symbol].close
 
         # ── Charting ──────────────────────────────────────────────────────────
-        self.plot("SMA Crossover", "Price",                       price)
+        self.plot("SMA Crossover", "Price", price)
         self.plot("SMA Crossover", f"SMA{self._cfg.fast_period}", fast)
         self.plot("SMA Crossover", f"SMA{self._cfg.slow_period}", slow)
         self.plot("Portfolio Value", "Equity", self.portfolio.total_portfolio_value)
@@ -123,7 +123,9 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
             self._peak_value = current_value
 
         # ── Drawdown Guard — decision delegated to model_library ──────────────
-        if self.portfolio[self.symbol].is_long and drawdown_breached(current_value, self._peak_value, self._cfg.max_drawdown_pct):
+        if self.portfolio[self.symbol].is_long and drawdown_breached(
+            current_value, self._peak_value, self._cfg.max_drawdown_pct
+        ):
             self.liquidate(self.symbol, tag="MAX_DRAWDOWN_STOP")
             self.log(
                 f"[DRAWDOWN STOP] Liquidated @ ${price:.2f} | "
@@ -137,7 +139,9 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
         if signal == SignalType.GOLDEN_CROSS:
             if not self.portfolio[self.symbol].is_long:
                 self.set_holdings(self.symbol, self._cfg.position_size)
-                self._peak_value = self.portfolio.total_portfolio_value  # Reset peak value on trade entry
+                self._peak_value = (
+                    self.portfolio.total_portfolio_value
+                )  # Reset peak value on trade entry
                 self._golden_crosses += 1
                 self.plot("Trade Signals", "Golden Cross", price)
                 self.log(
@@ -169,12 +173,14 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
 
     # ──────────────────────────────────────────────────────────────────────────
     def on_end_of_algorithm(self):
-        final_value  = self.portfolio.total_portfolio_value
+        final_value = self.portfolio.total_portfolio_value
         total_return = ((final_value - 100_000) / 100_000) * 100
 
         self.log("=" * 60)
-        self.log(f"  STRATEGY: SMA{self._cfg.fast_period}/{self._cfg.slow_period} on {self._cfg.ticker}")
-        self.log(f"  Starting Cash  : $100,000.00")
+        self.log(
+            f"  STRATEGY: SMA{self._cfg.fast_period}/{self._cfg.slow_period} on {self._cfg.ticker}"
+        )
+        self.log("  Starting Cash  : $100,000.00")
         self.log(f"  Final Value    : ${final_value:,.2f}")
         self.log(f"  Total Return   : {total_return:.2f}%")
         self.log(f"  Golden Crosses : {self._golden_crosses}")
