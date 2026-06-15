@@ -49,9 +49,11 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
    `global_events.search_recent_events` (a simulated web search) as the next real
    MCP migration — needs a web-search MCP server + key, so left as documented TODO.
 
-5. **Local observability.** `enable_tracing` is deploy-only. Wire ADK tracing for
-   local runs and connect the `horizontal_foundation/interpretability` engine to
-   agent runs so drift/cost are visible without deploying.
+5. ✅ **DONE — Local observability.** `horizontal_foundation/observability.py`
+   (`setup_tracing` / `setup_from_env`) wires OpenTelemetry for local runs;
+   `OPENLOGIC_TRACING=1 adk run model_library/agentic_ai/moe_coordinator` now emits
+   ADK trajectory spans. Interpretability engine documented as the human-readable
+   layer on top. Tests in `horizontal_foundation/tests/test_observability.py`.
 
 6. **Housekeeping.**
    - Write real specs in `docs/specs/` for the Box 1/3/4/5 agents (each spec's
