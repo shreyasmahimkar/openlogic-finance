@@ -25,6 +25,10 @@ print(Retriever(store, emb).retrieve("fiscal 2026 outlook", k=3).answer_context)
 
 > Install the stack: `uv sync --extra rag` (adds chromadb + pypdf). Set
 > `GEMINI_API_KEY` for real embeddings; otherwise the offline fallback is used.
+>
+> **Live agent:** the Equity Research Assistant uses the in-memory backend by
+> default (fast, offline); set `OPENLOGIC_RAG_BACKEND=chroma` to run it on the real
+> Chroma vector DB (`adk run agentic_workflows/equity_research`).
 
 ## Gap #2 — scored LM-judge RAG eval
 

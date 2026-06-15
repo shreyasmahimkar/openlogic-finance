@@ -4,7 +4,8 @@ from pathlib import Path
 class SystemConfig:
     """Provides passive baseline system configurations and paths."""
 
-    WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
+    # repo root: system_config.py is at horizontal_foundation/config/, so parents[2].
+    WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
     DEFAULT_ASSET_DIR = WORKSPACE_ROOT / "assets"
     DEFAULT_TICKER = "SPY"
     DEFAULT_PERIOD = "10y"
