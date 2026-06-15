@@ -15,6 +15,10 @@ def test_system_config():
     assert isinstance(test_path, Path)
     assert test_path.name == "test_file.csv"
 
+    # Regression: assets dir must resolve INSIDE the repo (parents[2], not [3]).
+    assert SystemConfig.WORKSPACE_ROOT.name == "openlogic-finance"
+    assert SystemConfig.DEFAULT_ASSET_DIR == SystemConfig.WORKSPACE_ROOT / "assets"
+
 
 def test_explanation_engine():
     """Verifies that the ExplanationEngine produces custom responses for beginner vs academic tiers."""

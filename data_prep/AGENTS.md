@@ -10,7 +10,7 @@ engineering. Entry point of the 6-box flow.
 - `connectors/market_data/` — ADK agent + tools for OHLCV ingestion (Yahoo Finance).
 - `connectors/financial_news/` — ADK agent + tools for news ingestion (cache + fetch).
 - `connectors/global_events/` — ADK agent + tools for macro/global-event context.
-- `rag/` — reusable RAG ingestion infra: `embeddings.py` (Vertex + offline fallback), `vector_store.py` (pluggable), `indexing.py` (chunk + index). Powers the Equity Research Assistant; see `docs/EQUITY_RESEARCH.md`.
+- `rag/` — reusable RAG infra: `embeddings.py` (real Google `text-embedding-004` via genai + offline hashing fallback), `vector_store.py` (in-memory) / `chroma_store.py` (**real Chroma vector DB**), `indexing.py` (`build_index(..., backend="chroma")`), `loaders.py` (ingest real `.txt`/`.md`/`.pdf` filings). Powers the Equity Research Assistant; see `docs/RAG.md` + `docs/EQUITY_RESEARCH.md`.
 - `features/`, `pipelines/` — feature engineering and pipeline assembly (build out as needed).
 
 ## Rules

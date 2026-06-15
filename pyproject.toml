@@ -31,6 +31,11 @@ lean = ["lean>=1.0.225"]
 # Interface layer (Streamlit dashboards).
 interface = ["streamlit>=1.57.0"]
 
+# Real RAG stack: a real vector DB (Chroma) + PDF ingestion. Semantic embeddings
+# use Google text-embedding-004 via the already-present google-genai SDK
+# (keyed on GEMINI_API_KEY); the offline hashing fallback needs nothing extra.
+rag = ["chromadb>=1.5.0", "pypdf>=6.0.0"]
+
 # Development + verification tooling (expanded in Phase 1/2 of the SDLC plan).
 dev = [
     "pytest>=8.0.0",

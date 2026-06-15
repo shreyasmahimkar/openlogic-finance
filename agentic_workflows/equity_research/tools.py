@@ -23,18 +23,26 @@ from .corpus import SAMPLE_TRANSCRIPTS
 
 from collections import defaultdict
 
+# Vector-DB backend: "memory" (default, fast/offline) or "chroma" (real vector DB).
+# Embeddings auto-upgrade to Google text-embedding-004 when GEMINI_API_KEY is set.
+_RAG_BACKEND = os.environ.get("OPENLOGIC_RAG_BACKEND", "memory")
+
 # Group transcripts by ticker to build ticker-specific indices.
 _by_ticker = defaultdict(list)
 for record in SAMPLE_TRANSCRIPTS:
     _by_ticker[record.get("ticker", "NMBS")].append(record)
 
-# Build a base index first to get the embedder.
-_default_store, _embedder = build_index(SAMPLE_TRANSCRIPTS)
+# Build a base index first to get the embedder (shared across ticker indices).
+_default_store, _embedder = build_index(
+    SAMPLE_TRANSCRIPTS, backend=_RAG_BACKEND, collection_name="eqr_global"
+)
 
-# Build a retriever for each ticker.
+# Build a retriever per ticker (unique Chroma collection per ticker when chroma).
 _retrievers = {}
 for t, records in _by_ticker.items():
-    store, _ = build_index(records, _embedder)
+    store, _ = build_index(
+        records, _embedder, backend=_RAG_BACKEND, collection_name=f"eqr_{t.lower()}"
+    )
     _retrievers[t] = Retriever(store, _embedder)
 _retrievers["GLOBAL"] = Retriever(_default_store, _embedder)
 

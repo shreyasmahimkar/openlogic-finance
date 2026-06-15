@@ -1,0 +1,28 @@
+NIMBUS CORP (NMBS) — FORM 10-K (FY2025)
+Item 7. Management's Discussion and Analysis of Financial Condition and Results of Operations (excerpt)
+
+[This is a sample/fictional filing used to demonstrate real-document ingestion in
+the RAG pipeline. Replace with actual SEC filings as needed.]
+
+Overview. Fiscal 2025 revenue grew 9.2% to $4.8 billion, driven by a continued mix
+shift toward our cloud platform, which now represents 61% of total revenue.
+Operating margin expanded 110 basis points to 23.4% as cloud scale efficiencies
+more than offset elevated AI-infrastructure depreciation.
+
+Liquidity and Capital Resources. As of December 31, 2025, the Company held $1.2
+billion in cash and cash equivalents and maintained an undrawn $500 million
+revolving credit facility. Net leverage was 2.1x trailing-twelve-month EBITDA,
+within the 3.5x covenant threshold. Management believes existing liquidity, cash
+generated from operations, and available credit are sufficient to fund operations
+for at least the next twelve months.
+
+Outlook. For fiscal 2026, we expect revenue growth of 8% to 10% and operating
+margin expansion of approximately 120 basis points. We expect free cash flow
+conversion above 90% and intend to resume share repurchases in the second half of
+the year, prioritizing deleveraging until net leverage falls below 1.5x.
+
+Risk Factors (summary). A prolonged rise in interest rates could increase borrowing
+costs and extend sales cycles for rate-sensitive customers in financial services.
+Approximately 40% of revenue is tied to discretionary enterprise IT spending, which
+is sensitive to macroeconomic cycles. A stronger U.S. dollar represents a 2 to 3
+percentage point headwind to reported revenue.

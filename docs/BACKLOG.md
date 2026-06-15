@@ -68,9 +68,9 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
    - ✅ Replaced `data_ingestion_stub` with config-driven `resolve_ingestion_csv`
      (env override / optional live yfinance refresh / cached default).
 
-## Newly found (not yet fixed)
+## Newly found
 
-- **`SystemConfig.WORKSPACE_ROOT` is off by one** (`parents[3]` resolves *above*
-  the repo → a stray `../assets/` with a duplicate CSV). Should be `parents[2]`.
-  Left untouched here because other code may depend on the current behavior;
-  needs a focused fix + check of all `SystemConfig` consumers.
+- ✅ **FIXED — `SystemConfig.WORKSPACE_ROOT` off-by-one.** Was `parents[3]`
+  (resolved *above* the repo → a stray `../assets/`); now `parents[2]`. Audited
+  all consumers (`coordinator.py` already self-resolved; `market_data/tools.py`
+  now uses the correct in-repo `assets/`). Regression test in `test_foundation.py`.
