@@ -15,6 +15,7 @@ home for prediction math and the expert agents** — other boxes import from her
 - `agentic_ai/model_registry.py` — `get_model(role)`: central model routing (Gemini default; env overrides). **Don't hard-code models in agents.**
 - `agentic_ai/coordinator.py` — `build_moef_level_3_system(artifact_dir)`: the **single** MoE-F pipeline builder.
 - `agentic_ai/moe_coordinator/` — flagship ADK app, a thin wrapper over the builder (`adk run model_library/agentic_ai/moe_coordinator`).
+- `retrieval/retriever.py` — RAG retriever (query embedding + vector search + cited context) for the Equity Research Assistant. *(P2: the return/regime model lands here too.)*
 - `tests/` — deterministic unit tests for the math above.
 
 ## Rules

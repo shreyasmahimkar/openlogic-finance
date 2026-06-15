@@ -10,7 +10,7 @@ engineering. Entry point of the 6-box flow.
 - `connectors/market_data/` — ADK agent + tools for OHLCV ingestion (Yahoo Finance).
 - `connectors/financial_news/` — ADK agent + tools for news ingestion (cache + fetch).
 - `connectors/global_events/` — ADK agent + tools for macro/global-event context.
-- `connectors/mcp_client.py` — MCP client layer (YFinance MCP, SBERT semantic filter).
+- `rag/` — reusable RAG ingestion infra: `embeddings.py` (Vertex + offline fallback), `vector_store.py` (pluggable), `indexing.py` (chunk + index). Powers the Equity Research Assistant; see `docs/EQUITY_RESEARCH.md`.
 - `features/`, `pipelines/` — feature engineering and pipeline assembly (build out as needed).
 
 ## Rules
