@@ -12,7 +12,7 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
 
 | Box | AGENTS.md | Unit tests | Evals | Tools/MCP | Runtime guardrail | Spec |
 |---|---|---|---|---|---|---|
-| 1 Data Prep | ✅ | ⚠️ tool tests | ✅ 3 agents | ⚠️ news=MCP; market/global=local | n/a | ❌ |
+| 1 Data Prep | ✅ | ⚠️ tool tests | ✅ 3 agents | ✅ policy set (see 0005) | n/a | ❌ |
 | 2 Model Library | ✅ | ✅ | ✅ | ✅ | n/a | ⚠️ template only |
 | 3 Strategy Testing | ✅ | ✅ parsers + MoE-F loop | ❌ | ✅ | n/a | ❌ |
 | 4 Risk Mgmt | ✅ | ⚠️ guardrail tested | ❌ | logic exists + **ADK veto callback** ✅ | ✅ | ❌ |
@@ -42,9 +42,12 @@ Priority order is top-to-bottom. See `docs/AGENTIC_ENGINEERING_SDLC_PLAN.md` and
    repo-wide, so they're guarded in CI without keys. See
    `data_prep/connectors/README_EVALS.md`. Scored runs need `GEMINI_API_KEY`.
 
-4. **Finish MCP in Box 1.** `financial_news` uses real MCP (`StdioServerParameters`);
-   `market_data` and `global_events` use local FunctionTools and `mcp_client.py` is a
-   stub. Standardize on MCP or delete the stub and document the decision.
+4. ✅ **DONE — MCP policy set for Box 1** (`docs/memory/0005-mcp-policy.md`):
+   MCP for external third-party services; FunctionTools for local deterministic
+   computation. Deleted the dead `mcp_client.py` stub; fixed the hard-coded `uvx`
+   path in `financial_news` (now `shutil.which`). Flagged
+   `global_events.search_recent_events` (a simulated web search) as the next real
+   MCP migration — needs a web-search MCP server + key, so left as documented TODO.
 
 5. **Local observability.** `enable_tracing` is deploy-only. Wire ADK tracing for
    local runs and connect the `horizontal_foundation/interpretability` engine to

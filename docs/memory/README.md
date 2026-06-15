@@ -13,3 +13,4 @@ These are loaded as context for AI agents working in the repo — high signal on
 - [0002 — Expert float-output contract](0002-expert-float-output-contract.md)
 - [0003 — Import, don't copy (no vendoring)](0003-import-dont-copy.md)
 - [0004 — Multi-provider model status](0004-model-provider-status.md)
+- [0005 — MCP vs FunctionTool policy (Box 1)](0005-mcp-policy.md)

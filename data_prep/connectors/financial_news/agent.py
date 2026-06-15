@@ -1,4 +1,6 @@
 import os
+import shutil
+
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
@@ -29,7 +31,8 @@ Workflow:
         McpToolset(
             connection_params=StdioConnectionParams(
                 server_params=StdioServerParameters(
-                    command="/Users/shreyas/.local/bin/uvx",
+                    # Resolve uvx from PATH (portable) rather than a hard-coded home path.
+                    command=shutil.which("uvx") or "uvx",
                     args=["--from", "git+https://github.com/jeffmm/nytimes-mcp.git", "nytimes-mcp"],
                     env={"NYT_API_KEY": os.environ.get("NYT_API_KEY", "")},
                 )
