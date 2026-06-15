@@ -1,21 +1,27 @@
-# 0004 — Multi-provider model status
+# 0004 — Model routing & provider status
 
-**Status:** Active (gap to close in Phase 3/8)
+**Status:** Active (registry landed in Phase 3)
 
-Models referenced today, and what actually runs:
+All model choice goes through the central registry
+`model_library/agentic_ai/model_registry.py` (`get_model(role)`). It maps a
+**logical role** → a concrete model, so routing is config, not scattered code.
 
-| Agent(s) | Model id | Runs with current setup? |
+| Role | Default | Runs on a Google account alone? |
 |---|---|---|
-| Orchestration glue (extractor, feature, SBERT, synthesizer, plotter) | `gemini-2.5-flash` | ✅ `GEMINI_API_KEY` in `.env` |
-| `expert_llama` | `llama-3-8b` | ❌ needs LiteLLM + provider key |
-| `expert_gpt` | `gpt-4o` | ❌ needs LiteLLM + OpenAI key |
-| `expert_mixtral` | `mixtral-8x7b` | ❌ needs LiteLLM + provider key |
+| `orchestration` (extractor, feature, SBERT, synthesizer, plotter) | `gemini-2.5-flash` | ✅ |
+| `expert_technical` | `gemini-2.5-flash` | ✅ |
+| `expert_fundamental` | `gemini-2.5-flash` | ✅ |
+| `expert_contrarian` | `gemini-2.5-flash` | ✅ |
 
-**Consequence:** a full MoE-F run reaches `ParallelFilterPhase` and then fails at
-the experts until the non-Gemini providers are wired. ADK treats a bare model
-string as Gemini; non-Gemini models must be wrapped with `LiteLlm`.
+**Defaults route everything to Gemini**, so a full MoE-F run completes with only
+`GEMINI_API_KEY` (local) or Vertex (deploy) — no OpenAI/Groq keys. This closed
+the earlier gap where the swarm died at `ParallelFilterPhase`.
 
-**How to apply:** don't assume end-to-end works out of the box. Closing this is
-the **central model registry + routing** item (Phase 3/8): one place that maps a
-logical role → concrete model + provider wrapper, enabling cost-based routing
-(frontier models for hard tasks, cheap models for deterministic ones).
+**Overrides:**
+- Per role: `OPENLOGIC_MODEL_<ROLE>` (e.g. `OPENLOGIC_MODEL_EXPERT_FUNDAMENTAL=gpt-4o`).
+- Research-faithful heterogeneous swarm (Llama/GPT/Mixtral): `OPENLOGIC_HETEROGENEOUS_EXPERTS=1`.
+  Non-Gemini ids are wrapped in ADK's `LiteLlm` and need `litellm` + provider keys.
+
+**How to apply:** never hard-code a model in an agent — call `get_model(role)`.
+Cost-based routing (frontier models for hard tasks, cheap models for deterministic
+ones) is a future extension of this same registry.

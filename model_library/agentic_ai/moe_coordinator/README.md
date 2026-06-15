@@ -45,8 +45,9 @@ Open the printed local URL (usually http://localhost:8000) and interact with
 - **Shared math is imported, not vendored.** Experts, the stochastic filter, the
   Gibbs aggregation, and the indicator enrichment all come from `model_library`.
   The lost original copied these in-tree; that duplication is intentionally gone.
-- **Known follow-up (Phase 3):** `interface/cli/agent.py` still duplicates this
-  assembly and should be refactored to import `root_agent` from here.
+- **Consolidated (Phase 3):** the pipeline now lives once in
+  `model_library/agentic_ai/coordinator.py`; this `agent.py` and
+  `interface/cli/agent.py` are thin wrappers over `build_moef_level_3_system()`.
 - **Not re-vendored:** the old `final_test.py` (a backtest harness — see
   `strategy_testing/backtesting/final_test.py`) and the `block_convey/`
   PRISMtrace client are intentionally not recreated here.

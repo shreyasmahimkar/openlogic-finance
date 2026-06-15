@@ -14,9 +14,12 @@ Shared math, agents, and config exist **once** and are imported:
 `.pyc` survived, never committed), and the vendored copies drifted from the
 canonical ones. Duplication is how this codebase lost working code.
 
-**How to apply:** never create a second copy of a shared module. Known remaining
-duplications to *consolidate, not extend* (Phase 3):
-- `interface/cli/agent.py` duplicates the MoE-F pipeline in `moe_coordinator/agent.py`.
-- LEAN strategy projects copy `logistic_regression.py` / `sma_crossover_signal.py`.
+**How to apply:** never create a second copy of a shared module.
+- ✅ Resolved (Phase 3): the MoE-F pipeline now lives once in
+  `model_library/agentic_ai/coordinator.py`; `moe_coordinator/agent.py` and
+  `interface/cli/agent.py` are thin importers. The expert swarm is built via a
+  factory (`experts.build_moe_parallel_swarm`) so each pipeline gets fresh agents.
+- ⏳ Remaining: LEAN strategy projects copy `logistic_regression.py` /
+  `sma_crossover_signal.py` — consolidate, don't extend.
 
 See [[0001-six-box-architecture]].

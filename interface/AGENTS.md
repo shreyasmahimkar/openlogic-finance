@@ -7,9 +7,9 @@ dashboards, and Jupyter research templates.
 
 ## Public surface
 
-- `cli/agent.py` — CLI orchestration. **Note:** currently duplicates the MoE-F
-  pipeline assembled in `model_library/agentic_ai/moe_coordinator/agent.py`;
-  Phase 3 factors both into one shared builder. Don't extend the duplication.
+- `cli/agent.py` — CLI orchestration. A **thin importer** over the shared
+  builder `model_library/agentic_ai/coordinator.py` (Phase 3 consolidated the old
+  duplicate). Keep it thin; don't re-inline pipeline logic here.
 - `streamlit/app.py` — monitoring dashboard (`make web-dash` / `streamlit run interface/streamlit/app.py`).
 - `notebooks/` — research templates (`research_template.ipynb`, etc.).
 

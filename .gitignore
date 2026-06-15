@@ -23,6 +23,8 @@ scratch/
 # MoE-F coordinator runtime artefacts (regenerated on each run)
 model_library/agentic_ai/moe_coordinator/moe_history.csv
 model_library/agentic_ai/moe_coordinator/moe_regimes.png
+model_library/agentic_ai/moe_history.csv
+model_library/agentic_ai/moe_regimes.png
 
 # ── QuantConnect LEAN Engine ──────────────────────────────────────────────────
 # lean_workspace/ is a LEAN CLI runtime root — it contains downloaded market data
