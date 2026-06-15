@@ -1,6 +1,4 @@
-import os
 import yfinance as yf
-import pandas as pd
 from tenacity import retry, wait_exponential, stop_after_attempt
 
 from horizontal_foundation.config.system_config import SystemConfig

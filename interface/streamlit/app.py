@@ -8,7 +8,6 @@ import os
 import sys
 import time
 import math
-from typing import Dict, Any
 
 # Ensure repo root is in python path
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -419,7 +418,6 @@ def run_simulations(
     probabilities_a = []
     prev_prob = None
     
-    from model_library.ml_zoo.logistic_regression import engineer_features
     
     for idx, row in sim_df.iterrows():
         fs = row['Fast_SMA']
@@ -1285,10 +1283,10 @@ with tabs[1]:
 
             col_a, col_b = st.columns(2)
             with col_a:
-                st.markdown(f"### 🚗 Model A Details")
+                st.markdown("### 🚗 Model A Details")
                 render_dynamic_model_card(st.session_state.model_a_selected, "#8F94FB", is_model_a=True)
             with col_b:
-                st.markdown(f"### 🚗 Model B Details")
+                st.markdown("### 🚗 Model B Details")
                 render_dynamic_model_card(st.session_state.model_b_selected, "#FFD600", is_model_a=False)
 
 
@@ -1325,7 +1323,7 @@ with tabs[2]:
         col_lc1, col_lc2 = st.columns(2)
         with col_lc1:
             st.markdown("**Decoupled Workspace Projects:**")
-            st.code(f"Model A: strategy_testing/lean_engine/logistic_regression_project\nModel B: strategy_testing/lean_engine/sma_crossover_project", language="text")
+            st.code("Model A: strategy_testing/lean_engine/logistic_regression_project\nModel B: strategy_testing/lean_engine/sma_crossover_project", language="text")
             
         with col_lc2:
             st.markdown("**Active Instrument & Signals Map:**")
@@ -1693,14 +1691,14 @@ with tabs[3]:
             console_logs.append(f"[System Config] Veto Threshold established at: {custom_dd*100:.1f}% max drawdown.")
             
             if len(a_logs) > 0:
-                console_logs.append(f"[RISK DETECTED] Model A (Logistic Regression) experienced active drawdown violation.")
+                console_logs.append("[RISK DETECTED] Model A (Logistic Regression) experienced active drawdown violation.")
                 for log in a_logs:
                     console_logs.append(f"🔴 Model A Breach Date: {log['date'].strftime('%Y-%m-%d')} | Value: ${log['val']:,.2f} | {log['msg']}")
             else:
                 console_logs.append("🟢 Model A Risk Profile: Within limits. No veto required.")
                 
             if len(b_logs) > 0:
-                console_logs.append(f"[RISK DETECTED] Model B (SMA Crossover) experienced active drawdown violation.")
+                console_logs.append("[RISK DETECTED] Model B (SMA Crossover) experienced active drawdown violation.")
                 for log in b_logs:
                     console_logs.append(f"🔴 Model B Breach Date: {log['date'].strftime('%Y-%m-%d')} | Value: ${log['val']:,.2f} | {log['msg']}")
             else:

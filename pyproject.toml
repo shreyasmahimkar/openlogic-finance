@@ -56,3 +56,15 @@ python_files = ["test_*.py"]
 target-version = "py311"
 line-length = 100
 exclude = [".openlogic-env", ".adk", "scratch", "assets"]
+
+[tool.ruff.lint]
+# Start narrow on an existing codebase: pyflakes (F) catches real errors
+# (unused imports, undefined names, bad f-strings) without stylistic churn.
+# Widen to E/I once the tree is clean.
+select = ["F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package __init__.py files import names purely to re-export them.
+"**/__init__.py" = ["F401"]
+# QuantConnect LEAN strategies require `from AlgorithmImports import *`.
+"strategy_testing/lean_engine/**" = ["F403", "F405"]

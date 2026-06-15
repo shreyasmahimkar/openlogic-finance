@@ -213,7 +213,7 @@ class LogisticRegressionStrategy(QCAlgorithm):
 
         self.log("=" * 60)
         self.log(f"  STRATEGY: Logistic Regression Model on {self._cfg.ticker}")
-        self.log(f"  Starting Cash  : $100,000.00")
+        self.log("  Starting Cash  : $100,000.00")
         self.log(f"  Final Value    : ${final_value:,.2f}")
         self.log(f"  Total Return   : {total_return:.2f}%")
         self.log(f"  Buys           : {self._buys}")

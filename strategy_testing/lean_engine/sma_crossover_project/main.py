@@ -174,7 +174,7 @@ class GoldenCrossSMAStrategy(QCAlgorithm):
 
         self.log("=" * 60)
         self.log(f"  STRATEGY: SMA{self._cfg.fast_period}/{self._cfg.slow_period} on {self._cfg.ticker}")
-        self.log(f"  Starting Cash  : $100,000.00")
+        self.log("  Starting Cash  : $100,000.00")
         self.log(f"  Final Value    : ${final_value:,.2f}")
         self.log(f"  Total Return   : {total_return:.2f}%")
         self.log(f"  Golden Crosses : {self._golden_crosses}")

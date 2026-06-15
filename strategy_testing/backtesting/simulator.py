@@ -5,7 +5,6 @@ Lightweight, event-driven local simulator and evaluation engine for testing cros
 """
 
 import pandas as pd
-import numpy as np
 
 def get_performance_summary(series: pd.Series, name: str) -> dict:
     """

@@ -1,9 +1,6 @@
 from model_library.ml_zoo.logistic_regression import (
     LogisticStrategyConfig,
-    LogisticModelPayload,
-    engineer_features,
-    predict_probability,
-    project_weights
+    LogisticModelPayload
 )
 
 # 1. Initialize our strategy config and pretrained model payload

@@ -1,0 +1,59 @@
+{
+  "eval_set_id": "moef_trajectory",
+  "name": "MoE-F master trajectory",
+  "description": "End-to-end: ingestion -> swarm -> Gibbs synthesis -> plot.",
+  "eval_cases": [
+    {
+      "eval_id": "spy_full_run",
+      "conversation": [
+        {
+          "invocation_id": "t1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Run the MoE-F forecast for SPY."
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "MoE-F pipeline complete: ingestion, expert swarm, Gibbs synthesis and chart rendering finished."
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "args": {},
+                "name": "data_ingestion_stub"
+              },
+              {
+                "args": {
+                  "csv_path": "assets/SPY_10y.csv"
+                },
+                "name": "enrich_ohlcv_data"
+              },
+              {
+                "args": {},
+                "name": "robust_gibbs_aggregation"
+              },
+              {
+                "args": {},
+                "name": "render_moe_trajectories"
+              }
+            ],
+            "tool_responses": [],
+            "intermediate_responses": []
+          },
+          "creation_timestamp": 0.0
+        }
+      ],
+      "creation_timestamp": 0.0,
+      "final_session_state": {}
+    }
+  ],
+  "creation_timestamp": 0.0
+}

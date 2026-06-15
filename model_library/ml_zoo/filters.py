@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.linalg as la
 from google.adk.tools import FunctionTool
-from typing import Dict, Any
+from typing import Any
 
 def compute_input_sensitivity_gradient(prediction: float, ground_truth: float, delta_f: float) -> float:
     # A_t implementation (Simplified for brevity based on BCE/MSE helper functions)
