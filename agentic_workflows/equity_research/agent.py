@@ -1,48 +1,51 @@
-"""Equity Research Assistant — grounded RAG agent (vertical slice over the 6 boxes).
+"""Equity Research Assistant — orchestrating RAG ⇄ the return model with HITL (P3).
 
-Wires the boxes together: ingestion/index (Box 1, `data_prep.rag`) → retriever
-(Box 2, `model_library.retrieval`) → grounding governance (Box 4,
-`risk_management.governance`) → a Gemini ADK agent. The model comes from the
-central registry. ADK is optional at import; the retrieval core works without it.
+The agent now wields three tools and a governance callback, tying the boxes into
+one workflow:
+- `retrieve_context` (Box 1/2, RAG) — what management *said*.
+- `predict_regime` (Box 2, model) — what the *numbers* say.
+- `publish_recommendation` (consequential) — gated by a **human-in-the-loop**
+  approval callback (Box 4) until an analyst signs off.
 
+Grounding governance still applies: cite transcript passages or abstain.
 Run: `adk run agentic_workflows/equity_research` (needs GEMINI_API_KEY).
-P2 will add the return/regime model as a second tool on this agent.
 """
 
-from data_prep.rag.indexing import build_index
 from model_library.agentic_ai.model_registry import get_model
-from model_library.retrieval.retriever import Retriever
+from risk_management.governance.approval import make_research_approval_callback
 from risk_management.governance.grounding import GROUNDING_INSTRUCTION
 
-from .corpus import SAMPLE_TRANSCRIPTS
+from . import tools
+from .tools import retrieve_context  # re-exported for convenience/tests  # noqa: F401
 
-# Build the index + retriever once at import.
-_store, _embedder = build_index(SAMPLE_TRANSCRIPTS)
-_retriever = Retriever(_store, _embedder)
-
-
-def retrieve_context(query: str) -> str:
-    """Retrieve the most relevant cited earnings-call passages for a question.
-
-    Args:
-        query: the analyst's natural-language question about the company.
-
-    Returns:
-        A numbered, source-cited context block (or NO_CONTEXT_FOUND).
-    """
-    return _retriever.retrieve(query, k=4).answer_context
+INSTRUCTION = (
+    GROUNDING_INSTRUCTION + "\n\nYou also have two more tools:\n"
+    "- predict_regime(ticker): the quantitative model's regime signal — present it "
+    "as the *model view*, separate from management's words.\n"
+    "- publish_recommendation(thesis, rating): publishes a BUY/HOLD/SELL note. It is "
+    "consequential and requires human approval; if you receive PENDING_HUMAN_APPROVAL, "
+    "tell the user the note is awaiting analyst sign-off — do NOT claim it was published.\n"
+    "For a research call: retrieve the relevant transcript passages, get the model "
+    "regime, then synthesize a concise, cited thesis with a rating. Distinguish the "
+    "qualitative (transcript) and quantitative (model) evidence."
+)
 
 
 def build_equity_research_agent():
-    """Build the ADK grounded equity-research agent (requires google-adk)."""
+    """Build the ADK research agent (requires google-adk)."""
     from google.adk.agents import LlmAgent
     from google.adk.tools import FunctionTool
 
     return LlmAgent(
         name="equity_research_agent",
         model=get_model("orchestration"),
-        instruction=GROUNDING_INSTRUCTION,
-        tools=[FunctionTool(func=retrieve_context)],
+        instruction=INSTRUCTION,
+        tools=[
+            FunctionTool(func=tools.retrieve_context),
+            FunctionTool(func=tools.predict_regime),
+            FunctionTool(func=tools.publish_recommendation),
+        ],
+        before_tool_callback=make_research_approval_callback(),
         output_key="research_note",
     )
 

@@ -7,9 +7,10 @@ governance. It's a second **vertical slice** through OpenLogic's 6-box
 architecture (the first being the MoE-F market forecaster), and it's directly
 on-mission: *research → ML → AI agents for transparent market foresight.*
 
-> **Status:** Phase 1 (transcript RAG) **+** Phase 2 (return/regime model with a
-> full validate → deploy → monitor MDLC) implemented and tested offline. Data
-> platforms, the agent tie-in, and the Streamlit console are phased below.
+> **Status:** Phases 1–3 implemented and tested offline — transcript RAG (P1), the
+> return/regime model with a full validate → deploy → monitor MDLC (P2), and the
+> agent orchestrating RAG ⇄ the model with a human-in-the-loop approval gate +
+> agent evals (P3). Data platforms and the Streamlit console are phased below.
 
 ## What was done (Phase 1)
 
@@ -104,11 +105,33 @@ print(monitor(Xtr, Xte, model.predict_proba_up(Xtr),
 > trains, the gate blocks weak models, drift fires the retrain trigger), not that
 > it beats the market. That's the right thing to test in an MDLC.
 
+## Phase 3 — agent orchestration + human-in-the-loop ✅
+
+The agent now ties the workflow together with **three tools + a governance callback**:
+
+| Piece | Where | Role |
+|---|---|---|
+| `retrieve_context` | `agentic_workflows/equity_research/tools.py` | RAG — what management *said* (cited) |
+| `predict_regime(ticker)` | same | the return model's quantitative regime signal (Box 2) |
+| `publish_recommendation` | same | the **consequential** action (BUY/HOLD/SELL note) |
+| HITL approval gate | `risk_management/governance/approval.py` | `before_tool_callback` blocks publishing with `PENDING_HUMAN_APPROVAL` until `state["human_approved"]` is True |
+| agent evals | `agentic_workflows/equity_research/eval/` | trajectory: retrieve → predict → cited thesis (schema-validated in CI) |
+
+```bash
+adk run agentic_workflows/equity_research        # needs GEMINI_API_KEY
+#  ask: "Give me a research call on SPY using the earnings call and the model signal."
+#   → it retrieves cited guidance, gets the model regime, drafts a rated thesis,
+#     and when it tries to publish, returns PENDING_HUMAN_APPROVAL (HITL gate).
+```
+
+The approval gate reuses the **same `before_tool_callback` pattern as the trade
+risk-veto** (`risk_management/portfolio/guardrail.py`) — one governance idiom, two
+uses. Grounding still applies: cite transcript passages or abstain.
+
 ## Roadmap (next phases)
 
 | Phase | Adds | Boxes |
 |---|---|---|
-| **P3** | the agent orchestrates **RAG ⇄ the return model**, + risk-veto + **human-in-the-loop** approval; agent/RAG **evals** | `agentic_workflows` · `risk_management` |
 | **P4** | data platforms: transcripts in **GCS/S3**, **Snowflake** feature/audit marts, a **Databricks** feature job (AWS/Snowflake/Databricks/SQL) | `data_prep` · `live_paper_execution` |
 | **P5** | a **Streamlit** research console (ask → retrieve → predict → explain → approve) + case study | `interface` |
 

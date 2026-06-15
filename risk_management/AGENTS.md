@@ -13,7 +13,8 @@ trades**. This box is a guardrail, not advisory.
   Attach it to any agent that can place orders.
 - `portfolio/auditor.py` — `run_audited_simulation`: the backtest-time drawdown
   auditor (shares the `drawdown_breached` math with the guardrail).
-- `governance/grounding.py` — responsible-AI grounding controls for the Equity Research Assistant: the grounding instruction + `is_grounded()` citation check (cite or abstain — no fabricated guidance). See `docs/EQUITY_RESEARCH.md`.
+- `governance/grounding.py` — responsible-AI grounding controls for the Equity Research Assistant: the grounding instruction + `is_grounded()` citation check (cite or abstain — no fabricated guidance).
+- `governance/approval.py` — `make_research_approval_callback()`: the **human-in-the-loop** gate (an ADK `before_tool_callback`) that blocks publishing a recommendation until a human approves. Same idiom as `portfolio/guardrail.py`. See `docs/EQUITY_RESEARCH.md`.
 - `agents/` — risk-focused ADK agents.
 - `enterprise/` — enterprise-level / aggregate risk.
 
