@@ -128,11 +128,23 @@ The approval gate reuses the **same `before_tool_callback` pattern as the trade
 risk-veto** (`risk_management/portfolio/guardrail.py`) — one governance idiom, two
 uses. Grounding still applies: cite transcript passages or abstain.
 
-## Roadmap (next phases)
+## Phase 4 — data platforms (AWS / Snowflake / Databricks / SQL) ✅
+
+Built **local-first** (SQLite, local FS, pandas) so the SQL/interfaces are real and
+run offline, with the identical code targeting the cloud in production. Full
+breakdown: [`docs/DATA_PLATFORMS.md`](DATA_PLATFORMS.md).
+
+| Platform | Module | Local → prod |
+|---|---|---|
+| **Snowflake** (SQL feature store; point-in-time + monitoring marts) | `data_prep/feature_store.py` | SQLite → Snowflake (same SQL) |
+| **Snowflake** (governance audit log) | `risk_management/governance/audit.py` | SQLite → Snowflake table |
+| **S3 / GCS** (transcripts + model artifacts) | `horizontal_foundation/storage.py` | local FS → boto3 / google-cloud-storage |
+| **Databricks** (feature job) | `data_prep/pipelines/feature_pipeline.py` | pandas → Spark/Delta |
+
+## Roadmap (next phase)
 
 | Phase | Adds | Boxes |
 |---|---|---|
-| **P4** | data platforms: transcripts in **GCS/S3**, **Snowflake** feature/audit marts, a **Databricks** feature job (AWS/Snowflake/Databricks/SQL) | `data_prep` · `live_paper_execution` |
 | **P5** | a **Streamlit** research console (ask → retrieve → predict → explain → approve) + case study | `interface` |
 
 ## Skills demonstrated (for reference)
