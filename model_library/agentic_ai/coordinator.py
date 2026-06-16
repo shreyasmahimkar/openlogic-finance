@@ -147,8 +147,12 @@ def build_moef_level_3_system(artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> Seque
         name="MarketDataExtractor",
         model=glue,
         instruction=(
-            "Use the resolve_ingestion_csv tool to locate 10 years of OHLCV "
-            "historical data and news for the SPY ticker. Emit the CSV path."
+            # Contract: this step resolves the OHLCV dataset path ONLY. News is a "
+            # separate concern handled by the SBERT step downstream — do not claim
+            # to have fetched news here (completeness contract).
+            "Call the resolve_ingestion_csv tool to locate the 10-year SPY OHLCV "
+            "dataset, then emit EXACTLY the returned CSV file path and nothing else. "
+            "This is the market-data path; associated news is filtered later."
         ),
         tools=[FunctionTool(func=resolve_ingestion_csv)],
         output_key="structured_market_data",
@@ -168,9 +172,14 @@ def build_moef_level_3_system(artifact_dir: str = DEFAULT_ARTIFACT_DIR) -> Seque
         name="SBERT_SemanticFilter",
         model=glue,
         instruction=(
-            "Apply semantic similarity to the news for {enriched_market_data} by "
-            "calling the apply_semantic_news_filter tool. Discard noise below the 0.2 "
-            "threshold; output the high-signal news chunks returned by the tool."
+            # Contract: reference the raw dataset path {structured_market_data} (used
+            # only to LOCATE the associated cached news) — not {enriched_market_data}
+            # (the indicator CSV). News filtering does not depend on enrichment
+            # (referential-integrity contract).
+            "Use {structured_market_data} as the dataset path to locate the associated "
+            "cached news, then call apply_semantic_news_filter on that path to discard "
+            "noise below the 0.2 similarity threshold. Output ONLY the high-signal news "
+            "chunks returned by the tool."
         ),
         tools=[FunctionTool(func=apply_semantic_news_filter)],
         output_key="filtered_news_context",

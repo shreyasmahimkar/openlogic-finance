@@ -12,6 +12,7 @@ QuantConnect **LEAN** backtest engine.
 - `backtesting/data/generate_mock_data.py` — deterministic mock data for tests.
 - `validation/report.py` — the *validate* half of the MDLC: `validate()` → `ValidationReport` (AUC/Brier/KS/CV/PSI) + a `passes_gate()` sign-off. See `docs/EQUITY_RESEARCH.md`.
 - `validation/rag_eval.py` + `llm_judge.py` — **scored** RAG eval: context_recall@k + LM-as-judge groundedness (Gemini judge, heuristic fallback) + `passes_gate()`. See `docs/RAG.md`.
+- `validation/agent_contracts.py` — `analyze_pipeline()`: static handoff-contract analysis (dangling `{placeholder}` references + orphan `output_key`s) for any ADK agent tree. See `docs/AGENT_CONTRACT_TESTING.md`.
 - `lean_engine/` — LEAN CLI bridge (`agent.py`, `lean_bridge.py`, `lean_tool.py`) + strategy projects.
 
 ## Rules
