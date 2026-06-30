@@ -20,6 +20,20 @@ try:
 except ImportError:
     ExplanationEngine = None
 
+# Box 4 capital-allocation engine (risk_management). Optional so the dashboard still
+# boots if the module is absent.
+try:
+    from risk_management.portfolio import sizing as alloc_sizing
+    from risk_management.enterprise.allocator import (
+        AllocationConfig,
+        StrategyStat,
+        allocate,
+    )
+
+    ALLOCATOR_AVAILABLE = True
+except ImportError:
+    ALLOCATOR_AVAILABLE = False
+
 
 def safe_rerun():
     if hasattr(st, "rerun"):
@@ -680,6 +694,256 @@ def get_metrics_table(sim_results, mode="strict"):
     stats_bench = compute_stats(bench, "Benchmark (SPY Buy & Hold)")
 
     return pd.DataFrame([stats_a, stats_b, stats_bench])
+
+
+# ----------------- BOX 4: CAPITAL ALLOCATION PANEL -----------------
+
+# Method id -> human label, and the colors used across the allocation charts.
+_ALLOC_METHODS = {
+    "max_sharpe": "Mean-Variance (max-Sharpe)",
+    "min_variance": "Minimum-Variance",
+    "risk_parity": "Risk-Parity",
+    "kelly": "Fractional-Kelly",
+    "equal_weight": "Equal-Weight (1/N)",
+}
+_COLOR_A = "#8F94FB"
+_COLOR_B = "#00E676"
+_COLOR_CASH = "#5A5C6E"
+
+
+def render_allocation_panel(dyn_results, dyn_logs):
+    """Box 4 constructive-risk panel: recommend a capital split across Model A / Model B
+    and explain *why*, driven by ``risk_management.enterprise.allocator.allocate``."""
+    if not ALLOCATOR_AVAILABLE:
+        st.warning("Capital Allocation engine (`risk_management`) not importable — skipping.")
+        return
+
+    st.markdown("---")
+    st.markdown("### 📊 Capital Allocation Engine — *how much to allocate, and why*")
+    st.markdown(
+        """
+        <div class="obsidian-card" style="border-left: 4px solid #66FCF1; margin-bottom: 18px;">
+            <p style="font-size: 13px; color: #C5C6C7; line-height: 1.6; margin: 0;">
+                The drawdown veto above is the <b>defensive</b> half of Box 4. This is the
+                <b>constructive</b> half: given the strategies you backtested, it recommends
+                <b>what % of capital to put in each — and why</b>, using
+                <code>risk_management.enterprise.allocator.allocate()</code>. Mean-variance is the
+                only method that uses the <b>covariance between strategies</b>, so it is the one
+                that prices diversification. A strategy halted by the veto is forced to 0%.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # --- inputs: the two strategies' realized daily return series ---
+    df_alloc = dyn_results["df"]
+    ra = df_alloc["ModelA_Std_Val"].pct_change().dropna()
+    rb = df_alloc["ModelB_Std_Val"].pct_change().dropna()
+    breached_a = bool(dyn_logs["ModelA"]["halted_strict"])
+    breached_b = bool(dyn_logs["ModelB"]["halted_strict"])
+    name_a, name_b = "Model A (LR)", "Model B (SMA)"
+
+    cfg_col, out_col = st.columns([1, 1.5])
+    with cfg_col:
+        method = st.radio(
+            "Allocation method (= risk philosophy)",
+            list(_ALLOC_METHODS.keys()),
+            format_func=lambda m: _ALLOC_METHODS[m],
+            key="alloc_method",
+        )
+        kelly_frac = st.slider("Kelly fraction (λ)", 0.10, 1.0, 0.5, 0.05, key="alloc_kelly")
+        max_w = st.slider("Max per-strategy weight", 0.30, 1.0, 0.60, 0.05, key="alloc_capw")
+        max_lev = st.slider("Max gross leverage", 1.0, 2.0, 1.0, 0.25, key="alloc_lev")
+        # Veto interaction: halting a strategy forces its weight to 0% (see the "why").
+        st.markdown(
+            "<span style='font-size:12px;color:#FF3D00;'>Veto interaction "
+            "— halt a strategy to force it to 0%:</span>",
+            unsafe_allow_html=True,
+        )
+        halted_a = st.checkbox(f"🔴 Halt {name_a}", value=False, key="alloc_halt_a")
+        halted_b = st.checkbox(f"🔴 Halt {name_b}", value=False, key="alloc_halt_b")
+        if breached_a or breached_b:
+            br = ", ".join(n for n, b in [(name_a, breached_a), (name_b, breached_b)] if b)
+            st.caption(f"ℹ️ Historically tripped the drawdown veto: {br}")
+
+    stats = [
+        StrategyStat(name_a, ra.values, is_halted=halted_a),
+        StrategyStat(name_b, rb.values, is_halted=halted_b),
+    ]
+    cfg = AllocationConfig(
+        method=method,
+        kelly_fraction=kelly_frac,
+        max_strategy_weight=max_w,
+        max_gross_leverage=max_lev,
+    )
+    res = allocate(stats, cfg)
+    pm = res.portfolio_metrics
+
+    # --- output column: donut of the recommended split + key metrics ---
+    with out_col:
+        labels = [name_a, name_b, "Cash"]
+        values = [res.weights[name_a], res.weights[name_b], res.cash_weight]
+        fig_donut = go.Figure(
+            go.Pie(
+                labels=labels,
+                values=[max(v, 0) for v in values],
+                hole=0.55,
+                marker=dict(colors=[_COLOR_A, _COLOR_B, _COLOR_CASH]),
+                textinfo="label+percent",
+                sort=False,
+            )
+        )
+        fig_donut.update_layout(
+            title=f"Recommended split — {_ALLOC_METHODS[method]}",
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            height=300,
+            margin=dict(l=0, r=0, t=40, b=0),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_donut, width="stretch")
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Exp. Return", f"{pm.get('expected_return', 0) * 100:.1f}%")
+        m2.metric("Exp. Vol", f"{pm.get('expected_vol', 0) * 100:.1f}%")
+        m3.metric("Portfolio Sharpe", f"{pm.get('sharpe', 0):.2f}")
+        m4, m5, m6 = st.columns(3)
+        m4.metric("Gross Exposure", f"{pm.get('gross_exposure', 0):.2f}x")
+        m5.metric(
+            "Diversification",
+            f"{pm.get('diversification_gain', 0):+.2f}",
+            help="Blended Sharpe minus best single-strategy Sharpe. ~0 ⇒ strategies too "
+            "correlated to diversify.",
+        )
+        m6.metric("Best Single", f"{pm.get('best_single_sharpe', 0):.2f}")
+
+    # --- efficient frontier (opportunity set of the two strategies) ---
+    fcol, ccol = st.columns(2)
+    with fcol:
+        try:
+            T = min(ra.values.size, rb.values.size)
+            R = np.column_stack([ra.values[-T:], rb.values[-T:]])
+            R = R[~np.isnan(R).any(axis=1)]
+            mu, sigma = alloc_sizing.annualize(R)
+            corr = alloc_sizing.correlation_matrix(sigma)[0, 1]
+            grid = np.linspace(0, 1, 81)
+            pts = [alloc_sizing.portfolio_stats([w, 1 - w], mu, sigma) for w in grid]
+            fr_ret = [p[0] * 100 for p in pts]
+            fr_vol = [p[1] * 100 for p in pts]
+            fr_sh = [p[2] for p in pts]
+
+            fig_fr = go.Figure()
+            fig_fr.add_trace(
+                go.Scatter(
+                    x=fr_vol,
+                    y=fr_ret,
+                    mode="markers",
+                    marker=dict(
+                        color=fr_sh, colorscale="Viridis", size=7, colorbar=dict(title="Sharpe")
+                    ),
+                    name="Frontier",
+                    hovertemplate="vol %{x:.1f}%<br>ret %{y:.1f}%<extra></extra>",
+                )
+            )
+            # current recommended point (invested sleeve)
+            fig_fr.add_trace(
+                go.Scatter(
+                    x=[pm.get("expected_vol", 0) * 100],
+                    y=[pm.get("expected_return", 0) * 100],
+                    mode="markers",
+                    marker=dict(
+                        color="#FFD600", size=16, symbol="star", line=dict(color="white", width=1)
+                    ),
+                    name="Your pick",
+                )
+            )
+            fig_fr.update_layout(
+                title=f"Efficient frontier (ρ A,B = {corr:.2f})",
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                height=340,
+                margin=dict(l=0, r=0, t=40, b=0),
+                xaxis_title="Annualized volatility %",
+                yaxis_title="Annualized return %",
+                showlegend=False,
+            )
+            st.plotly_chart(fig_fr, width="stretch")
+        except Exception as exc:  # noqa: BLE001 — frontier is illustrative, never fatal
+            st.caption(f"Frontier unavailable: {exc}")
+
+    # --- how every method would allocate (philosophy comparison) ---
+    with ccol:
+        comp_a, comp_b, comp_labels = [], [], []
+        for m in _ALLOC_METHODS:
+            r = allocate(
+                stats,
+                AllocationConfig(
+                    method=m,
+                    kelly_fraction=kelly_frac,
+                    max_strategy_weight=max_w,
+                    max_gross_leverage=max_lev,
+                ),
+            )
+            comp_a.append(r.weights[name_a] * 100)
+            comp_b.append(r.weights[name_b] * 100)
+            comp_labels.append(_ALLOC_METHODS[m].split(" (")[0])
+        fig_cmp = go.Figure()
+        fig_cmp.add_trace(go.Bar(x=comp_labels, y=comp_a, name=name_a, marker_color=_COLOR_A))
+        fig_cmp.add_trace(go.Bar(x=comp_labels, y=comp_b, name=name_b, marker_color=_COLOR_B))
+        fig_cmp.update_layout(
+            barmode="stack",
+            title="Same data, five philosophies",
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            height=340,
+            margin=dict(l=0, r=0, t=40, b=0),
+            yaxis_title="Allocation %",
+            legend=dict(orientation="h", y=-0.2),
+        )
+        st.plotly_chart(fig_cmp, width="stretch")
+
+    # --- the "why": grounded Tier-1 explanation from the allocator ---
+    why_html = res.explanation.replace("\n", "<br>")
+    st.markdown(
+        f"""
+        <div class="terminal-console" style="height: auto; padding: 16px;">
+            <span style="color:#66FCF1;">▌ WHY THESE WEIGHTS</span><br><br>{why_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # --- "what & how to use the new functions" — the dashboard documents the API ---
+    with st.expander("🧩 How this maps to the new Box 4 functions (API)"):
+        st.code(
+            "from risk_management.enterprise.allocator import (\n"
+            "    StrategyStat, AllocationConfig, allocate,\n"
+            ")\n\n"
+            "stats = [\n"
+            f'    StrategyStat("{name_a}", model_a_daily_returns, is_halted={halted_a}),\n'
+            f'    StrategyStat("{name_b}", model_b_daily_returns, is_halted={halted_b}),\n'
+            "]\n"
+            "cfg = AllocationConfig(\n"
+            f'    method="{method}", kelly_fraction={kelly_frac},\n'
+            f"    max_strategy_weight={max_w}, max_gross_leverage={max_lev},\n"
+            ")\n"
+            "result = allocate(stats, cfg)\n"
+            "result.weights        # -> {strategy: % of capital}\n"
+            "result.explanation    # -> the grounded 'why' shown above\n"
+            "result.warnings       # -> caps / halts / correlation flags\n\n"
+            "# Pure primitives (composable, unit-tested):\n"
+            "#   risk_management.portfolio.sizing.max_sharpe_weights(mu, sigma)\n"
+            "#   risk_management.portfolio.sizing.kelly_weights(mu, sigma, fraction)",
+            language="python",
+        )
+        if res.warnings:
+            st.markdown("**Active constraints / flags:**")
+            for w in res.warnings:
+                st.markdown(f"- {w}")
 
 
 # ----------------- SIDEBAR CONTROLS -----------------
@@ -2149,6 +2413,9 @@ with tabs[3]:
             </div>
             """
             st.markdown(terminal_html, unsafe_allow_html=True)
+
+        # Constructive risk: capital-allocation engine (uses the new risk_management funcs)
+        render_allocation_panel(dyn_results, dyn_logs)
 
 # -------------- BOX 5: LIVE EXECUTION TAB --------------
 with tabs[4]:
